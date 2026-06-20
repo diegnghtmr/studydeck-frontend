@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useDeck, useUpdateDeck, useArchiveDeck, useDeleteDeck } from "./hooks/use-decks";
 import { useNotes } from "@features/notes/hooks/use-notes";
 import { DeckStatsPanel } from "@features/review/components/DeckStatsPanel";
+import { ExportButton } from "@features/import/ExportButton";
 import { ProblemBanner } from "@shared/ui/ProblemBanner";
 import { ConfirmDialog } from "@shared/ui/ConfirmDialog";
 import { normalizeApiProblem } from "@shared/api/problem";
@@ -402,6 +403,20 @@ export function DeckDetailPage() {
               >
                 Delete
               </button>
+
+              <ExportButton deckId={deckId ?? ""} deckTitle={deck.title} />
+
+              <Link
+                to={`/decks/${deckId}/import`}
+                data-testid="import-deck-btn"
+                className="rounded-[32px] px-4 py-1.5 text-[13px] font-medium no-underline transition-opacity hover:opacity-80"
+                style={{
+                  backgroundColor: "var(--color-stone-surface)",
+                  color: "var(--color-graphite)",
+                }}
+              >
+                Import JSON
+              </Link>
             </div>
           )}
         </div>

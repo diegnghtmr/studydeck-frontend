@@ -73,4 +73,17 @@ export const queryKeys = {
     session: (sessionId: string) => ["reviews", "session", sessionId] as const,
     history: (params?: PaginationParams) => ["reviews", "history", params ?? {}] as const,
   },
+
+  // ---- Imports ----
+  imports: {
+    all: ["imports"] as const,
+    validate: () => ["imports", "validate"] as const,
+    preview: () => ["imports", "preview"] as const,
+  },
+
+  // ---- Exports ----
+  exports: {
+    all: ["exports"] as const,
+    deck: (deckId: string) => ["exports", "deck", deckId] as const,
+  },
 } as const;

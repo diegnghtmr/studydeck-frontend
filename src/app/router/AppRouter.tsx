@@ -10,6 +10,7 @@ import { DeckDetailPage } from "@features/decks/DeckDetailPage";
 import { CreateNotePage } from "@features/notes/CreateNotePage";
 import { NoteDetailPage } from "@features/notes/NoteDetailPage";
 import { ReviewSessionPage } from "@features/review/ReviewSessionPage";
+import { ImportWizardPage } from "@features/import/ImportWizardPage";
 
 function NotFound() {
   return (
@@ -108,6 +109,24 @@ export function AppRouter() {
             element={
               <RequireAuth>
                 <ReviewSessionPage />
+              </RequireAuth>
+            }
+          />
+
+          {/* Import routes */}
+          <Route
+            path="/import"
+            element={
+              <RequireAuth>
+                <ImportWizardPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/decks/:deckId/import"
+            element={
+              <RequireAuth>
+                <ImportWizardPage />
               </RequireAuth>
             }
           />

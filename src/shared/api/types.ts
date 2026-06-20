@@ -229,3 +229,118 @@ export interface DeckStatsModel {
 export interface DueCardsModel {
   items: CardModel[];
 }
+
+// ---- Import / Export types -----------------------------------------------------
+
+export const IMPORT_NOTE_TYPE = {
+  BASIC: "basic",
+  REVERSED: "reversed",
+  CLOZE: "cloze",
+  MULTIPLE_CHOICE: "multiple-choice",
+  FREE_TEXT: "free-text",
+} as const;
+
+export type ImportNoteType = (typeof IMPORT_NOTE_TYPE)[keyof typeof IMPORT_NOTE_TYPE];
+
+export interface ImportSourceModel {
+  type?: string;
+  reference?: string;
+}
+
+export interface ImportCommonModel {
+  tags?: string[];
+  source?: ImportSourceModel;
+}
+
+export interface ImportBasicNoteModel extends ImportCommonModel {
+  noteType: "basic";
+  front: string;
+  back: string;
+}
+
+export interface ImportReversedNoteModel extends ImportCommonModel {
+  noteType: "reversed";
+  front: string;
+  back: string;
+}
+
+export interface ImportClozeNoteModel extends ImportCommonModel {
+  noteType: "cloze";
+  text: string;
+}
+
+export interface ImportMultipleChoiceOptionModel {
+  key: string;
+  text: string;
+}
+
+export interface ImportMultipleChoiceNoteModel extends ImportCommonModel {
+  noteType: "multiple-choice";
+  question: string;
+  options: ImportMultipleChoiceOptionModel[];
+  correctOptionKeys: string[];
+  explanation?: string;
+}
+
+export interface ImportFreeTextNoteModel extends ImportCommonModel {
+  noteType: "free-text";
+  prompt: string;
+  expectedAnswer: string;
+  gradingGuidance?: string;
+}
+
+export type ImportNoteModel =
+  | ImportBasicNoteModel
+  | ImportReversedNoteModel
+  | ImportClozeNoteModel
+  | ImportMultipleChoiceNoteModel
+  | ImportFreeTextNoteModel;
+
+export interface ImportDeckInfoModel {
+  title: string;
+  description?: string;
+  tags?: string[];
+}
+
+export interface FlashcardImportV1Model {
+  schemaVersion: "1.0";
+  deck: ImportDeckInfoModel;
+  notes: ImportNoteModel[];
+}
+
+// ---- Violation (from generated, redeclared for convenience) --------------------
+
+export interface ImportViolation {
+  field?: string;
+  message: string;
+}
+
+// ---- API response types -------------------------------------------------------
+
+export interface ImportValidationResponseModel {
+  valid: boolean;
+  errors: ImportViolation[];
+  warnings: string[];
+}
+
+export interface ImportPreviewSummaryModel {
+  deckTitle: string;
+  totalNotes: number;
+  predictedCards: number;
+  duplicateCandidates?: number;
+}
+
+export interface ImportPreviewModel {
+  valid: boolean;
+  summary: ImportPreviewSummaryModel;
+  normalizedPayload?: FlashcardImportV1Model;
+  warnings?: string[];
+}
+
+export interface ImportResultModel {
+  importId: string;
+  deckId: string;
+  importedNotes: number;
+  importedCards: number;
+  warnings?: string[];
+}
