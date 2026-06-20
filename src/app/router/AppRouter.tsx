@@ -5,6 +5,10 @@ import { OidcCallbackPage } from "@shared/auth/OidcProvider";
 import { LoginPage } from "@features/auth/LoginPage";
 import { DashboardPage } from "@features/decks/DashboardPage";
 import { DeckListPage } from "@features/decks/DeckListPage";
+import { CreateDeckPage } from "@features/decks/CreateDeckPage";
+import { DeckDetailPage } from "@features/decks/DeckDetailPage";
+import { CreateNotePage } from "@features/notes/CreateNotePage";
+import { NoteDetailPage } from "@features/notes/NoteDetailPage";
 
 function NotFound() {
   return (
@@ -44,11 +48,47 @@ export function AppRouter() {
               </RequireAuth>
             }
           />
+
+          {/* Deck routes — order matters: /new before /:deckId */}
           <Route
             path="/decks"
             element={
               <RequireAuth>
                 <DeckListPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/decks/new"
+            element={
+              <RequireAuth>
+                <CreateDeckPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/decks/:deckId"
+            element={
+              <RequireAuth>
+                <DeckDetailPage />
+              </RequireAuth>
+            }
+          />
+
+          {/* Note routes — /new before /:noteId */}
+          <Route
+            path="/decks/:deckId/notes/new"
+            element={
+              <RequireAuth>
+                <CreateNotePage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/decks/:deckId/notes/:noteId"
+            element={
+              <RequireAuth>
+                <NoteDetailPage />
               </RequireAuth>
             }
           />
