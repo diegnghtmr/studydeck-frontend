@@ -1,0 +1,22 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=http://backend:8080
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Development story: use `pnpm dev` directly (hot reload, instant feedback)
+  # For a containerized dev environment, override with:
+  #   docker compose run --rm --service-ports frontend sh -c "pnpm install && pnpm dev"
+  # Or mount the source via docker compose override (compose.override.yaml)
