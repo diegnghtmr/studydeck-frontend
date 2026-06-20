@@ -118,3 +118,114 @@ export interface CardPreviewModel {
   back: string;
   hint?: string;
 }
+
+// ---- Review types --------------------------------------------------------------
+
+export const REVIEW_RATING = {
+  AGAIN: "again",
+  HARD: "hard",
+  GOOD: "good",
+  EASY: "easy",
+} as const;
+
+export type ReviewRating = (typeof REVIEW_RATING)[keyof typeof REVIEW_RATING];
+
+export const REVIEW_SESSION_STATUS = {
+  STARTED: "started",
+  COMPLETED: "completed",
+  ABANDONED: "abandoned",
+} as const;
+
+export type ReviewSessionStatus =
+  (typeof REVIEW_SESSION_STATUS)[keyof typeof REVIEW_SESSION_STATUS];
+
+export interface SchedulerStateModel {
+  dueAt?: string;
+  stability?: number;
+  difficulty?: number;
+  retrievability?: number;
+  elapsedDays?: number;
+  scheduledDays?: number;
+  desiredRetention?: number;
+}
+
+export interface ReviewSessionModel extends AuditFields {
+  id: string;
+  deckId?: string;
+  status: ReviewSessionStatus;
+  startedAt: string;
+  endedAt?: string;
+  presentedCount?: number;
+  answeredCount?: number;
+}
+
+export interface NextReviewCardModel {
+  sessionId: string;
+  card: CardModel;
+}
+
+export interface FSRSReviewResultModel {
+  cardId: string;
+  sessionId?: string;
+  rating: ReviewRating;
+  reviewedAt: string;
+  previousState: SchedulerStateModel;
+  nextState: SchedulerStateModel;
+  historyEntryId?: string;
+}
+
+export interface ReviewSubmitPayload {
+  sessionId?: string | undefined;
+  cardId: string;
+  rating: ReviewRating;
+  responseTimeMs?: number | undefined;
+  revealedAnswer?: boolean | undefined;
+  clientPresentAt?: string | undefined;
+}
+
+export interface ReviewSessionCreatePayload {
+  deckId?: string | undefined;
+  maxCards?: number | undefined;
+  includeLearning?: boolean | undefined;
+}
+
+export interface ReviewLogModel extends AuditFields {
+  id: string;
+  sessionId?: string;
+  cardId: string;
+  rating: ReviewRating;
+  reviewedAt: string;
+  responseTimeMs?: number;
+  schedulerSnapshot?: FSRSReviewResultModel;
+}
+
+export interface PagedReviewLogModel {
+  items: ReviewLogModel[];
+  page: {
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    hasNext?: boolean;
+    hasPrevious?: boolean;
+  };
+}
+
+// ---- DeckStats type ------------------------------------------------------------
+
+export interface DeckStatsModel {
+  deckId: string;
+  totalNotes: number;
+  totalCards: number;
+  dueToday: number;
+  reviewedToday: number;
+  suspendedCards: number;
+  againRate7d?: number | undefined;
+  averageRetention30d?: number | undefined;
+}
+
+// ---- Due cards type ------------------------------------------------------------
+
+export interface DueCardsModel {
+  items: CardModel[];
+}

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useDeck, useUpdateDeck, useArchiveDeck, useDeleteDeck } from "./hooks/use-decks";
 import { useNotes } from "@features/notes/hooks/use-notes";
+import { DeckStatsPanel } from "@features/review/components/DeckStatsPanel";
 import { ProblemBanner } from "@shared/ui/ProblemBanner";
 import { ConfirmDialog } from "@shared/ui/ConfirmDialog";
 import { normalizeApiProblem } from "@shared/api/problem";
@@ -346,38 +347,23 @@ export function DeckDetailPage() {
                 )}
               </div>
 
-              {/* Stats placeholder */}
-              <div
-                className="mt-4 grid grid-cols-3 gap-4 border-t pt-4"
-                style={{ borderColor: "var(--color-stone-surface)" }}
-              >
-                {[
-                  { label: "Notes", value: "—" },
-                  { label: "Cards", value: "—" },
-                  { label: "Due today", value: "—" },
-                ].map(({ label, value }) => (
-                  <div key={label}>
-                    <p
-                      className="text-[12px] uppercase tracking-wide"
-                      style={{ color: "var(--color-smoke)" }}
-                    >
-                      {label}
-                    </p>
-                    <p
-                      className="text-[19px] font-semibold"
-                      style={{ color: "var(--color-charcoal-primary)" }}
-                    >
-                      {value}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              {/* Deck stats */}
+              <DeckStatsPanel deckId={deckId ?? ""} />
             </div>
           )}
 
           {/* Action buttons — always visible */}
           {!isRenaming && (
             <div className="mt-5 flex flex-wrap gap-2">
+              <Link
+                to={`/review/${deckId}`}
+                data-testid="start-review-btn"
+                className="rounded-[32px] px-4 py-1.5 text-[13px] font-medium text-white no-underline transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "var(--color-ember-orange)" }}
+              >
+                Start review
+              </Link>
+
               <button
                 type="button"
                 data-testid="rename-deck-btn"

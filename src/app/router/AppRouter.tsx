@@ -9,6 +9,7 @@ import { CreateDeckPage } from "@features/decks/CreateDeckPage";
 import { DeckDetailPage } from "@features/decks/DeckDetailPage";
 import { CreateNotePage } from "@features/notes/CreateNotePage";
 import { NoteDetailPage } from "@features/notes/NoteDetailPage";
+import { ReviewSessionPage } from "@features/review/ReviewSessionPage";
 
 function NotFound() {
   return (
@@ -89,6 +90,24 @@ export function AppRouter() {
             element={
               <RequireAuth>
                 <NoteDetailPage />
+              </RequireAuth>
+            }
+          />
+
+          {/* Review routes */}
+          <Route
+            path="/review"
+            element={
+              <RequireAuth>
+                <ReviewSessionPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/review/:deckId"
+            element={
+              <RequireAuth>
+                <ReviewSessionPage />
               </RequireAuth>
             }
           />
