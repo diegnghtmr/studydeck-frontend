@@ -1,5 +1,8 @@
 import { BrowserRouter, Route, Routes } from "react-router";
 import { NavBar } from "@shared/ui/NavBar";
+import { RequireAuth } from "@shared/auth/RequireAuth";
+import { OidcCallbackPage } from "@shared/auth/OidcProvider";
+import { LoginPage } from "@features/auth/LoginPage";
 import { DashboardPage } from "@features/decks/DashboardPage";
 import { DeckListPage } from "@features/decks/DeckListPage";
 
@@ -28,8 +31,28 @@ export function AppRouter() {
       >
         <NavBar />
         <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/decks" element={<DeckListPage />} />
+          {/* Public routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/callback" element={<OidcCallbackPage />} />
+
+          {/* Protected routes */}
+          <Route
+            path="/"
+            element={
+              <RequireAuth>
+                <DashboardPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/decks"
+            element={
+              <RequireAuth>
+                <DeckListPage />
+              </RequireAuth>
+            }
+          />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
