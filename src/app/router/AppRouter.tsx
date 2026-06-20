@@ -11,6 +11,10 @@ import { CreateNotePage } from "@features/notes/CreateNotePage";
 import { NoteDetailPage } from "@features/notes/NoteDetailPage";
 import { ReviewSessionPage } from "@features/review/ReviewSessionPage";
 import { ImportWizardPage } from "@features/import/ImportWizardPage";
+import { DocumentLibraryPage } from "@features/documents/DocumentLibraryPage";
+import { DocumentDetailPage } from "@features/documents/DocumentDetailPage";
+import { RagChatPage } from "@features/ai/RagChatPage";
+import { AiGeneratePage } from "@features/ai/AiGeneratePage";
 
 function NotFound() {
   return (
@@ -127,6 +131,44 @@ export function AppRouter() {
             element={
               <RequireAuth>
                 <ImportWizardPage />
+              </RequireAuth>
+            }
+          />
+
+          {/* Document routes */}
+          <Route
+            path="/documents"
+            element={
+              <RequireAuth>
+                <DocumentLibraryPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/documents/:documentId"
+            element={
+              <RequireAuth>
+                <DocumentDetailPage />
+              </RequireAuth>
+            }
+          />
+
+          {/* RAG Chat routes */}
+          <Route
+            path="/rag/chat"
+            element={
+              <RequireAuth>
+                <RagChatPage />
+              </RequireAuth>
+            }
+          />
+
+          {/* AI Generate routes */}
+          <Route
+            path="/ai/generate"
+            element={
+              <RequireAuth>
+                <AiGeneratePage />
               </RequireAuth>
             }
           />

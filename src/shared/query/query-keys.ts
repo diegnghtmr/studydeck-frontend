@@ -86,4 +86,26 @@ export const queryKeys = {
     all: ["exports"] as const,
     deck: (deckId: string) => ["exports", "deck", deckId] as const,
   },
+
+  // ---- Documents ----
+  documents: {
+    all: ["documents"] as const,
+    list: (params?: PaginationParams) => ["documents", "list", params ?? {}] as const,
+    detail: (documentId: string) => ["documents", "detail", documentId] as const,
+    chunks: (documentId: string, params?: PaginationParams) =>
+      ["documents", "chunks", documentId, params ?? {}] as const,
+    ingestJob: (documentId: string) => ["documents", "ingest-job", documentId] as const,
+  },
+
+  // ---- RAG ----
+  rag: {
+    all: ["rag"] as const,
+    search: () => ["rag", "search"] as const,
+  },
+
+  // ---- AI ----
+  ai: {
+    all: ["ai"] as const,
+    generate: () => ["ai", "generate"] as const,
+  },
 } as const;

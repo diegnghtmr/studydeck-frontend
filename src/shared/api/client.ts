@@ -5,6 +5,9 @@
  */
 import { Configuration } from "./generated/configuration";
 import { AuthApi, DecksApi, NotesApi, CardsApi, ReviewsApi, ImportExportApi } from "./generated/api";
+import { DocumentsApi } from "./generated/api/documents-api";
+import { RAGApi } from "./generated/api/ragapi";
+import { AIApi } from "./generated/api/aiapi";
 import { axiosInstance } from "./axios-instance";
 
 const BASE_URL = import.meta.env["VITE_API_URL"] ?? "http://localhost:8080";
@@ -19,3 +22,6 @@ export const notesApi = new NotesApi(apiConfig, BASE_URL, axiosInstance);
 export const cardsApi = new CardsApi(apiConfig, BASE_URL, axiosInstance);
 export const reviewsApi = new ReviewsApi(apiConfig, BASE_URL, axiosInstance);
 export const importExportApi = new ImportExportApi(apiConfig, BASE_URL, axiosInstance);
+export const documentsApi = new DocumentsApi(apiConfig, BASE_URL, axiosInstance);
+export const ragApi = new RAGApi(apiConfig, BASE_URL, axiosInstance);
+export const aiApi = new AIApi(apiConfig, BASE_URL, axiosInstance);

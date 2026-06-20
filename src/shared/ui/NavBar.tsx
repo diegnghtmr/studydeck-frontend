@@ -4,6 +4,9 @@ import { cn } from "@shared/lib/cn";
 const NAV_LINKS = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/decks", label: "Decks" },
+  { to: "/documents", label: "Documents" },
+  { to: "/rag/chat", label: "AI Chat" },
+  { to: "/ai/generate", label: "AI Generate" },
 ] as const;
 
 export function NavBar() {

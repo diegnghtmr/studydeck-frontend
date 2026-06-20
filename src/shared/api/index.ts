@@ -2,7 +2,7 @@
 // Features import from here — never from generated/ directly.
 
 export { axiosInstance } from "./axios-instance";
-export { authApi, decksApi, notesApi, cardsApi, reviewsApi } from "./client";
+export { authApi, decksApi, notesApi, cardsApi, reviewsApi, documentsApi, ragApi, aiApi } from "./client";
 export { normalizeApiProblem } from "./problem";
 export type { ApiProblem, Violation } from "./problem";
 

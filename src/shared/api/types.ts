@@ -230,6 +230,122 @@ export interface DueCardsModel {
   items: CardModel[];
 }
 
+// ---- Document types ------------------------------------------------------------
+// The generated Document type collapses to AuditFields only.
+// We redeclare it here with all properties from the OpenAPI spec.
+
+export interface DocumentModel {
+  id: string;
+  title: string;
+  sourceType: "upload" | "pasted-text" | "url";
+  mimeType?: string;
+  originalFilename?: string;
+  textContent?: string;
+  externalUrl?: string;
+  ingestStatus: "registered" | "pending" | "processing" | "completed" | "failed";
+  chunkCount?: number;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PagedDocumentModel {
+  items: DocumentModel[];
+  page: {
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    hasNext?: boolean;
+    hasPrevious?: boolean;
+  };
+}
+
+export interface IngestJobModel {
+  jobId: string;
+  documentId: string;
+  status: "registered" | "pending" | "processing" | "completed" | "failed";
+}
+
+export interface ChunkModel {
+  id: string;
+  documentId: string;
+  ordinal: number;
+  tokenCount?: number;
+  content: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PagedChunkModel {
+  items: ChunkModel[];
+  page: {
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    hasNext?: boolean;
+    hasPrevious?: boolean;
+  };
+}
+
+// ---- RAG types -----------------------------------------------------------------
+
+export interface RagSearchHitModel {
+  chunkId: string;
+  documentId: string;
+  score: number;
+  content?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface RagChatResponseModel {
+  answer: string;
+  citations: RagSearchHitModel[];
+}
+
+export interface RagChatMessageModel {
+  role: "user" | "assistant";
+  content: string;
+  citations?: RagSearchHitModel[];
+}
+
+// ---- AI generate types ---------------------------------------------------------
+
+export const GENERATE_DIFFICULTY = {
+  EASY: "easy",
+  MEDIUM: "medium",
+  HARD: "hard",
+} as const;
+
+export type GenerateDifficulty = (typeof GENERATE_DIFFICULTY)[keyof typeof GENERATE_DIFFICULTY];
+
+export const GENERATE_SOURCE_TYPE = {
+  TEXT: "text",
+  DOCUMENT: "document",
+  RAG_CONTEXT: "rag-context",
+} as const;
+
+export type GenerateSourceType = (typeof GENERATE_SOURCE_TYPE)[keyof typeof GENERATE_SOURCE_TYPE];
+
+export interface GeneratedFlashcardDraftModel {
+  noteType: string;
+  tags?: string[];
+  content: unknown;
+  rationale?: string;
+  source?: unknown;
+}
+
+export interface GenerateFlashcardsResponseModel {
+  generated: GeneratedFlashcardDraftModel[];
+  warnings?: string[];
+}
+
+export interface ImproveFlashcardResponseModel {
+  noteType: string;
+  content: unknown;
+  explanation?: string;
+}
+
 // ---- Import / Export types -----------------------------------------------------
 
 export const IMPORT_NOTE_TYPE = {

@@ -37,4 +37,19 @@ describe("NavBar", () => {
     expect(screen.getByRole("button", { name: /log in/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /get started/i })).toBeInTheDocument();
   });
+
+  it("renders the Documents nav link", () => {
+    renderNavBar();
+    expect(screen.getByRole("link", { name: /documents/i })).toBeInTheDocument();
+  });
+
+  it("renders the AI Chat nav link", () => {
+    renderNavBar();
+    expect(screen.getByRole("link", { name: /ai chat/i })).toBeInTheDocument();
+  });
+
+  it("renders the AI Generate nav link", () => {
+    renderNavBar();
+    expect(screen.getByRole("link", { name: /ai generate/i })).toBeInTheDocument();
+  });
 });
