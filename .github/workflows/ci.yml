@@ -39,7 +39,10 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        # --ignore-scripts: the committed generated API client means no dependency
+        # build scripts are needed in CI; this avoids pnpm's ERR_PNPM_IGNORED_BUILDS
+        # (the openapi-generator-cli postinstall) failing the install.
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Lint
         run: pnpm lint
@@ -76,7 +79,10 @@ jobs:
           version: "11.0.8"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        # --ignore-scripts: the committed generated API client means no dependency
+        # build scripts are needed in CI; this avoids pnpm's ERR_PNPM_IGNORED_BUILDS
+        # (the openapi-generator-cli postinstall) failing the install.
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
