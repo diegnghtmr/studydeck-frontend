@@ -41,5 +41,14 @@ test-results
 .DS_Store
 Thumbs.db
 
-# Generated API client
-src/shared/api/generated
+# Generated API client: commit the .ts source (so CI needs no Java/codegen step),
+# ignore the tsc -b derived outputs and the generator scaffolding/docs.
+src/shared/api/generated/**/*.d.ts
+src/shared/api/generated/**/*.js
+src/shared/api/generated/**/*.tsbuildinfo
+src/shared/api/generated/docs/
+src/shared/api/generated/.openapi-generator/
+src/shared/api/generated/.openapi-generator-ignore
+src/shared/api/generated/.npmignore
+src/shared/api/generated/git_push.sh
+src/shared/api/generated/README.md
