@@ -6,7 +6,7 @@ React 19 + TypeScript 6 + Tailwind CSS 4 frontend for the StudyDeck AI platform.
 
 - Node 22+
 - pnpm 11+
-- Java 21+ (for OpenAPI client generation)
+- Java 21+ — **optional**, only to regenerate the API client (`pnpm gen:api`). Not needed for normal install, build, tests, or CI: the generated client is committed to the repo.
 
 ## Development
 
@@ -42,9 +42,9 @@ The API client is generated from `openapi.yaml` using `openapi-generator-cli` (t
 pnpm gen:api
 ```
 
-Generated files land in `src/shared/api/generated/` (git-ignored). Re-run after any changes to `openapi.yaml`.
+The generated `.ts` sources land in `src/shared/api/generated/` and are **committed** to the repo, so builds and CI need no codegen step. Re-run this after any change to `openapi.yaml` and commit the result. (Only the tsc-derived outputs — `.d.ts`/`.js` — are git-ignored.)
 
-> Requires Java 21+. JDK is downloaded automatically by the CLI on first run.
+> This step needs a Java 21+ runtime (the openapi-generator is a Java tool); the generator JAR is downloaded automatically on first run. Java is **not** required for any other workflow.
 
 ## Docker
 
