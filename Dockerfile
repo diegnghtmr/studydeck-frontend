@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:22-alpine AS builder
+FROM node:26-alpine AS builder
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@11.0.8 --activate
