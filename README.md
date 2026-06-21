@@ -67,6 +67,18 @@ VITE_API_URL=http://localhost:8080 pnpm dev
 
 Copy `.env.example` to `.env.local` and adjust `VITE_API_URL` as needed.
 
+### Authentication
+
+Two local options (the app picks OIDC when `VITE_OIDC_*` is set, otherwise the dev bypass):
+
+- **Dev token (fastest)** — no IdP. Set `VITE_DEV_ACCESS_TOKEN` to a JWT minted with the backend dev secret (see the backend README) and run `pnpm dev`. The app skips the login screen.
+- **Real OIDC login (Keycloak)** — full login flow against the local Keycloak. Start the backend IdP overlay (`docker compose -f compose.yaml -f compose.idp.yaml up -d` in `studydeck-backend`), then:
+
+  ```bash
+  cp env.idp.example .env.local
+  pnpm dev      # http://localhost:5173 → redirects to Keycloak → log in as dev / dev
+  ```
+
 ## Project Structure
 
 ```
