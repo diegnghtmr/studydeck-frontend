@@ -1,5 +1,5 @@
 import { BrowserRouter, Route, Routes } from "react-router";
-import { NavBar } from "@shared/ui/NavBar";
+import { AppShell } from "@shared/ui/AppShell";
 import { RequireAuth } from "@shared/auth/RequireAuth";
 import { OidcCallbackPage } from "@shared/auth/OidcProvider";
 import { LoginPage } from "@features/auth/LoginPage";
@@ -15,6 +15,8 @@ import { DocumentLibraryPage } from "@features/documents/DocumentLibraryPage";
 import { DocumentDetailPage } from "@features/documents/DocumentDetailPage";
 import { RagChatPage } from "@features/ai/RagChatPage";
 import { AiGeneratePage } from "@features/ai/AiGeneratePage";
+import { StudyPage } from "@features/study/StudyPage";
+import { SettingsPage } from "@features/settings/SettingsPage";
 
 function NotFound() {
   return (
@@ -35,147 +37,57 @@ function NotFound() {
 export function AppRouter() {
   return (
     <BrowserRouter>
-      <div
-        className="min-h-screen"
-        style={{ backgroundColor: "var(--color-warm-canvas)" }}
-      >
-        <NavBar />
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/auth/callback" element={<OidcCallbackPage />} />
+      <Routes>
+        {/* Public routes — outside the shell */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/callback" element={<OidcCallbackPage />} />
 
-          {/* Protected routes */}
-          <Route
-            path="/"
-            element={
-              <RequireAuth>
-                <DashboardPage />
-              </RequireAuth>
-            }
-          />
+        {/* Protected routes — inside the shell */}
+        <Route
+          element={
+            <RequireAuth>
+              <AppShell />
+            </RequireAuth>
+          }
+        >
+          <Route path="/" element={<DashboardPage />} />
 
-          {/* Deck routes — order matters: /new before /:deckId */}
-          <Route
-            path="/decks"
-            element={
-              <RequireAuth>
-                <DeckListPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/decks/new"
-            element={
-              <RequireAuth>
-                <CreateDeckPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/decks/:deckId"
-            element={
-              <RequireAuth>
-                <DeckDetailPage />
-              </RequireAuth>
-            }
-          />
+          {/* Study */}
+          <Route path="/study" element={<StudyPage />} />
+
+          {/* Deck routes — order: /new before /:deckId */}
+          <Route path="/decks" element={<DeckListPage />} />
+          <Route path="/decks/new" element={<CreateDeckPage />} />
+          <Route path="/decks/:deckId" element={<DeckDetailPage />} />
 
           {/* Note routes — /new before /:noteId */}
-          <Route
-            path="/decks/:deckId/notes/new"
-            element={
-              <RequireAuth>
-                <CreateNotePage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/decks/:deckId/notes/:noteId"
-            element={
-              <RequireAuth>
-                <NoteDetailPage />
-              </RequireAuth>
-            }
-          />
+          <Route path="/decks/:deckId/notes/new" element={<CreateNotePage />} />
+          <Route path="/decks/:deckId/notes/:noteId" element={<NoteDetailPage />} />
 
           {/* Review routes */}
-          <Route
-            path="/review"
-            element={
-              <RequireAuth>
-                <ReviewSessionPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/review/:deckId"
-            element={
-              <RequireAuth>
-                <ReviewSessionPage />
-              </RequireAuth>
-            }
-          />
+          <Route path="/review" element={<ReviewSessionPage />} />
+          <Route path="/review/:deckId" element={<ReviewSessionPage />} />
 
           {/* Import routes */}
-          <Route
-            path="/import"
-            element={
-              <RequireAuth>
-                <ImportWizardPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/decks/:deckId/import"
-            element={
-              <RequireAuth>
-                <ImportWizardPage />
-              </RequireAuth>
-            }
-          />
+          <Route path="/import" element={<ImportWizardPage />} />
+          <Route path="/decks/:deckId/import" element={<ImportWizardPage />} />
 
           {/* Document routes */}
-          <Route
-            path="/documents"
-            element={
-              <RequireAuth>
-                <DocumentLibraryPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/documents/:documentId"
-            element={
-              <RequireAuth>
-                <DocumentDetailPage />
-              </RequireAuth>
-            }
-          />
+          <Route path="/documents" element={<DocumentLibraryPage />} />
+          <Route path="/documents/:documentId" element={<DocumentDetailPage />} />
 
-          {/* RAG Chat routes */}
-          <Route
-            path="/rag/chat"
-            element={
-              <RequireAuth>
-                <RagChatPage />
-              </RequireAuth>
-            }
-          />
+          {/* RAG Chat */}
+          <Route path="/rag/chat" element={<RagChatPage />} />
 
-          {/* AI Generate routes */}
-          <Route
-            path="/ai/generate"
-            element={
-              <RequireAuth>
-                <AiGeneratePage />
-              </RequireAuth>
-            }
-          />
+          {/* AI Generate */}
+          <Route path="/ai/generate" element={<AiGeneratePage />} />
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </div>
+          {/* Settings */}
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </BrowserRouter>
   );
 }
