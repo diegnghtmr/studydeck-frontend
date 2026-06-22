@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -20,7 +20,7 @@ vi.mock("@shared/api/client", () => ({
   },
 }));
 
-import { importExportApi } from "@shared/api/client";
+import { importExportApi, decksApi } from "@shared/api/client";
 import type {
   ImportValidationResponseModel,
   ImportPreviewModel,
@@ -308,5 +308,142 @@ describe("ImportWizardPage — Step 4: Confirm", () => {
     const deckLink = screen.getByTestId("view-deck-link");
     expect(deckLink).toBeInTheDocument();
     expect(deckLink).toHaveAttribute("href", "/decks/deck-001");
+  });
+});
+
+describe("ImportWizardPage — New UI features", () => {
+  let qc: QueryClient;
+
+  beforeEach(() => {
+    qc = makeQC();
+    vi.clearAllMocks();
+  });
+
+  it("drag-and-drop a file populates the textarea", async () => {
+    renderWizard(qc);
+
+    // The drag zone is the wrapper div around the textarea
+    const textarea = screen.getByTestId("json-input");
+
+    const file = new File([VALID_JSON], "deck.json", { type: "application/json" });
+
+    // Create a DataTransfer mock
+    const dataTransfer = {
+      files: [file],
+      items: [],
+      types: [],
+    };
+
+    fireEvent.dragOver(textarea.parentElement!, { dataTransfer });
+    fireEvent.drop(textarea.parentElement!, { dataTransfer });
+
+    await waitFor(() => {
+      const ta = screen.getByTestId("json-input") as HTMLTextAreaElement;
+      expect(ta.value).toBe(VALID_JSON);
+    });
+  });
+
+  it("Load sample button fills the textarea with valid JSON", async () => {
+    const user = userEvent.setup();
+    renderWizard(qc);
+
+    const loadSampleBtn = screen.getByText("Load sample");
+    await user.click(loadSampleBtn);
+
+    await waitFor(() => {
+      const ta = screen.getByTestId("json-input") as HTMLTextAreaElement;
+      expect(ta.value).toContain("schemaVersion");
+      expect(ta.value).toContain("Sample Deck");
+    });
+  });
+
+  it("Clear button resets the textarea", async () => {
+    const user = userEvent.setup();
+    renderWizard(qc);
+
+    // Load sample first
+    const loadSampleBtn = screen.getByText("Load sample");
+    await user.click(loadSampleBtn);
+
+    // Now it should show "Clear"
+    const clearBtn = await screen.findByText("Clear");
+    await user.click(clearBtn);
+
+    const ta = screen.getByTestId("json-input") as HTMLTextAreaElement;
+    expect(ta.value).toBe("");
+  });
+
+  it("Toast appears after successful import and auto-hides", async () => {
+    mockValidate.mockResolvedValue({ data: VALIDATION_VALID, status: 200 } as never);
+    mockPreview.mockResolvedValue({ data: PREVIEW_RESULT, status: 200 } as never);
+    mockImport.mockResolvedValue({ data: IMPORT_RESULT, status: 201 } as never);
+
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWizard(qc);
+
+    setJsonInput(VALID_JSON);
+
+    await user.click(screen.getByTestId("wizard-next-btn"));
+    await waitFor(() => expect(screen.getByTestId("validation-result")).toBeInTheDocument());
+
+    await user.click(screen.getByTestId("wizard-next-btn"));
+    await waitFor(() => expect(screen.getByTestId("preview-result")).toBeInTheDocument());
+
+    await user.click(screen.getByTestId("wizard-next-btn"));
+    await waitFor(() => expect(screen.getByTestId("import-result")).toBeInTheDocument());
+
+    // Toast should be visible immediately after import
+    expect(screen.getByTestId("toast")).toBeInTheDocument();
+
+    // Advance timers by 3.1s so the auto-hide fires
+    act(() => {
+      vi.advanceTimersByTime(3100);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("toast")).not.toBeInTheDocument();
+    });
+
+    vi.useRealTimers();
+  }, 15000);
+
+  it("Import into dropdown renders deck options", async () => {
+    vi.mocked(decksApi.listDecks).mockResolvedValue({
+      data: {
+        items: [
+          { id: "d1", title: "Biology Deck", archived: false },
+          { id: "d2", title: "Math Deck", archived: false },
+        ],
+        page: { page: 0, size: 20, totalElements: 2, totalPages: 1 },
+      },
+      status: 200,
+    } as never);
+
+    mockValidate.mockResolvedValue({ data: VALIDATION_VALID, status: 200 } as never);
+    mockPreview.mockResolvedValue({ data: PREVIEW_RESULT, status: 200 } as never);
+
+    const user = userEvent.setup();
+    renderWizard(qc);
+
+    setJsonInput(VALID_JSON);
+
+    // Step 1
+    await user.click(screen.getByTestId("wizard-next-btn"));
+    await waitFor(() => expect(screen.getByTestId("validation-result")).toBeInTheDocument());
+
+    // Step 2
+    await user.click(screen.getByTestId("wizard-next-btn"));
+    await waitFor(() => expect(screen.getByTestId("preview-result")).toBeInTheDocument());
+
+    // Click dropdown to open it
+    const dropdownTrigger = screen.getByTestId("deck-dropdown-trigger");
+    await user.click(dropdownTrigger);
+
+    await waitFor(() => {
+      expect(screen.getByText("Biology Deck")).toBeInTheDocument();
+      expect(screen.getByText("Math Deck")).toBeInTheDocument();
+    });
   });
 });

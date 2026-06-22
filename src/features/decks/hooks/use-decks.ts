@@ -118,6 +118,8 @@ export function useDeleteDeck(deckId: string) {
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: queryKeys.decks.detail(deckId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.decks.all });
+      // The deleted deck's notes are cached per-deck; drop them so sidebar counts don't go stale.
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes.all });
     },
   });
 }

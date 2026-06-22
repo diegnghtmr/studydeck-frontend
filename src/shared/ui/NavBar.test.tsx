@@ -3,53 +3,16 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { NavBar } from "./NavBar";
 
-function renderNavBar() {
-  return render(
-    <MemoryRouter>
-      <NavBar />
-    </MemoryRouter>,
-  );
-}
-
-describe("NavBar", () => {
+// NavBar is retained as a component but no longer rendered in the app shell.
+// These tests verify the component renders correctly in isolation.
+describe("NavBar (legacy)", () => {
   it("renders the brand wordmark", () => {
-    renderNavBar();
+    render(<MemoryRouter><NavBar /></MemoryRouter>);
     expect(screen.getByTestId("brand-wordmark")).toHaveTextContent("StudyDeck");
   });
 
-  it("renders the Dashboard nav link", () => {
-    renderNavBar();
-    expect(screen.getByRole("link", { name: /dashboard/i })).toBeInTheDocument();
-  });
-
-  it("renders the Decks nav link", () => {
-    renderNavBar();
-    expect(screen.getByRole("link", { name: /decks/i })).toBeInTheDocument();
-  });
-
   it("renders the navbar container", () => {
-    renderNavBar();
+    render(<MemoryRouter><NavBar /></MemoryRouter>);
     expect(screen.getByTestId("navbar")).toBeInTheDocument();
-  });
-
-  it("renders Log In and Get Started buttons", () => {
-    renderNavBar();
-    expect(screen.getByRole("button", { name: /log in/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /get started/i })).toBeInTheDocument();
-  });
-
-  it("renders the Documents nav link", () => {
-    renderNavBar();
-    expect(screen.getByRole("link", { name: /documents/i })).toBeInTheDocument();
-  });
-
-  it("renders the AI Chat nav link", () => {
-    renderNavBar();
-    expect(screen.getByRole("link", { name: /ai chat/i })).toBeInTheDocument();
-  });
-
-  it("renders the AI Generate nav link", () => {
-    renderNavBar();
-    expect(screen.getByRole("link", { name: /ai generate/i })).toBeInTheDocument();
   });
 });

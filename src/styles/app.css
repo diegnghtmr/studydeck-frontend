@@ -1,5 +1,5 @@
 /* Google Fonts — must precede all other rules */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap");
 
 @import "tailwindcss";
 
@@ -122,4 +122,37 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* ---- Animation keyframes ---- */
+@keyframes sdFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sdPop {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes sdBob {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
+@keyframes sdSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes sdPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* ---- Animation utility classes ---- */
+.sd-fade { animation: sdFade 0.2s ease both; }
+.sd-pop  { animation: sdPop  0.18s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.sd-bob  { animation: sdBob  1.2s ease-in-out infinite; }
+.sd-spin { animation: sdSpin 0.8s linear infinite; }
+.sd-pulse{ animation: sdPulse 1.5s ease-in-out infinite; }
 

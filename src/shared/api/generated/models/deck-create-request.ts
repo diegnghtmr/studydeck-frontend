@@ -19,5 +19,7 @@ export interface DeckCreateRequest {
     'description'?: string;
     'tags'?: Array<string>;
     'defaultDesiredRetention'?: number;
+    'icon'?: string;
+    'color'?: string;
 }
 

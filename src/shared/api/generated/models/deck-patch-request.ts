@@ -20,5 +20,7 @@ export interface DeckPatchRequest {
     'archived'?: boolean;
     'tags'?: Array<string>;
     'defaultDesiredRetention'?: number;
+    'icon'?: string;
+    'color'?: string;
 }
 

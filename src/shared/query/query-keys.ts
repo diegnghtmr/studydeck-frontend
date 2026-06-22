@@ -108,4 +108,10 @@ export const queryKeys = {
     all: ["ai"] as const,
     generate: () => ["ai", "generate"] as const,
   },
+
+  // ---- Stats ----
+  stats: {
+    all: ["stats"] as const,
+    user: () => ["stats", "user"] as const,
+  },
 } as const;

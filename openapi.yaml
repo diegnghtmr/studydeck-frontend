@@ -1924,7 +1924,15 @@ components:
     DeckStats:
       type: object
       required:
-        [deckId, totalNotes, totalCards, dueToday, reviewedToday, suspendedCards]
+        [
+          deckId,
+          totalNotes,
+          totalCards,
+          dueToday,
+          newCards,
+          reviewedToday,
+          suspendedCards,
+        ]
       properties:
         deckId:
           type: string
@@ -1935,6 +1943,9 @@ components:
           type: integer
         dueToday:
           type: integer
+        newCards:
+          type: integer
+          description: Cards in NEW state (or with no schedule row) in this deck.
         reviewedToday:
           type: integer
         suspendedCards:
