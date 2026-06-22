@@ -27,11 +27,12 @@ vi.mock("@shared/api/client", () => ({
   },
 }));
 
-import { aiApi } from "@shared/api/client";
+import { aiApi, decksApi } from "@shared/api/client";
 import { AiGeneratePage } from "./AiGeneratePage";
 import type { GenerateFlashcardsResponseModel } from "@shared/api/types";
 
 const mockGenerateFlashcards = vi.mocked(aiApi.generateFlashcards);
+const mockListDecks = vi.mocked(decksApi.listDecks);
 
 // ---- Sample data ------------------------------------------------------------
 
@@ -56,6 +57,12 @@ function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+
+  // Default decks mock — empty list for basic rendering
+  mockListDecks.mockResolvedValue({
+    data: { items: [], page: { totalElements: 0 } },
+  } as never);
+
   return render(
     createElement(
       QueryClientProvider,
@@ -158,5 +165,79 @@ describe("AiGeneratePage", () => {
   it("disables generate button when no text content", () => {
     renderPage();
     expect(screen.getByTestId("generate-submit-btn")).toBeDisabled();
+  });
+
+  // ---- New tests for redesigned structure ------------------------------------
+
+  it("renders AI badge pill with star and text", () => {
+    renderPage();
+    expect(screen.getByText(/AI-assisted/i)).toBeInTheDocument();
+  });
+
+  it("renders H1 with Fraunces title", () => {
+    renderPage();
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toHaveTextContent("Generate flashcards");
+  });
+
+  it("example topic chips fill the textarea", () => {
+    renderPage();
+    const chip = screen.getByText("The Krebs cycle");
+    fireEvent.click(chip);
+    const textarea = screen.getByTestId("generate-text-input") as HTMLTextAreaElement;
+    expect(textarea.value).toBe("The Krebs cycle");
+  });
+
+  it("accepting a card marks it visually", async () => {
+    mockGenerateFlashcards.mockResolvedValueOnce({ data: GENERATE_RESPONSE } as never);
+    renderPage();
+
+    fireEvent.change(screen.getByTestId("generate-text-input"), {
+      target: { value: "Cell biology notes" },
+    });
+    fireEvent.click(screen.getByTestId("generate-submit-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("proposed-cards")).toBeInTheDocument();
+    });
+
+    // Click the accept button on the first card
+    const acceptBtns = screen.getAllByRole("button", { name: /accept card/i });
+    expect(acceptBtns.length).toBeGreaterThan(0);
+    fireEvent.click(acceptBtns[0]);
+
+    // The first card wrapper should now have the outline style
+    await waitFor(() => {
+      const cardWrapper = screen.getByTestId("propose-card-0");
+      expect(cardWrapper).toHaveStyle({ outline: "2px solid #00ca48" });
+    });
+  });
+
+  it("accepting then dismissing a card clears accept state and removes the card", async () => {
+    mockGenerateFlashcards.mockResolvedValueOnce({ data: GENERATE_RESPONSE } as never);
+    renderPage();
+
+    fireEvent.change(screen.getByTestId("generate-text-input"), {
+      target: { value: "Cell biology notes" },
+    });
+    fireEvent.click(screen.getByTestId("generate-submit-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("proposed-cards")).toBeInTheDocument();
+    });
+
+    // Accept the first card
+    const acceptBtns = screen.getAllByRole("button", { name: /accept card/i });
+    fireEvent.click(acceptBtns[0]);
+
+    // Now dismiss it
+    const dismissBtns = screen.getAllByTestId(/dismiss-card-/);
+    fireEvent.click(dismissBtns[0]);
+
+    // Only 1 card should remain
+    await waitFor(() => {
+      const remaining = screen.getAllByTestId(/propose-card-/);
+      expect(remaining.length).toBe(1);
+    });
   });
 });

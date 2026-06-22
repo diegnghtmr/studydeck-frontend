@@ -4,46 +4,89 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DeckListPage } from "./DeckListPage";
-import type { DeckModel, PagedDeckModel } from "@shared/api/types";
+import type { DeckModel, PagedDeckModel, NoteModel, PagedNoteModel } from "@shared/api/types";
 
-// Mock the api client so no real network calls happen
+// Mock BOTH apis
 vi.mock("@shared/api/client", () => ({
   decksApi: {
     listDecks: vi.fn(),
     createDeck: vi.fn(),
-    getDeck: vi.fn(),
     patchDeck: vi.fn(),
     deleteDeck: vi.fn(),
+    getDeck: vi.fn(),
+  },
+  notesApi: {
+    listNotes: vi.fn(),
+    createNote: vi.fn(),
+    deleteNote: vi.fn(),
+    getNote: vi.fn(),
+    listCardsByNote: vi.fn(),
+    patchNote: vi.fn(),
   },
 }));
 
-import { decksApi } from "@shared/api/client";
+import { decksApi, notesApi } from "@shared/api/client";
 
 const mockListDecks = vi.mocked(decksApi.listDecks);
+const mockListNotes = vi.mocked(notesApi.listNotes);
+const mockCreateDeck = vi.mocked(decksApi.createDeck);
+
+// ---------------------------------------------------------------------------
+// Fixtures
+// ---------------------------------------------------------------------------
 
 const MOCK_DECKS: DeckModel[] = [
   {
-    id: "1",
+    id: "deck-1",
     title: "Cell Biology",
-    description: "Study of cells",
     archived: false,
     createdAt: "2024-01-01T00:00:00Z",
     updatedAt: "2024-01-01T00:00:00Z",
   },
   {
-    id: "2",
-    title: "Spanish Vocabulary",
+    id: "deck-2",
+    title: "Spanish Vocab",
     archived: false,
     createdAt: "2024-01-02T00:00:00Z",
     updatedAt: "2024-01-02T00:00:00Z",
   },
 ];
 
-const MOCK_PAGED_DECKS: PagedDeckModel = {
+const MOCK_NOTES: NoteModel[] = [
+  {
+    id: "note-1",
+    deckId: "deck-1",
+    noteType: "basic",
+    tags: [],
+    content: { front: "What is mitosis?", back: "Cell division" },
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-01-01T00:00:00Z",
+  },
+  {
+    id: "note-2",
+    deckId: "deck-1",
+    noteType: "cloze",
+    tags: [],
+    content: { text: "{{c1::Photosynthesis}} converts light to energy" },
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-01-01T00:00:00Z",
+  },
+  {
+    id: "note-3",
+    deckId: "deck-2",
+    noteType: "basic",
+    tags: [],
+    content: { front: "Hello in Spanish", back: "Hola" },
+    createdAt: "2024-01-02T00:00:00Z",
+    updatedAt: "2024-01-02T00:00:00Z",
+  },
+];
+
+const PAGED_DECKS: PagedDeckModel = {
   items: MOCK_DECKS,
   page: {
     page: 0,
-    size: 20,
+    size: 100,
     totalElements: 2,
     totalPages: 1,
     hasNext: false,
@@ -51,22 +94,27 @@ const MOCK_PAGED_DECKS: PagedDeckModel = {
   },
 };
 
+function makePagedNotes(notes: NoteModel[]): PagedNoteModel {
+  return {
+    items: notes,
+    page: { page: 0, size: 100, totalElements: notes.length, totalPages: 1 },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 function createTestQueryClient() {
   return new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        // Prevent background refetch from interfering with tests
-        staleTime: Infinity,
-      },
-    },
+    defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
 }
 
 function renderPage() {
-  const queryClient = createTestQueryClient();
+  const qc = createTestQueryClient();
   return render(
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={qc}>
       <MemoryRouter>
         <DeckListPage />
       </MemoryRouter>
@@ -74,151 +122,109 @@ function renderPage() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
 describe("DeckListPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockListDecks.mockResolvedValue({ data: PAGED_DECKS } as never);
+    mockListNotes.mockImplementation((_page, _size, _sort, deckId) => {
+      const notes = deckId
+        ? MOCK_NOTES.filter((n) => n.deckId === deckId)
+        : MOCK_NOTES;
+      return Promise.resolve({ data: makePagedNotes(notes) } as never);
+    });
+    mockCreateDeck.mockResolvedValue({
+      data: {
+        id: "new-deck",
+        title: "New Deck",
+        archived: false,
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z",
+      },
+    } as never);
   });
 
-  describe("loading state", () => {
-    it("shows loading skeleton while fetching", async () => {
-      // Never resolves so we stay in loading state
-      mockListDecks.mockReturnValue(new Promise(() => {}));
-      renderPage();
-      expect(screen.getByTestId("deck-list-loading")).toBeInTheDocument();
-    });
+  it("renders the page heading 'Cards & Decks'", async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("deck-list-page")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("Cards & Decks")).toBeInTheDocument();
   });
 
-  describe("data state", () => {
-    beforeEach(() => {
-      mockListDecks.mockResolvedValue({ data: MOCK_PAGED_DECKS } as never);
-    });
-
-    it("renders the page container", async () => {
-      renderPage();
-      await waitFor(() => expect(screen.getByTestId("deck-list-page")).toBeInTheDocument());
-    });
-
-    it("renders deck cards after data loads", async () => {
-      renderPage();
-      await waitFor(() =>
-        expect(screen.getAllByTestId("deck-card")).toHaveLength(2),
-      );
-    });
-
-    it("renders deck titles", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByText("Cell Biology")).toBeInTheDocument();
-        expect(screen.getByText("Spanish Vocabulary")).toBeInTheDocument();
-      });
-    });
-
-    it("renders the 'New deck' CTA link", async () => {
-      renderPage();
-      await waitFor(() =>
-        expect(screen.getByTestId("new-deck-cta")).toBeInTheDocument(),
-      );
-    });
-
-    it("'New deck' CTA links to /decks/new", async () => {
-      renderPage();
-      await waitFor(() => {
-        const cta = screen.getByTestId("new-deck-cta");
-        expect(cta).toHaveAttribute("href", "/decks/new");
-      });
-    });
-
-    it("renders a search input", async () => {
-      renderPage();
-      await waitFor(() =>
-        expect(screen.getByRole("searchbox")).toBeInTheDocument(),
-      );
-    });
+  it("renders one deck row per deck", async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getAllByTestId("deck-row")).toHaveLength(2),
+    );
+    expect(screen.getAllByText("Cell Biology").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Spanish Vocab").length).toBeGreaterThan(0);
   });
 
-  describe("empty state", () => {
-    it("renders empty message when no decks", async () => {
-      mockListDecks.mockResolvedValue({
-        data: {
-          items: [],
-          page: { page: 0, size: 20, totalElements: 0, totalPages: 1 },
-        },
-      } as never);
-
-      renderPage();
-      await waitFor(() =>
-        expect(screen.getByTestId("deck-list-empty")).toBeInTheDocument(),
-      );
-    });
-
-    it("shows 'No decks yet' text in empty state", async () => {
-      mockListDecks.mockResolvedValue({
-        data: {
-          items: [],
-          page: { page: 0, size: 20, totalElements: 0, totalPages: 1 },
-        },
-      } as never);
-
-      renderPage();
-      await waitFor(() =>
-        expect(screen.getByText(/no decks yet/i)).toBeInTheDocument(),
-      );
-    });
+  it("renders a note card per note when all decks selected", async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getAllByTestId("note-card")).toHaveLength(3),
+    );
   });
 
-  describe("error state", () => {
-    it("shows ProblemBanner when API errors", async () => {
-      const apiError = Object.assign(new Error("Server error"), {
-        response: {
-          status: 500,
-          data: {
-            type: "about:blank",
-            title: "Internal Server Error",
-            status: 500,
-          },
-        },
-      });
-      mockListDecks.mockRejectedValue(apiError);
-
-      renderPage();
-      await waitFor(() =>
-        expect(screen.getByTestId("problem-banner")).toBeInTheDocument(),
-      );
-    });
-
-    it("displays error title in banner", async () => {
-      const apiError = Object.assign(new Error("Server error"), {
-        response: {
-          status: 500,
-          data: {
-            type: "about:blank",
-            title: "Internal Server Error",
-            status: 500,
-          },
-        },
-      });
-      mockListDecks.mockRejectedValue(apiError);
-
-      renderPage();
-      await waitFor(() =>
-        expect(screen.getByText("Internal Server Error")).toBeInTheDocument(),
-      );
-    });
+  it("shows loading skeleton while notes are loading", async () => {
+    mockListNotes.mockReturnValue(new Promise(() => {}));
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getAllByTestId("cards-skeleton").length).toBeGreaterThan(0),
+    );
   });
 
-  describe("filter: archived", () => {
-    it("toggles the archived filter button", async () => {
-      const user = userEvent.setup();
-      mockListDecks.mockResolvedValue({ data: MOCK_PAGED_DECKS } as never);
+  it("shows empty state when no notes match", async () => {
+    mockListNotes.mockResolvedValue({ data: makePagedNotes([]) } as never);
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("cards-empty")).toBeInTheDocument(),
+    );
+  });
 
-      renderPage();
-      await waitFor(() => screen.getByText("Show archived"));
+  it("type filter 'Basic' shows only basic notes", async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getAllByTestId("note-card")).toHaveLength(3),
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("type-filter-basic"));
+    await waitFor(() =>
+      expect(screen.getAllByTestId("note-card")).toHaveLength(2),
+    );
+  });
 
-      const filterBtn = screen.getByRole("button", { name: /show archived/i });
-      expect(filterBtn).toHaveAttribute("aria-pressed", "false");
+  it("search input filters note cards by text", async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getAllByTestId("note-card")).toHaveLength(3),
+    );
+    const user = userEvent.setup();
+    await user.type(screen.getByTestId("card-search"), "mitosis");
+    await waitFor(() =>
+      expect(screen.getAllByTestId("note-card")).toHaveLength(1),
+    );
+  });
 
-      await user.click(filterBtn);
-      expect(filterBtn).toHaveAttribute("aria-pressed", "true");
-    });
+  it("opening 'New deck' modal and submitting calls createDeck", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await waitFor(() => expect(screen.getByText("New deck")).toBeInTheDocument());
+    await user.click(screen.getAllByText("New deck")[0]);
+    await waitFor(() =>
+      expect(screen.getByTestId("deck-modal")).toBeInTheDocument(),
+    );
+    await user.type(screen.getByTestId("deck-name-input"), "My New Deck");
+    await user.click(screen.getByTestId("deck-modal-submit"));
+    await waitFor(() =>
+      expect(mockCreateDeck).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "My New Deck" }),
+      ),
+    );
   });
 });

@@ -88,6 +88,7 @@ const SAMPLE_DECK_STATS: DeckStatsModel = {
   totalNotes: 10,
   totalCards: 20,
   dueToday: 5,
+  newCards: 4,
   reviewedToday: 3,
   suspendedCards: 1,
   averageRetention30d: 0.88,

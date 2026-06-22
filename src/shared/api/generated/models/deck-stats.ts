@@ -19,6 +19,7 @@ export interface DeckStats {
     'totalNotes': number;
     'totalCards': number;
     'dueToday': number;
+    'newCards': number;
     'reviewedToday': number;
     'suspendedCards': number;
     'againRate7d'?: number;

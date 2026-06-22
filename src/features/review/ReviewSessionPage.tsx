@@ -12,7 +12,7 @@
  *   4           → easy
  */
 import { useState, useEffect, useRef } from "react";
-import { useParams, Link } from "react-router";
+import { useParams, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStartSession, useSubmitReview, useNextCard } from "./hooks/use-review";
 import type { NextCardResult } from "./hooks/use-review";
@@ -20,7 +20,9 @@ import { queryKeys } from "@shared/query/query-keys";
 import type { ReviewSessionModel, CardModel, ReviewRating, ReviewSessionCreatePayload } from "@shared/api/types";
 import { REVIEW_RATING } from "@shared/api/types";
 import { cardsApi, reviewsApi } from "@shared/api/client";
-import { cn } from "@shared/lib/cn";
+import { useDeck } from "@features/decks/hooks/use-decks";
+import { DeckIcon } from "@features/decks/DeckIcon";
+import { Badge, PillButton, ProgressBar } from "@shared/ui";
 
 // ---- Review state machine ---------------------------------------------------
 
@@ -36,16 +38,174 @@ const REVIEW_STATE = {
 
 type ReviewState = (typeof REVIEW_STATE)[keyof typeof REVIEW_STATE];
 
-// ---- Rating button labels + keyboard keys -----------------------------------
+// ---- Rating config ----------------------------------------------------------
 
 const RATINGS: Array<{ rating: ReviewRating; label: string; key: string; color: string }> = [
-  { rating: REVIEW_RATING.AGAIN, label: "Again", key: "1", color: "var(--color-coral-red)" },
-  { rating: REVIEW_RATING.HARD, label: "Hard", key: "2", color: "var(--color-sunburst-yellow)" },
-  { rating: REVIEW_RATING.GOOD, label: "Good", key: "3", color: "var(--color-meadow-green)" },
-  { rating: REVIEW_RATING.EASY, label: "Easy", key: "4", color: "var(--color-sky-blue)" },
+  { rating: REVIEW_RATING.AGAIN, label: "Again", key: "1", color: "#ff3e00" },
+  { rating: REVIEW_RATING.HARD,  label: "Hard",  key: "2", color: "#d48f00" },
+  { rating: REVIEW_RATING.GOOD,  label: "Good",  key: "3", color: "#343433" },
+  { rating: REVIEW_RATING.EASY,  label: "Easy",  key: "4", color: "#00ca48" },
 ];
 
 // ---- Sub-components ---------------------------------------------------------
+
+interface StartScreenProps {
+  deckId?: string | undefined;
+  onStart: () => void;
+  isStarting: boolean;
+}
+
+function StartScreen({ deckId, onStart, isStarting }: StartScreenProps) {
+  return (
+    <div
+      data-testid="review-start-screen"
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "80px 32px",
+      }}
+    >
+      <h1
+        style={{
+          fontFamily: "var(--font-family)",
+          fontSize: 34,
+          fontWeight: 600,
+          color: "#343433",
+          letterSpacing: "-0.6px",
+          margin: 0,
+          marginBottom: 12,
+        }}
+      >
+        Ready to review?
+      </h1>
+      <p style={{ fontSize: 15, color: "#848281", margin: 0, marginBottom: 36 }}>
+        {deckId
+          ? "Cards due for this deck will be shown in order."
+          : "All your due cards across every deck."}
+      </p>
+      <button
+        type="button"
+        onClick={onStart}
+        disabled={isStarting}
+        style={{
+          borderRadius: 32,
+          padding: "14px 40px",
+          fontSize: 17,
+          fontWeight: 600,
+          color: "#ffffff",
+          backgroundColor: "#ff5c00",
+          border: "none",
+          cursor: isStarting ? "not-allowed" : "pointer",
+          opacity: isStarting ? 0.6 : 1,
+          transition: "opacity 0.15s",
+        }}
+      >
+        {isStarting ? "Starting…" : "Start session"}
+      </button>
+    </div>
+  );
+}
+
+// ---- DeckTopBar -------------------------------------------------------------
+
+interface DeckTopBarProps {
+  deckId?: string | undefined;
+  reviewedCount: number;
+  onClose: () => void;
+}
+
+function DeckTopBar({ deckId, reviewedCount, onClose }: DeckTopBarProps) {
+  const { data: deckData } = useDeck(deckId ?? "");
+
+  const deckTitle = deckData?.title ?? (deckId ? "Loading…" : "All decks");
+
+  return (
+    <header
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "20px 32px",
+        borderBottom: "1px solid #f2f0ed",
+        flexShrink: 0,
+        backgroundColor: "#ffffff",
+      }}
+    >
+      {/* Left: deck avatar + title + FSRS badge */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {deckId ? (
+          <DeckIcon
+            deckId={deckId}
+            icon={deckData?.icon}
+            color={deckData?.color}
+            size={24}
+          />
+        ) : (
+          <div
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 7,
+              backgroundColor: "#f2f0ed",
+              color: "#a7a7a7",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 3l8.5 4.7L12 12.4 3.5 7.7 12 3ZM4 12l8 4.5 8-4.5M4 16.3l8 4.5 8-4.5"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        )}
+        <span style={{ fontSize: 15, fontWeight: 600, color: "#343433" }}>
+          {deckTitle}
+        </span>
+        <Badge label="FSRS scheduler" tone="gray" />
+      </div>
+
+      {/* Right: card counter + close */}
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <span style={{ fontSize: 13, color: "#a7a7a7" }}>
+          Card {reviewedCount + 1}
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close session"
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            border: "none",
+            backgroundColor: "#f2f0ed",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 16,
+            color: "#343433",
+          }}
+        >
+          ×
+        </button>
+      </div>
+    </header>
+  );
+}
+
+// ---- CardFrontPanel ---------------------------------------------------------
 
 interface CardFrontPanelProps {
   card: CardModel;
@@ -56,63 +216,63 @@ interface CardFrontPanelProps {
 
 function CardFrontPanel({ card, front, hint, onReveal }: CardFrontPanelProps) {
   return (
-    <div
-      data-testid="review-card-front"
-      className="flex flex-col gap-6"
-    >
-      {/* Card variant badge */}
-      <div className="flex items-center gap-2">
-        <span
-          className="rounded-[6px] px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide"
-          style={{
-            backgroundColor: "var(--color-stone-surface)",
-            color: "var(--color-ash)",
-          }}
-        >
-          {card.cardVariant}
-        </span>
-      </div>
-
-      {/* Front content */}
+    <div data-testid="review-card-front">
+      {/* Flash card */}
       <div
-        className="rounded-[10px] p-8"
         style={{
-          backgroundColor: "var(--color-parchment-card)",
+          backgroundColor: "#ffffff",
+          borderRadius: 20,
+          padding: 44,
           boxShadow: "var(--shadow-subtle)",
+          textAlign: "center",
         }}
       >
+        <Badge label={card.cardVariant} tone="blue" />
         <p
-          className="mb-1 text-[11px] font-medium uppercase tracking-wide"
-          style={{ color: "var(--color-smoke)" }}
-        >
-          Prompt
-        </p>
-        <p
-          className="mt-3 text-[19px] leading-[1.47]"
-          style={{ color: "var(--color-charcoal-primary)" }}
+          style={{
+            fontSize: 25,
+            fontWeight: 500,
+            color: "#343433",
+            marginTop: 20,
+            marginBottom: 0,
+            lineHeight: 1.4,
+          }}
         >
           {front}
         </p>
         {hint && (
-          <p className="mt-3 text-[14px] italic" style={{ color: "var(--color-ash)" }}>
-            Hint: {hint}
+          <p style={{ fontSize: 14, color: "#848281", marginTop: 12, fontStyle: "italic" }}>
+            {hint}
           </p>
         )}
       </div>
 
       {/* Show answer CTA */}
-      <div className="flex justify-center">
+      <div style={{ display: "flex", justifyContent: "center", marginTop: 28 }}>
         <button
           type="button"
           onClick={onReveal}
-          className="rounded-[32px] px-8 py-3 text-[15px] font-medium text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "var(--color-midnight)" }}
+          style={{
+            backgroundColor: "#121212",
+            color: "#ffffff",
+            borderRadius: 32,
+            padding: "14px 32px",
+            fontSize: 15,
+            fontWeight: 500,
+            border: "none",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+          }}
         >
           Show answer
           <span
-            className="ml-2 rounded-[6px] px-1.5 py-0.5 text-[11px] font-normal"
             style={{
+              fontSize: 11,
               backgroundColor: "rgba(255,255,255,0.18)",
+              borderRadius: 6,
+              padding: "2px 6px",
             }}
           >
             Space
@@ -122,6 +282,8 @@ function CardFrontPanel({ card, front, hint, onReveal }: CardFrontPanelProps) {
     </div>
   );
 }
+
+// ---- CardRevealedPanel ------------------------------------------------------
 
 interface CardRevealedPanelProps {
   card: CardModel;
@@ -134,155 +296,235 @@ interface CardRevealedPanelProps {
 
 function CardRevealedPanel({ card, front, back, hint, onRate, isSubmitting }: CardRevealedPanelProps) {
   return (
-    <div className="flex flex-col gap-6">
-      {/* Card variant badge */}
-      <div className="flex items-center gap-2">
-        <span
-          className="rounded-[6px] px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide"
-          style={{
-            backgroundColor: "var(--color-stone-surface)",
-            color: "var(--color-ash)",
-          }}
-        >
-          {card.cardVariant}
-        </span>
-      </div>
-
-      {/* Front + Answer */}
+    <div className="sd-fade">
+      {/* Card */}
       <div
-        className="rounded-[10px] p-8"
         style={{
-          backgroundColor: "var(--color-parchment-card)",
+          backgroundColor: "#ffffff",
+          borderRadius: 20,
           boxShadow: "var(--shadow-subtle)",
+          overflow: "hidden",
         }}
       >
-        <div data-testid="review-card-front-text">
+        {/* Question section */}
+        <div
+          style={{
+            padding: 44,
+            textAlign: "center",
+            borderBottom: "1px dashed #e8e4df",
+          }}
+        >
+          <Badge label={card.cardVariant} tone="blue" />
           <p
-            className="mb-1 text-[11px] font-medium uppercase tracking-wide"
-            style={{ color: "var(--color-smoke)" }}
-          >
-            Prompt
-          </p>
-          <p
-            className="mt-2 text-[19px] leading-[1.47]"
-            style={{ color: "var(--color-charcoal-primary)" }}
+            data-testid="review-card-front-text"
+            style={{
+              fontSize: 25,
+              fontWeight: 500,
+              color: "#343433",
+              marginTop: 20,
+              marginBottom: 0,
+              lineHeight: 1.4,
+            }}
           >
             {front}
           </p>
           {hint && (
-            <p className="mt-2 text-[14px] italic" style={{ color: "var(--color-ash)" }}>
-              Hint: {hint}
+            <p style={{ fontSize: 14, color: "#848281", marginTop: 12, fontStyle: "italic" }}>
+              {hint}
             </p>
           )}
         </div>
 
-        <div
-          className="mt-6 border-t pt-6"
-          style={{ borderColor: "var(--color-stone-surface)" }}
-          data-testid="review-card-back"
-        >
+        {/* Answer section */}
+        <div data-testid="review-card-back" style={{ padding: "32px 44px" }}>
           <p
-            className="mb-1 text-[11px] font-medium uppercase tracking-wide"
-            style={{ color: "var(--color-smoke)" }}
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "0.08em",
+              color: "#a7a7a7",
+              marginBottom: 12,
+              marginTop: 0,
+              textTransform: "uppercase",
+            }}
           >
-            Answer
+            ANSWER
           </p>
-          <p
-            className="mt-2 text-[19px] leading-[1.47]"
-            style={{ color: "var(--color-graphite)" }}
-          >
+          <p style={{ fontSize: 20, color: "#474645", margin: 0, lineHeight: 1.5 }}>
             {back}
           </p>
         </div>
       </div>
 
-      {/* Rating buttons */}
-      <div className="flex flex-col items-center gap-3">
-        <p className="text-[13px]" style={{ color: "var(--color-ash)" }}>
-          How well did you remember?
-        </p>
-        <div className="flex flex-wrap justify-center gap-3">
-          {RATINGS.map(({ rating, label, key, color }) => (
-            <button
-              key={rating}
-              type="button"
-              data-testid={`rating-btn-${rating}`}
-              onClick={() => onRate(rating)}
-              disabled={isSubmitting}
-              className={cn(
-                "flex flex-col items-center rounded-[10px] px-6 py-3 text-white transition-opacity hover:opacity-90 disabled:opacity-40",
-                "min-w-[80px]",
-              )}
-              style={{ backgroundColor: color }}
-            >
-              <span className="text-[15px] font-semibold">{label}</span>
-              <span className="mt-0.5 text-[11px] opacity-80">
-                {key}
-              </span>
-            </button>
-          ))}
-        </div>
-        <p className="text-[12px]" style={{ color: "var(--color-fog)" }}>
-          Keys: 1=Again, 2=Hard, 3=Good, 4=Easy
-        </p>
+      {/* Rating grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 10,
+          marginTop: 28,
+        }}
+      >
+        {RATINGS.map(({ rating, label, key, color }) => (
+          <RatingButton
+            key={rating}
+            rating={rating}
+            label={label}
+            keyHint={key}
+            color={color}
+            onRate={onRate}
+            isSubmitting={isSubmitting}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
+// ---- RatingButton -----------------------------------------------------------
+
+interface RatingButtonProps {
+  rating: ReviewRating;
+  label: string;
+  keyHint: string;
+  color: string;
+  onRate: (rating: ReviewRating) => void;
+  isSubmitting: boolean;
+}
+
+function RatingButton({ rating, label, keyHint, color, onRate, isSubmitting }: RatingButtonProps) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <button
+      type="button"
+      data-testid={`rating-btn-${rating}`}
+      onClick={() => onRate(rating)}
+      disabled={isSubmitting}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        borderRadius: 14,
+        border: `1px solid ${hovered ? color : "#e8e4df"}`,
+        backgroundColor: "#ffffff",
+        padding: "14px 12px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 6,
+        cursor: isSubmitting ? "not-allowed" : "pointer",
+        transition: "all 0.12s",
+        opacity: isSubmitting ? 0.4 : 1,
+        boxShadow: hovered ? "0 4px 12px rgba(0,0,0,0.08)" : "none",
+      }}
+    >
+      <span style={{ fontSize: 14, fontWeight: 600, color }}>{label}</span>
+      <span style={{ fontSize: 11, color: "#a7a7a7" }}>{keyHint}</span>
+    </button>
+  );
+}
+
+// ---- ReviewSummary ----------------------------------------------------------
+
 interface ReviewSummaryProps {
   deckId?: string | undefined;
   reviewedCount: number;
   ratings: Record<ReviewRating, number>;
-  startedAt: number;
+  onStudyAgain: () => void;
 }
 
-function ReviewSummary({ deckId, reviewedCount, ratings, startedAt }: ReviewSummaryProps) {
-  const elapsedMs = Date.now() - startedAt;
-  const elapsedMin = Math.round(elapsedMs / 60000);
-
-  const total = Object.values(ratings).reduce((sum, n) => sum + n, 0);
-  const goodOrEasy = (ratings["good"] ?? 0) + (ratings["easy"] ?? 0);
-  const accuracy = total > 0 ? Math.round((goodOrEasy / total) * 100) : 0;
+function ReviewSummary({ reviewedCount, ratings, onStudyAgain }: ReviewSummaryProps) {
+  const navigate = useNavigate();
 
   return (
-    <div data-testid="review-summary" className="flex flex-col gap-8">
-      <div className="text-center">
-        <h2
-          className="text-[28px] font-semibold"
-          style={{ color: "var(--color-charcoal-primary)", letterSpacing: "-0.5px" }}
-        >
-          Session complete
-        </h2>
-        <p className="mt-2 text-[15px]" style={{ color: "var(--color-graphite)" }}>
-          Great work — keep the streak going!
-        </p>
+    <div
+      data-testid="review-summary"
+      className="sd-pop"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        maxWidth: 440,
+        margin: "80px auto",
+      }}
+    >
+      {/* Success circle */}
+      <div
+        style={{
+          width: 72,
+          height: 72,
+          borderRadius: "50%",
+          backgroundColor: "#e6f9ed",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+          <path
+            d="M6 14l6 6 10-12"
+            stroke="#00ca48"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </div>
 
-      {/* Stats grid */}
-      <div
-        className="grid grid-cols-2 gap-4 rounded-[10px] p-6 md:grid-cols-4"
+      <h2
         style={{
-          backgroundColor: "var(--color-parchment-card)",
-          boxShadow: "var(--shadow-subtle)",
+          fontFamily: "var(--font-family)",
+          fontSize: 34,
+          fontWeight: 600,
+          color: "#343433",
+          marginTop: 24,
+          marginBottom: 0,
+          textAlign: "center",
+        }}
+      >
+        All done
+      </h2>
+      <p style={{ fontSize: 15, color: "#848281", marginTop: 8, textAlign: "center" }}>
+        Great work — keep the streak going!
+      </p>
+
+      {/* Stat tiles */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: 12,
+          marginTop: 32,
+          width: "100%",
         }}
       >
         {[
           { label: "Reviewed", value: reviewedCount },
-          { label: "Accuracy", value: `${accuracy}%` },
-          { label: "Time", value: `${elapsedMin}m` },
           { label: "Again", value: ratings["again"] ?? 0 },
+          { label: "Good", value: ratings["good"] ?? 0 },
+          { label: "Easy", value: ratings["easy"] ?? 0 },
         ].map(({ label, value }) => (
-          <div key={label} className="text-center">
-            <p
-              className="text-[23px] font-semibold"
-              style={{ color: "var(--color-charcoal-primary)" }}
-            >
+          <div
+            key={label}
+            style={{
+              backgroundColor: "#f6f4ef",
+              borderRadius: 12,
+              padding: 16,
+              textAlign: "center",
+            }}
+          >
+            <p style={{ fontSize: 24, fontWeight: 600, color: "#343433", margin: 0 }}>
               {value}
             </p>
             <p
-              className="text-[12px] uppercase tracking-wide"
-              style={{ color: "var(--color-smoke)" }}
+              style={{
+                fontSize: 12,
+                color: "#a7a7a7",
+                marginTop: 4,
+                marginBottom: 0,
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+              }}
             >
               {label}
             </p>
@@ -290,113 +532,15 @@ function ReviewSummary({ deckId, reviewedCount, ratings, startedAt }: ReviewSumm
         ))}
       </div>
 
-      {/* Rating breakdown */}
-      <div
-        className="rounded-[10px] p-6"
-        style={{
-          backgroundColor: "var(--color-parchment-card)",
-          boxShadow: "var(--shadow-subtle)",
-        }}
-      >
-        <p
-          className="mb-4 text-[13px] font-medium uppercase tracking-wide"
-          style={{ color: "var(--color-ash)" }}
-        >
-          Rating breakdown
-        </p>
-        <div className="flex flex-col gap-2">
-          {RATINGS.map(({ rating, label, color }) => {
-            const count = ratings[rating] ?? 0;
-            const pct = total > 0 ? (count / total) * 100 : 0;
-            return (
-              <div key={rating} className="flex items-center gap-3">
-                <span
-                  className="w-14 text-[13px] font-medium"
-                  style={{ color: "var(--color-graphite)" }}
-                >
-                  {label}
-                </span>
-                <div className="flex-1 overflow-hidden rounded-full bg-gray-100" style={{ height: "6px" }}>
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${pct}%`, backgroundColor: color }}
-                  />
-                </div>
-                <span
-                  className="w-6 text-right text-[13px]"
-                  style={{ color: "var(--color-ash)" }}
-                >
-                  {count}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+      {/* Buttons */}
+      <div style={{ marginTop: 32, display: "flex", gap: 12 }}>
+        <PillButton variant="secondary" onClick={() => navigate("/")}>
+          Back to dashboard
+        </PillButton>
+        <PillButton variant="primary" onClick={onStudyAgain}>
+          Study again
+        </PillButton>
       </div>
-
-      {/* CTAs */}
-      <div className="flex justify-center gap-3">
-        {deckId && (
-          <Link
-            to={`/decks/${deckId}`}
-            className="rounded-[32px] px-6 py-2.5 text-[14px] font-medium no-underline transition-opacity hover:opacity-80"
-            style={{
-              backgroundColor: "var(--color-stone-surface)",
-              color: "var(--color-graphite)",
-            }}
-          >
-            Back to deck
-          </Link>
-        )}
-        <Link
-          to="/"
-          className="rounded-[32px] px-6 py-2.5 text-[14px] font-medium text-white no-underline transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "var(--color-midnight)" }}
-        >
-          Dashboard
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-// ---- Start screen -----------------------------------------------------------
-
-interface StartScreenProps {
-  deckId?: string | undefined;
-  onStart: () => void;
-  isStarting: boolean;
-}
-
-function StartScreen({ deckId, onStart, isStarting }: StartScreenProps) {
-  return (
-    <div data-testid="review-start-screen" className="flex flex-col items-center gap-8 py-16 text-center">
-      <div>
-        <h1
-          className="text-[28px] font-semibold"
-          style={{ color: "var(--color-charcoal-primary)", letterSpacing: "-0.5px" }}
-        >
-          Ready to review?
-        </h1>
-        <p
-          className="mt-3 text-[15px] leading-[1.47]"
-          style={{ color: "var(--color-graphite)" }}
-        >
-          {deckId
-            ? "Cards due for this deck will be shown in order."
-            : "All your due cards across every deck."}
-        </p>
-      </div>
-
-      <button
-        type="button"
-        onClick={onStart}
-        disabled={isStarting}
-        className="rounded-[32px] px-10 py-3.5 text-[17px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-        style={{ backgroundColor: "var(--color-ember-orange)" }}
-      >
-        {isStarting ? "Starting…" : "Start session"}
-      </button>
     </div>
   );
 }
@@ -405,6 +549,7 @@ function StartScreen({ deckId, onStart, isStarting }: StartScreenProps) {
 
 export function ReviewSessionPage() {
   const { deckId } = useParams<{ deckId: string }>();
+  const navigate = useNavigate();
 
   const [reviewState, setReviewState] = useState<ReviewState>(REVIEW_STATE.IDLE);
   const [session, setSession] = useState<ReviewSessionModel | null>(null);
@@ -413,7 +558,6 @@ export function ReviewSessionPage() {
   const [ratings, setRatings] = useState<Record<ReviewRating, number>>({
     again: 0, hard: 0, good: 0, easy: 0,
   });
-  const [sessionStartedAt] = useState(() => Date.now());
 
   const queryClient = useQueryClient();
   const startSession = useStartSession();
@@ -443,7 +587,6 @@ export function ReviewSessionPage() {
       setCardPreview({ front: data.front, back: data.back, hint: data.hint });
       setReviewState(REVIEW_STATE.FRONT);
     }).catch(() => {
-      // Fallback: show card with no content
       setCardPreview({ front: "", back: "" });
       setReviewState(REVIEW_STATE.FRONT);
     });
@@ -483,12 +626,10 @@ export function ReviewSessionPage() {
       setReviewedCount((n) => n + 1);
       setRatings((prev) => ({ ...prev, [rating]: (prev[rating] ?? 0) + 1 }));
 
-      // Fetch the next card directly (bypassing cache) to advance the session
       const nextResponse = await reviewsApi.getNextReviewCard(session.id);
       if (nextResponse.status === 204 || !nextResponse.data) {
         setReviewState(REVIEW_STATE.DONE);
       } else {
-        // Update the query cache with the new card so the hook re-renders
         const nextData = nextResponse.data as unknown as { sessionId: string; card: CardModel };
         const nextKey = [...queryKeys.reviews.session(session.id), "next"];
         queryClient.setQueryData<NextCardResult>(nextKey, {
@@ -502,9 +643,15 @@ export function ReviewSessionPage() {
     }
   }
 
+  function handleStudyAgain() {
+    setSession(null);
+    setCardPreview(null);
+    setReviewedCount(0);
+    setRatings({ again: 0, hard: 0, good: 0, easy: 0 });
+    setReviewState(REVIEW_STATE.IDLE);
+  }
+
   // ---- Keyboard shortcuts --------------------------------------------------
-  // Refs hold current values so the single-registered event listener
-  // always reads fresh state without re-registering on every render.
 
   const stateRef = useRef(reviewState);
   stateRef.current = reviewState;
@@ -515,7 +662,6 @@ export function ReviewSessionPage() {
   const sessionRef = useRef(session);
   sessionRef.current = session;
 
-  // Ref to the current handleRate so we call the latest closure
   const handleRateRef = useRef(handleRate);
   handleRateRef.current = handleRate;
 
@@ -552,7 +698,7 @@ export function ReviewSessionPage() {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // ---- Render --------------------------------------------------------------
+  // ---- Render state booleans -----------------------------------------------
 
   const isIdle = reviewState === REVIEW_STATE.IDLE;
   const isStarting = reviewState === REVIEW_STATE.STARTING;
@@ -560,91 +706,93 @@ export function ReviewSessionPage() {
   const isRevealed = reviewState === REVIEW_STATE.REVEALED;
   const isSubmitting = reviewState === REVIEW_STATE.SUBMITTING;
   const isDone = reviewState === REVIEW_STATE.DONE;
+  const isActiveSession = !isIdle && !isDone;
+
+  // ---- Render --------------------------------------------------------------
 
   return (
-    <main
+    <div
       data-testid="review-session-page"
-      className="mx-auto max-w-[680px] px-6 py-12"
+      style={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#fafaf9",
+      }}
     >
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="mb-8 flex items-center gap-2 text-[13px]">
-        <Link
-          to="/"
-          className="no-underline transition-opacity hover:opacity-70"
-          style={{ color: "var(--color-ash)" }}
-        >
-          Dashboard
-        </Link>
-        {deckId && (
-          <>
-            <span style={{ color: "var(--color-fog)" }}>/</span>
-            <Link
-              to={`/decks/${deckId}`}
-              className="no-underline transition-opacity hover:opacity-70"
-              style={{ color: "var(--color-ash)" }}
-            >
-              Deck
-            </Link>
-          </>
-        )}
-        <span style={{ color: "var(--color-fog)" }}>/</span>
-        <span style={{ color: "var(--color-charcoal-primary)" }}>Review</span>
-      </nav>
-
-      {/* Progress bar — only during session */}
-      {!isIdle && !isDone && (
-        <div className="mb-8 flex items-center gap-3">
-          <span className="text-[13px]" style={{ color: "var(--color-ash)" }}>
-            {reviewedCount} reviewed
-          </span>
-          <div
-            className="flex-1 overflow-hidden rounded-full"
-            style={{ height: "4px", backgroundColor: "var(--color-stone-surface)" }}
-          >
-            <div
-              className="h-full rounded-full transition-all duration-300"
-              style={{
-                width: reviewedCount > 0 ? "100%" : "0%",
-                backgroundColor: "var(--color-ember-orange)",
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* State views */}
-      {(isIdle || isStarting) && (
-        <StartScreen deckId={deckId} onStart={handleStart} isStarting={isStarting} />
-      )}
-
-      {(isFront || reviewState === REVIEW_STATE.LOADING_CARD) && currentCard && cardPreview && (
-        <CardFrontPanel
-          card={currentCard}
-          front={cardPreview.front}
-          hint={cardPreview.hint}
-          onReveal={handleReveal}
-        />
-      )}
-
-      {(isRevealed || isSubmitting) && currentCard && cardPreview && (
-        <CardRevealedPanel
-          card={currentCard}
-          front={cardPreview.front}
-          back={cardPreview.back}
-          hint={cardPreview.hint}
-          onRate={handleRate}
-          isSubmitting={isSubmitting}
-        />
-      )}
-
-      {isDone && (
-        <ReviewSummary
+      {/* Top bar — shown during active session and done state (not on idle start screen) */}
+      {!isIdle && (
+        <DeckTopBar
           deckId={deckId}
           reviewedCount={reviewedCount}
-          ratings={ratings}
-          startedAt={sessionStartedAt}
+          onClose={() => navigate("/")}
         />
       )}
-    </main>
+
+      {/* Progress bar — only during active session */}
+      {isActiveSession && (
+        <ProgressBar value={0} color="#00ca48" height={3} />
+      )}
+
+      {/* Main content area */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflowY: "auto",
+        }}
+      >
+        {/* Idle / Starting: full-height start screen */}
+        {(isIdle || isStarting) && (
+          <StartScreen deckId={deckId} onStart={handleStart} isStarting={isStarting} />
+        )}
+
+        {/* Active card area */}
+        {(isFront || reviewState === REVIEW_STATE.LOADING_CARD || isRevealed || isSubmitting) && (
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              justifyContent: "center",
+              padding: "56px 32px",
+              overflowY: "auto",
+            }}
+          >
+            <div style={{ width: "100%", maxWidth: 680 }}>
+              {(isFront || reviewState === REVIEW_STATE.LOADING_CARD) && currentCard && cardPreview && (
+                <CardFrontPanel
+                  card={currentCard}
+                  front={cardPreview.front}
+                  hint={cardPreview.hint}
+                  onReveal={handleReveal}
+                />
+              )}
+
+              {(isRevealed || isSubmitting) && currentCard && cardPreview && (
+                <CardRevealedPanel
+                  card={currentCard}
+                  front={cardPreview.front}
+                  back={cardPreview.back}
+                  hint={cardPreview.hint}
+                  onRate={handleRate}
+                  isSubmitting={isSubmitting}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Done: summary */}
+        {isDone && (
+          <ReviewSummary
+            deckId={deckId}
+            reviewedCount={reviewedCount}
+            ratings={ratings}
+            onStudyAgain={handleStudyAgain}
+          />
+        )}
+      </div>
+    </div>
   );
 }

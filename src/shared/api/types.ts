@@ -19,6 +19,8 @@ export interface DeckModel extends AuditFields {
   description?: string;
   tags?: string[];
   archived: boolean;
+  icon?: string | null;
+  color?: string | null;
   defaultDesiredRetention?: number;
 }
 
@@ -218,6 +220,7 @@ export interface DeckStatsModel {
   totalNotes: number;
   totalCards: number;
   dueToday: number;
+  newCards: number;
   reviewedToday: number;
   suspendedCards: number;
   againRate7d?: number | undefined;

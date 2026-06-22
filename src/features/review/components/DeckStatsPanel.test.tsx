@@ -23,6 +23,7 @@ const SAMPLE_STATS: DeckStatsModel = {
   totalNotes: 42,
   totalCards: 85,
   dueToday: 12,
+  newCards: 20,
   reviewedToday: 8,
   suspendedCards: 3,
   averageRetention30d: 0.87,
@@ -92,6 +93,7 @@ describe("DeckStatsPanel", () => {
       totalNotes: SAMPLE_STATS.totalNotes,
       totalCards: SAMPLE_STATS.totalCards,
       dueToday: SAMPLE_STATS.dueToday,
+      newCards: SAMPLE_STATS.newCards,
       reviewedToday: SAMPLE_STATS.reviewedToday,
       suspendedCards: SAMPLE_STATS.suspendedCards,
     };

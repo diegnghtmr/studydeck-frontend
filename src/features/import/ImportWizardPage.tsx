@@ -1,10 +1,15 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
 import { ProblemBanner } from "@shared/ui/ProblemBanner";
+import { Card } from "@shared/ui/Card";
+import { PillButton } from "@shared/ui/PillButton";
+import { Badge } from "@shared/ui/Badge";
+import { Dropdown } from "@shared/ui/Dropdown";
+import { Toast } from "@shared/ui/Toast";
 import { normalizeApiProblem } from "@shared/api/problem";
-import { cn } from "@shared/lib/cn";
 import { flashcardImportV1Schema } from "./schemas/import-schemas";
 import { useValidateImport, usePreviewImport, useExecuteImport } from "./hooks/use-import";
+import { useDecks } from "@features/decks/hooks/use-decks";
 import type {
   FlashcardImportV1Model,
   ImportValidationResponseModel,
@@ -23,7 +28,20 @@ const WIZARD_STEP = {
 
 type WizardStep = (typeof WIZARD_STEP)[keyof typeof WIZARD_STEP];
 
-const STEP_LABELS = ["Input", "Validate", "Preview", "Confirm"] as const;
+// ---- Sample JSON ------------------------------------------------------------
+
+const SAMPLE_JSON = JSON.stringify(
+  {
+    schemaVersion: "1.0",
+    deck: { title: "Sample Deck" },
+    notes: [
+      { noteType: "basic", front: "What is the capital of France?", back: "Paris" },
+      { noteType: "basic", front: "What is 2 + 2?", back: "4" },
+    ],
+  },
+  null,
+  2,
+);
 
 // ---- Intent -----------------------------------------------------------------
 // Who: A StudyDeck user who has an export JSON (from another tool or a manual file).
@@ -33,6 +51,9 @@ const STEP_LABELS = ["Input", "Validate", "Preview", "Confirm"] as const;
 // ---- Component --------------------------------------------------------------
 
 export function ImportWizardPage() {
+  const { deckId: paramDeckId } = useParams();
+
+  // existing state
   const [step, setStep] = useState<WizardStep>(WIZARD_STEP.INPUT);
   const [rawJson, setRawJson] = useState("");
   const [parseError, setParseError] = useState<string | null>(null);
@@ -42,9 +63,20 @@ export function ImportWizardPage() {
   const [importResult, setImportResult] = useState<ImportResultModel | null>(null);
   const [apiError, setApiError] = useState<ReturnType<typeof normalizeApiProblem>>(null);
 
+  // new state
+  const [isDragging, setIsDragging] = useState(false);
+  const [sampleLoaded, setSampleLoaded] = useState(false);
+  const [selectedDeckId, setSelectedDeckId] = useState(paramDeckId ?? "");
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [showToast, setShowToast] = useState(false);
+
   const validateMutation = useValidateImport();
   const previewMutation = usePreviewImport();
   const executeMutation = useExecuteImport();
+  const { data: decks } = useDecks();
+
+  const isLoading =
+    validateMutation.isPending || previewMutation.isPending || executeMutation.isPending;
 
   // ---- File upload --------------------------------------------------------
 
@@ -57,6 +89,43 @@ export function ImportWizardPage() {
       setParseError(null);
     };
     reader.readAsText(file);
+  }
+
+  // ---- Drag-and-drop handlers ---------------------------------------------
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave() {
+    setIsDragging(false);
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setRawJson(ev.target?.result as string ?? "");
+      setParseError(null);
+    };
+    reader.readAsText(file);
+  }
+
+  // ---- Load sample handler ------------------------------------------------
+
+  function handleLoadSample() {
+    if (sampleLoaded) {
+      setRawJson("");
+      setSampleLoaded(false);
+    } else {
+      setRawJson(SAMPLE_JSON);
+      setSampleLoaded(true);
+      setParseError(null);
+    }
   }
 
   // ---- Step transitions ---------------------------------------------------
@@ -114,6 +183,9 @@ export function ImportWizardPage() {
       const result = await previewMutation.mutateAsync(parsedPayload);
       setPreviewResult(result);
       setStep(WIZARD_STEP.PREVIEW);
+      setSelectedRows(
+        new Set(Array.from({ length: parsedPayload.notes.length }, (_, i) => i)),
+      );
     } catch (err) {
       const p = normalizeApiProblem(
         (err as { response?: { data?: unknown } })?.response?.data,
@@ -134,19 +206,14 @@ export function ImportWizardPage() {
       const result = await executeMutation.mutateAsync(parsedPayload);
       setImportResult(result);
       setStep(WIZARD_STEP.CONFIRM);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     } catch (err) {
       const p = normalizeApiProblem(
         (err as { response?: { data?: unknown } })?.response?.data,
         (err as { response?: { status?: number } })?.response?.status ?? 500,
       );
       setApiError(p ?? { type: "about:blank", title: "Import failed", status: 500 });
-    }
-  }
-
-  function handleBack() {
-    setApiError(null);
-    if (step > WIZARD_STEP.INPUT) {
-      setStep((s) => (s - 1) as WizardStep);
     }
   }
 
@@ -167,390 +234,690 @@ export function ImportWizardPage() {
   }
 
   const isNextDisabled =
-    step === WIZARD_STEP.VALIDATE && validationResult !== null && !validationResult.valid;
-
-  const isLoading =
-    validateMutation.isPending || previewMutation.isPending || executeMutation.isPending;
+    (step === WIZARD_STEP.VALIDATE && validationResult !== null && !validationResult.valid) ||
+    (step === WIZARD_STEP.INPUT && isLoading);
 
   // ---- Render -------------------------------------------------------------
 
   return (
-    <main
-      data-testid="import-wizard"
-      className="mx-auto max-w-[800px] px-6 py-12"
-    >
-      {/* Page title */}
-      <h1
-        className="mb-2 text-[23px] font-semibold"
-        style={{ color: "var(--color-charcoal-primary)", letterSpacing: "-0.44px" }}
+    <>
+      <Toast visible={showToast} message="Import complete!" data-testid="toast" />
+      <main
+        data-testid="import-wizard"
+        className="sd-fade mx-auto"
+        style={{ maxWidth: "1120px", padding: "48px 56px 80px" }}
       >
-        Import Flashcards
-      </h1>
-      <p
-        className="mb-8 text-[15px]"
-        style={{ color: "var(--color-ash)" }}
-      >
-        Import a StudyDeck JSON file to create a new deck.
-      </p>
-
-      {/* Step indicator */}
-      <div className="mb-8 flex items-center gap-0">
-        {STEP_LABELS.map((label, i) => (
-          <div key={label} className="flex items-center">
-            <div className="flex items-center gap-2">
-              <span
-                className="flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-semibold"
-                style={{
-                  backgroundColor:
-                    i <= step
-                      ? "var(--color-ember-orange)"
-                      : "var(--color-stone-surface)",
-                  color: i <= step ? "#fff" : "var(--color-ash)",
-                }}
-              >
-                {i + 1}
-              </span>
-              <span
-                className="text-[13px] font-medium"
-                style={{
-                  color: i === step ? "var(--color-charcoal-primary)" : "var(--color-ash)",
-                }}
-              >
-                {label}
-              </span>
-            </div>
-            {i < STEP_LABELS.length - 1 && (
-              <div
-                className="mx-3 h-px w-8"
-                style={{ backgroundColor: "var(--color-fog)" }}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* API error */}
-      {apiError && (
-        <ProblemBanner
-          problem={apiError}
-          className="mb-6"
-          onDismiss={() => setApiError(null)}
-        />
-      )}
-
-      {/* ---- Step 0: Input ---- */}
-      {step === WIZARD_STEP.INPUT && (
-        <div
-          data-testid="step-input"
-          className="rounded-[10px] p-6"
+        {/* Header */}
+        <h1
           style={{
-            backgroundColor: "var(--color-parchment-card)",
-            boxShadow: "var(--shadow-subtle)",
+            fontFamily: "var(--font-family)",
+            fontSize: "40px",
+            color: "var(--color-charcoal-primary)",
+            marginBottom: "8px",
+            fontWeight: 700,
           }}
         >
-          <h2
-            className="mb-1 text-[19px] font-semibold"
-            style={{ color: "var(--color-charcoal-primary)" }}
-          >
-            Paste JSON
-          </h2>
-          <p className="mb-4 text-[13px]" style={{ color: "var(--color-ash)" }}>
-            Paste your StudyDeck export JSON below, or upload a <code>.json</code> file.
-            Must include <code>schemaVersion: "1.0"</code>, a <code>deck</code> object, and a
-            non-empty <code>notes</code> array.
-          </p>
+          Import JSON
+        </h1>
+        <p style={{ fontSize: "15px", color: "#848281", marginBottom: "32px" }}>
+          Paste or drop a deck.json file to import flashcards.
+        </p>
 
-          {/* File upload */}
-          <label
-            className="mb-3 flex cursor-pointer items-center gap-2 text-[13px]"
-            style={{ color: "var(--color-graphite)" }}
-          >
-            <input
-              type="file"
-              accept=".json,application/json"
-              data-testid="file-input"
-              className="sr-only"
-              onChange={handleFileChange}
-            />
-            <span
-              className="rounded-[6px] px-3 py-1.5 text-[13px] font-medium transition-opacity hover:opacity-80"
-              style={{
-                backgroundColor: "var(--color-stone-surface)",
-                color: "var(--color-graphite)",
-              }}
-            >
-              Choose file
-            </span>
-            <span style={{ color: "var(--color-ash)" }}>or paste below</span>
-          </label>
-
-          {/* Textarea */}
-          <textarea
-            data-testid="json-input"
-            rows={16}
-            value={rawJson}
-            onChange={(e) => {
-              setRawJson(e.target.value);
-              setParseError(null);
-            }}
-            placeholder={`{\n  "schemaVersion": "1.0",\n  "deck": { "title": "My Deck" },\n  "notes": [\n    { "noteType": "basic", "front": "Q", "back": "A" }\n  ]\n}`}
-            className="w-full resize-y rounded-[10px] border-0 px-4 py-3 font-mono text-[13px] leading-[1.6] outline-none focus:ring-2"
-            style={{
-              backgroundColor: "var(--color-stone-surface)",
-              color: "var(--color-charcoal-primary)",
-              minHeight: "220px",
-            }}
+        {/* API error */}
+        {apiError && (
+          <ProblemBanner
+            problem={apiError}
+            className="mb-6"
+            onDismiss={() => setApiError(null)}
           />
+        )}
 
-          {parseError && (
-            <p
-              role="alert"
-              data-testid="parse-error"
-              className="mt-2 text-[13px]"
-              style={{ color: "var(--color-coral-red)" }}
-            >
-              {parseError}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* ---- Step 1: Validate ---- */}
-      {step === WIZARD_STEP.VALIDATE && validationResult && (
+        {/* Two-column grid */}
         <div
-          data-testid="validation-result"
-          className="rounded-[10px] p-6"
           style={{
-            backgroundColor: "var(--color-parchment-card)",
-            boxShadow: "var(--shadow-subtle)",
+            display: "grid",
+            gridTemplateColumns: "1fr 1.25fr",
+            gap: "24px",
+            alignItems: "start",
           }}
         >
-          <div className="mb-4 flex items-center gap-3">
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-full text-[16px]"
+          {/* LEFT — Input panel */}
+          <Card radius={16} className="overflow-hidden">
+            {/* Header bar */}
+            <div
               style={{
-                backgroundColor: validationResult.valid
-                  ? "var(--color-valid-green)"
-                  : "var(--color-coral-red)",
-                color: "#fff",
+                padding: "13px 16px",
+                borderBottom: "1px solid #f2f0ed",
+                backgroundColor: "#fbfaf9",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
               }}
             >
-              {validationResult.valid ? "✓" : "✕"}
-            </span>
-            <h2
-              className="text-[19px] font-semibold"
-              style={{ color: "var(--color-charcoal-primary)" }}
-            >
-              {validationResult.valid ? "Valid" : "Validation Failed"}
-            </h2>
-          </div>
-
-          {validationResult.errors.length > 0 && (
-            <ul className="mb-4 space-y-2">
-              {validationResult.errors.map((err, i) => (
-                <li
-                  key={i}
-                  className="rounded-[6px] px-3 py-2 text-[13px]"
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {/* File icon */}
+                <svg width="14" height="16" viewBox="0 0 14 16" fill="none" aria-hidden="true">
+                  <path d="M2 1.5h7l3 3v10H2V1.5z" stroke="#a7a7a7" strokeWidth="1.2" fill="none" />
+                  <path d="M9 1.5V5h3.5" stroke="#a7a7a7" strokeWidth="1.2" />
+                </svg>
+                <span
                   style={{
-                    backgroundColor: "var(--color-stone-surface)",
-                    color: "var(--color-coral-red)",
+                    fontFamily: "monospace",
+                    fontSize: "11px",
+                    color: "var(--color-ash)",
                   }}
                 >
-                  {err.field && (
-                    <span className="font-medium">{err.field}: </span>
-                  )}
-                  {err.message}
-                </li>
-              ))}
-            </ul>
-          )}
+                  deck.json
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <div
+                  style={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    backgroundColor:
+                      validationResult?.valid === true
+                        ? "#00ca48"
+                        : validationResult?.valid === false
+                          ? "#ff3e00"
+                          : "#a7a7a7",
+                  }}
+                />
+                <span style={{ fontSize: "12px", color: "var(--color-ash)" }}>
+                  {validationResult?.valid === true
+                    ? "Validated"
+                    : validationResult?.valid === false
+                      ? "Errors found"
+                      : "Ready"}
+                </span>
+              </div>
+            </div>
 
-          {validationResult.warnings.length > 0 && (
-            <ul className="mb-4 space-y-1">
-              {validationResult.warnings.map((w, i) => (
-                <li
-                  key={i}
-                  className="text-[13px]"
-                  style={{ color: "var(--color-deep-amber)" }}
-                >
-                  ⚠ {w}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {/* ---- Step 2: Preview ---- */}
-      {step === WIZARD_STEP.PREVIEW && previewResult && (
-        <div
-          data-testid="preview-result"
-          className="rounded-[10px] p-6"
-          style={{
-            backgroundColor: "var(--color-parchment-card)",
-            boxShadow: "var(--shadow-subtle)",
-          }}
-        >
-          <h2
-            className="mb-4 text-[19px] font-semibold"
-            style={{ color: "var(--color-charcoal-primary)" }}
-          >
-            Import Preview
-          </h2>
-
-          {/* Summary grid */}
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <StatTile label="Deck" value={previewResult.summary.deckTitle} />
-            <StatTile label="Notes" value={String(previewResult.summary.totalNotes)} />
-            <StatTile label="Cards" value={String(previewResult.summary.predictedCards)} />
-            {previewResult.summary.duplicateCandidates !== undefined && (
-              <StatTile
-                label="Duplicate candidates"
-                value={String(previewResult.summary.duplicateCandidates)}
-                highlight={previewResult.summary.duplicateCandidates > 0}
+            {/* Textarea drag zone */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              style={{ backgroundColor: isDragging ? "#eaf4ff" : "#ffffff" }}
+            >
+              <textarea
+                data-testid="json-input"
+                value={rawJson}
+                onChange={(e) => {
+                  setRawJson(e.target.value);
+                  setParseError(null);
+                }}
+                style={{
+                  width: "100%",
+                  height: "288px",
+                  padding: "16px",
+                  fontFamily: "'SF Mono', ui-monospace, Menlo, monospace",
+                  fontSize: "12.5px",
+                  lineHeight: "1.7",
+                  border: "none",
+                  outline: "none",
+                  resize: "none",
+                  backgroundColor: "transparent",
+                  color: "var(--color-charcoal-primary)",
+                  boxSizing: "border-box",
+                }}
+                placeholder={'{\n  "schemaVersion": "1.0",\n  "deck": { "title": "..." },\n  "notes": [{ "noteType": "basic", ... }]\n}'}
               />
+            </div>
+
+            {/* Footer bar */}
+            <div
+              style={{
+                padding: "13px 16px",
+                borderTop: "1px solid #f2f0ed",
+                backgroundColor: "#fbfaf9",
+              }}
+            >
+              {/* Row 1 */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  marginBottom: "10px",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={handleLoadSample}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e5e2dd",
+                    borderRadius: "10px",
+                    padding: "7px 14px",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    color: "var(--color-graphite)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {sampleLoaded ? "Clear" : "Load sample"}
+                </button>
+                <label
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    background: "#ffffff",
+                    border: "1px solid #e5e2dd",
+                    borderRadius: "10px",
+                    padding: "7px 14px",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    color: "var(--color-graphite)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="file"
+                    accept=".json,application/json"
+                    data-testid="file-input"
+                    style={{ display: "none" }}
+                    onChange={handleFileChange}
+                  />
+                  Browse…
+                </label>
+              </div>
+              {/* Row 2 — primary action */}
+              {step !== WIZARD_STEP.CONFIRM && (
+                <PillButton
+                  data-testid="wizard-next-btn"
+                  disabled={isNextDisabled || isLoading}
+                  onClick={handleNext}
+                >
+                  {isLoading && step === WIZARD_STEP.INPUT
+                    ? "Working…"
+                    : step === WIZARD_STEP.VALIDATE
+                      ? "Preview"
+                      : step === WIZARD_STEP.PREVIEW
+                        ? "Approve & import"
+                        : "Validate & preview"}
+                </PillButton>
+              )}
+            </div>
+
+            {/* Parse error */}
+            {parseError && (
+              <p
+                role="alert"
+                data-testid="parse-error"
+                style={{ fontSize: "12px", color: "var(--color-coral-red)", padding: "8px 16px" }}
+              >
+                {parseError}
+              </p>
+            )}
+          </Card>
+
+          {/* RIGHT — Preview/Result panel */}
+          <div>
+            {/* Step 3 — Done state */}
+            {step === WIZARD_STEP.CONFIRM && importResult !== null ? (
+              <Card radius={16} data-testid="import-result">
+                <div style={{ padding: "32px", textAlign: "center" }}>
+                  <div
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      backgroundColor: "#e6f9ed",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      margin: "0 auto 16px",
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path
+                        d="M4 10l4.5 4.5L16 6"
+                        stroke="#00ca48"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                  <p
+                    style={{
+                      fontFamily: "var(--font-family)",
+                      fontSize: "24px",
+                      color: "var(--color-charcoal-primary)",
+                      fontWeight: 700,
+                      marginBottom: "8px",
+                    }}
+                  >
+                    {importResult.importedNotes} cards imported
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      color: "var(--color-ash)",
+                      marginBottom: "24px",
+                    }}
+                  >
+                    Your deck is ready to study.
+                  </p>
+                  <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+                    <Link
+                      to={`/decks/${importResult.deckId}`}
+                      data-testid="view-deck-link"
+                      style={{
+                        display: "inline-block",
+                        padding: "8px 20px",
+                        backgroundColor: "var(--color-midnight)",
+                        color: "#ffffff",
+                        borderRadius: "32px",
+                        textDecoration: "none",
+                        fontSize: "14px",
+                        fontWeight: 500,
+                      }}
+                    >
+                      View deck
+                    </Link>
+                    <PillButton
+                      variant="secondary"
+                      onClick={() => {
+                        setRawJson("");
+                        setStep(WIZARD_STEP.INPUT);
+                        setPreviewResult(null);
+                        setImportResult(null);
+                        setValidationResult(null);
+                        setParsedPayload(null);
+                        setParseError(null);
+                        setApiError(null);
+                        setSampleLoaded(false);
+                        setSelectedRows(new Set());
+                      }}
+                    >
+                      Import another
+                    </PillButton>
+                  </div>
+                </div>
+              </Card>
+            ) : step === WIZARD_STEP.VALIDATE && validationResult !== null ? (
+              /* Step 1 — Validation result */
+              <Card radius={16} data-testid="validation-result">
+                <div style={{ padding: "24px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "50%",
+                        backgroundColor: validationResult.valid
+                          ? "var(--color-valid-green)"
+                          : "var(--color-coral-red)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#fff",
+                        fontSize: "16px",
+                      }}
+                    >
+                      {validationResult.valid ? "✓" : "✕"}
+                    </div>
+                    <h2
+                      style={{
+                        fontSize: "19px",
+                        fontWeight: 600,
+                        color: "var(--color-charcoal-primary)",
+                      }}
+                    >
+                      {validationResult.valid ? "Valid" : "Validation Failed"}
+                    </h2>
+                  </div>
+                  {validationResult.errors.length > 0 && (
+                    <ul style={{ listStyle: "none", padding: 0, margin: "0 0 16px" }}>
+                      {validationResult.errors.map((err, i) => (
+                        <li
+                          key={i}
+                          style={{
+                            borderRadius: "6px",
+                            padding: "8px 12px",
+                            backgroundColor: "var(--color-stone-surface)",
+                            color: "var(--color-coral-red)",
+                            fontSize: "13px",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          {err.field && (
+                            <span style={{ fontWeight: 500 }}>{err.field}: </span>
+                          )}
+                          {err.message}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {validationResult.warnings.length > 0 && (
+                    <ul style={{ listStyle: "none", padding: 0 }}>
+                      {validationResult.warnings.map((w, i) => (
+                        <li
+                          key={i}
+                          style={{
+                            fontSize: "13px",
+                            color: "var(--color-deep-amber)",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          ⚠ {w}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </Card>
+            ) : step === WIZARD_STEP.PREVIEW && previewResult !== null ? (
+              /* Step 2 — Preview */
+              <div data-testid="preview-result">
+                {/* Stats row */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: "10px",
+                    marginBottom: "16px",
+                  }}
+                >
+                  {/* Valid stat */}
+                  <div
+                    style={{
+                      backgroundColor: "#e6f9ed",
+                      borderRadius: "12px",
+                      padding: "16px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "20px",
+                        fontFamily: "var(--font-family)",
+                        fontWeight: 700,
+                        color: "var(--color-charcoal-primary)",
+                      }}
+                    >
+                      {previewResult.summary.totalNotes}
+                    </div>
+                    <div style={{ fontSize: "11.5px", color: "var(--color-ash)" }}>Notes</div>
+                  </div>
+                  {/* Duplicate stat */}
+                  <div
+                    style={{
+                      backgroundColor: "#fff6e0",
+                      borderRadius: "12px",
+                      padding: "16px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "20px",
+                        fontFamily: "var(--font-family)",
+                        fontWeight: 700,
+                        color: "var(--color-charcoal-primary)",
+                      }}
+                    >
+                      {previewResult.summary.duplicateCandidates ?? "—"}
+                    </div>
+                    <div style={{ fontSize: "11.5px", color: "var(--color-ash)" }}>
+                      Duplicate
+                    </div>
+                  </div>
+                  {/* Error stat */}
+                  <div
+                    style={{
+                      backgroundColor: "#fff0eb",
+                      borderRadius: "12px",
+                      padding: "16px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "20px",
+                        fontFamily: "var(--font-family)",
+                        fontWeight: 700,
+                        color: "var(--color-charcoal-primary)",
+                      }}
+                    >
+                      {validationResult?.errors.length ?? 0}
+                    </div>
+                    <div style={{ fontSize: "11.5px", color: "var(--color-ash)" }}>Error</div>
+                  </div>
+                </div>
+
+                {/* Import into row */}
+                <div style={{ marginBottom: "16px" }}>
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      color: "var(--color-graphite)",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Import into
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <Dropdown
+                      items={
+                        decks?.items.map((d) => ({ value: d.id, label: d.title })) ?? []
+                      }
+                      {...(selectedDeckId ? { value: selectedDeckId } : {})}
+                      placeholder="Select a deck…"
+                      onSelect={setSelectedDeckId}
+                      data-testid="deck-dropdown"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (parsedPayload) {
+                          setSelectedRows(
+                            new Set(
+                              Array.from(
+                                { length: parsedPayload.notes.length },
+                                (_, i) => i,
+                              ),
+                            ),
+                          );
+                        }
+                      }}
+                      style={{
+                        fontSize: "12px",
+                        color: "#0090ff",
+                        cursor: "pointer",
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                      }}
+                    >
+                      Select all
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRows(new Set())}
+                      style={{
+                        fontSize: "12px",
+                        color: "#0090ff",
+                        cursor: "pointer",
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preview row list */}
+                <Card radius={12}>
+                  <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                    {parsedPayload?.notes.slice(0, 50).map((note, i) => {
+                      const checked = selectedRows.has(i);
+                      const dupes = previewResult.summary.duplicateCandidates ?? 0;
+                      const totalNotes = previewResult.summary.totalNotes;
+                      const isDupe = dupes > 0 && i >= totalNotes - dupes;
+                      const badgeTone = isDupe ? "amber" : "green";
+                      const badgeLabel = isDupe ? "Duplicate" : "New";
+                      const frontText =
+                        "front" in note
+                          ? note.front
+                          : "prompt" in note
+                            ? (note as { prompt: string }).prompt
+                            : "text" in note
+                              ? (note as { text: string }).text
+                              : "question" in note
+                                ? (note as { question: string }).question
+                                : "";
+                      const backText = "back" in note ? note.back : "";
+
+                      return (
+                        <div
+                          key={i}
+                          onClick={() => {
+                            const next = new Set(selectedRows);
+                            if (checked) next.delete(i);
+                            else next.add(i);
+                            setSelectedRows(next);
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            padding: "12px 16px",
+                            borderBottom:
+                              i < (parsedPayload?.notes.length ?? 1) - 1
+                                ? "1px solid #f2f0ed"
+                                : "none",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {}}
+                            style={{
+                              accentColor: "var(--color-midnight)",
+                              cursor: "pointer",
+                            }}
+                          />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p
+                              style={{
+                                fontSize: "14px",
+                                fontWeight: 500,
+                                color: "var(--color-charcoal-primary)",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                margin: 0,
+                              }}
+                            >
+                              {frontText}
+                            </p>
+                            {backText && (
+                              <p
+                                style={{
+                                  fontSize: "12.5px",
+                                  color: "#a7a7a7",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                  margin: 0,
+                                }}
+                              >
+                                {backText}
+                              </p>
+                            )}
+                          </div>
+                          <Badge tone={badgeTone} label={badgeLabel} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div
+                    style={{
+                      padding: "12px 16px",
+                      borderTop: "1px solid #f2f0ed",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <span style={{ fontSize: "12px", color: "var(--color-ash)" }}>
+                      {selectedRows.size} of {parsedPayload?.notes.length ?? 0} selected
+                    </span>
+                  </div>
+                </Card>
+
+                {/* Warnings */}
+                {previewResult.warnings && previewResult.warnings.length > 0 && (
+                  <ul style={{ listStyle: "none", padding: "12px 0 0", margin: 0 }}>
+                    {previewResult.warnings.map((w, i) => (
+                      <li
+                        key={i}
+                        style={{
+                          fontSize: "13px",
+                          color: "var(--color-deep-amber)",
+                          marginBottom: "4px",
+                        }}
+                      >
+                        ⚠ {w}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : (
+              /* Empty state */
+              <Card recessed radius={16}>
+                <div style={{ padding: "32px", textAlign: "center" }}>
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      color: "var(--color-ash)",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Preview appears here
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      color: "var(--color-ash)",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    Paste JSON to see a preview of what will be imported.
+                  </p>
+                  <pre
+                    style={{
+                      backgroundColor: "var(--color-stone-surface)",
+                      padding: "12px",
+                      borderRadius: "8px",
+                      fontSize: "11px",
+                      fontFamily: "monospace",
+                      textAlign: "left",
+                      margin: 0,
+                      color: "var(--color-charcoal-primary)",
+                    }}
+                  >
+                    {`{\n  "schemaVersion": "1.0",\n  "deck": { "title": "..." },\n  "notes": [{ "noteType": "basic", ... }]\n}`}
+                  </pre>
+                </div>
+              </Card>
             )}
           </div>
-
-          {/* Warnings */}
-          {previewResult.warnings && previewResult.warnings.length > 0 && (
-            <ul className="space-y-1">
-              {previewResult.warnings.map((w, i) => (
-                <li
-                  key={i}
-                  className="text-[13px]"
-                  style={{ color: "var(--color-deep-amber)" }}
-                >
-                  ⚠ {w}
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
-      )}
-
-      {/* ---- Step 3: Confirm (result) ---- */}
-      {step === WIZARD_STEP.CONFIRM && importResult && (
-        <div
-          data-testid="import-result"
-          className="rounded-[10px] p-6"
-          style={{
-            backgroundColor: "var(--color-parchment-card)",
-            boxShadow: "var(--shadow-subtle)",
-          }}
-        >
-          <div className="mb-4 flex items-center gap-3">
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-full text-[16px]"
-              style={{ backgroundColor: "var(--color-valid-green)", color: "#fff" }}
-            >
-              ✓
-            </span>
-            <h2
-              className="text-[19px] font-semibold"
-              style={{ color: "var(--color-charcoal-primary)" }}
-            >
-              Import complete
-            </h2>
-          </div>
-
-          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-2">
-            <StatTile label="Notes imported" value={String(importResult.importedNotes)} />
-            <StatTile label="Cards created" value={String(importResult.importedCards)} />
-          </div>
-
-          {importResult.warnings && importResult.warnings.length > 0 && (
-            <ul className="mb-4 space-y-1">
-              {importResult.warnings.map((w, i) => (
-                <li
-                  key={i}
-                  className="text-[13px]"
-                  style={{ color: "var(--color-deep-amber)" }}
-                >
-                  ⚠ {w}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <Link
-            to={`/decks/${importResult.deckId}`}
-            data-testid="view-deck-link"
-            className="inline-block rounded-[32px] px-5 py-2 text-[13px] font-medium text-white no-underline transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "var(--color-ember-orange)" }}
-          >
-            View deck
-          </Link>
-        </div>
-      )}
-
-      {/* ---- Footer actions ---- */}
-      {step !== WIZARD_STEP.CONFIRM && (
-        <div className="mt-6 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={step === WIZARD_STEP.INPUT}
-            className={cn(
-              "rounded-[32px] px-5 py-2 text-[13px] font-medium transition-opacity",
-              step === WIZARD_STEP.INPUT && "opacity-0 pointer-events-none",
-            )}
-            style={{
-              backgroundColor: "var(--color-stone-surface)",
-              color: "var(--color-graphite)",
-            }}
-          >
-            Back
-          </button>
-
-          <button
-            type="button"
-            data-testid="wizard-next-btn"
-            onClick={handleNext}
-            disabled={isNextDisabled || isLoading}
-            className="rounded-[32px] px-5 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ backgroundColor: "var(--color-ember-orange)" }}
-          >
-            {isLoading
-              ? "Working…"
-              : step === WIZARD_STEP.PREVIEW
-                ? "Import"
-                : "Next"}
-          </button>
-        </div>
-      )}
-    </main>
-  );
-}
-
-// ---- Sub-components ---------------------------------------------------------
-
-interface StatTileProps {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}
-
-function StatTile({ label, value, highlight = false }: StatTileProps) {
-  return (
-    <div
-      className="rounded-[10px] px-4 py-3"
-      style={{ backgroundColor: "var(--color-stone-surface)" }}
-    >
-      <p
-        className="mb-0.5 text-[11px] font-medium uppercase tracking-wide"
-        style={{ color: "var(--color-ash)" }}
-      >
-        {label}
-      </p>
-      <p
-        className="text-[19px] font-semibold"
-        style={{
-          color: highlight ? "var(--color-ember-orange)" : "var(--color-charcoal-primary)",
-        }}
-      >
-        {value}
-      </p>
-    </div>
+      </main>
+    </>
   );
 }
