@@ -1,0 +1,172 @@
+{
+  "page": {
+    "title": "Cards & Decks",
+    "subtitle": "Browse and manage your flashcard decks and cards."
+  },
+  "actions": {
+    "newDeck": "New deck",
+    "newCard": "New card",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "create": "Create deck",
+    "creating": "Creating…",
+    "delete": "Delete",
+    "rename": "Rename",
+    "archive": "Archive",
+    "archived": "Archived",
+    "importJson": "Import JSON",
+    "startReview": "Start review",
+    "open": "Open deck"
+  },
+  "sidebar": {
+    "decksLabel": "DECKS",
+    "allDecks": "All decks",
+    "showAllDecks": "Show all decks"
+  },
+  "search": {
+    "cardsPlaceholder": "Search cards…",
+    "decksPlaceholder": "Search decks…",
+    "noCardsMatch": "No cards match your search."
+  },
+  "toast": {
+    "deckDeleted": "Deck deleted.",
+    "deckCreated": "Deck created.",
+    "deckRenamed": "Deck renamed.",
+    "cardDeleted": "Card deleted.",
+    "cardAdded": "Card added."
+  },
+  "deckRow": {
+    "selectDeck": "Select deck: {{title}}",
+    "openDeck": "Open deck",
+    "openDeckAria": "Open {{title}}",
+    "renameDeck": "Rename {{title}}",
+    "deleteDeck": "Delete {{title}}"
+  },
+  "deckDelete": {
+    "title": "Delete deck?",
+    "description": "This will permanently delete the deck and all its cards. This cannot be undone.",
+    "confirm": "Delete deck"
+  },
+  "cardItem": {
+    "openCard": "Open card: {{front}}",
+    "deleteCard": "Delete card",
+    "unknownDeck": "Unknown deck"
+  },
+  "cardDelete": {
+    "title": "Delete card?",
+    "description": "This card will be permanently deleted.",
+    "confirm": "Delete card"
+  },
+  "deckModal": {
+    "titleNew": "New deck",
+    "titleRename": "Rename deck",
+    "nameLabel": "Deck name",
+    "namePlaceholder": "Give your deck a clear, memorable name.",
+    "nameHint": "Give your deck a clear, memorable name.",
+    "iconLegend": "Icon",
+    "iconAuto": "Automatic icon",
+    "iconItem": "Icon {{name}}",
+    "iconAutoLabel": "Auto",
+    "colorLegend": "Color",
+    "colorAuto": "Automatic color",
+    "colorItem": "Color {{color}}",
+    "colorAutoLabel": "Auto",
+    "preview": "Preview",
+    "submitCreate": "Create deck",
+    "submitSave": "Save name"
+  },
+  "cardModal": {
+    "title": "New card",
+    "closeAria": "Close",
+    "deckLabel": "Deck",
+    "deckSelectPlaceholder": "Select a deck",
+    "cardTypeLabel": "Card type",
+    "addCloze": "+ Cloze deletion",
+    "clozeHint": "{{count}} cloze deletion(s) · wrap text as \\{{c1::word}}",
+    "mcqOptionsLabel": "Options — tap a letter to mark the correct one",
+    "mcqOptionAria": "Correct answer: option {{key}}",
+    "mcqOptionPlaceholder": "Option {{key}}",
+    "submitAdd": "Add card"
+  },
+  "cardTypes": {
+    "basic": "Basic",
+    "reversed": "Reversed",
+    "cloze": "Cloze",
+    "multipleChoice": "Multiple choice",
+    "freeText": "Free text"
+  },
+  "typeFilter": {
+    "allTypes": "All types"
+  },
+  "preview": {
+    "clozeDeletion": "(cloze deletion)",
+    "optionsCount": "{{count}} options"
+  },
+  "frontLabel": {
+    "cloze": "Cloze text",
+    "question": "Question",
+    "prompt": "Prompt",
+    "front": "Front"
+  },
+  "frontPlaceholder": {
+    "cloze": "The \\{{c1::mitochondrion}} produces ATP.",
+    "question": "Which organelle produces ATP?",
+    "freeText": "Explain the process in your own words…",
+    "front": "Front of the card…"
+  },
+  "backLabel": {
+    "expectedAnswer": "Expected answer",
+    "back": "Back"
+  },
+  "backPlaceholder": {
+    "modelAnswer": "Model answer used for self-grading…",
+    "back": "Back of the card…"
+  },
+  "detail": {
+    "loadingAria": "Loading deck",
+    "myDecks": "My Decks",
+    "nameLabel": "Deck name",
+    "descriptionLabel": "Description",
+    "notesHeading": "Notes",
+    "newNote": "+ New note",
+    "noNotes": "No notes yet.",
+    "createFirstNote": "Create first note",
+    "validation": {
+      "nameRequired": "Deck name is required.",
+      "nameTooLong": "Name must be 120 characters or fewer."
+    },
+    "archiveDialog": {
+      "title": "Archive this deck?",
+      "description": "Archived decks are hidden from the main list. You can unarchive them later.",
+      "confirm": "Archive",
+      "cancel": "Keep"
+    },
+    "deleteDialog": {
+      "title": "Delete this deck?",
+      "description": "This will permanently remove the deck and all its notes and cards. This action cannot be undone.",
+      "confirm": "Delete forever",
+      "cancel": "Keep deck"
+    }
+  },
+  "create": {
+    "breadcrumbMyDecks": "My Decks",
+    "breadcrumbNew": "New deck",
+    "heading": "Create a deck",
+    "nameLabel": "Deck name",
+    "namePlaceholder": "e.g. Biology 101",
+    "descriptionLabel": "Description",
+    "descriptionOptional": "(optional)",
+    "descriptionPlaceholder": "What is this deck about?",
+    "visibilityLegend": "Visibility",
+    "validation": {
+      "nameRequired": "Deck name is required.",
+      "nameTooLong": "Name must be 120 characters or fewer.",
+      "descriptionTooLong": "Description must be 1000 characters or fewer."
+    },
+    "error": {
+      "title": "Something went wrong",
+      "description": "Could not create the deck. Please try again."
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "title": "Estudio",
+  "subtitle": "Elegí un mazo para comenzar tu sesión de repaso.",
+  "reviewAllDue": "Repasar todos",
+  "emptyState": {
+    "message": "Todavía no tenés mazos. Creá uno para empezar.",
+    "goToDecks": "Ir a mazos →"
+  },
+  "deckRow": {
+    "ariaLabel": "Estudiar {{title}}",
+    "due": "{{count}} pendientes",
+    "zeroDue": "0 pendientes"
+  },
+  "review": {
+    "readyToReview": "¿Listo para repasar?",
+    "descDeckDue": "Se mostrarán las tarjetas pendientes de este mazo en orden.",
+    "descAllDue": "Todas tus tarjetas pendientes en todos los mazos.",
+    "startSession": "Iniciar sesión",
+    "starting": "Iniciando…",
+    "allDecks": "Todos los mazos",
+    "loading": "Cargando…",
+    "fsrsScheduler": "FSRS scheduler",
+    "card": "Tarjeta {{number}}",
+    "closeSession": "Cerrar sesión",
+    "showAnswer": "Mostrar respuesta",
+    "answer": "RESPUESTA",
+    "allDone": "Todo listo",
+    "greatWork": "¡Buen trabajo! ¡Seguí así!",
+    "summary": {
+      "reviewed": "Repasadas",
+      "again": "De nuevo",
+      "good": "Bien",
+      "easy": "Fácil"
+    },
+    "backToDashboard": "Volver al panel",
+    "studyAgain": "Estudiar de nuevo",
+    "ratings": {
+      "again": "De nuevo",
+      "hard": "Difícil",
+      "good": "Bien",
+      "easy": "Fácil"
+    }
+  },
+  "stats": {
+    "notes": "Notas",
+    "cards": "Tarjetas",
+    "dueToday": "Pendientes hoy",
+    "reviewedToday": "Repasadas hoy",
+    "suspended": "Suspendidas",
+    "retention30d": "Retención 30d"
+  }
+}

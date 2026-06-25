@@ -1,0 +1,65 @@
+{
+  "library": {
+    "heading": "Document Library",
+    "subtitle": "Add documents to ground your AI chat and flashcard generation.",
+    "addButton": "Add Document",
+    "sourceType": {
+      "pastedText": "Text"
+    },
+    "chunks": "{{count}} chunks",
+    "ingestStatus": {
+      "registered": "Registered",
+      "pending": "Pending",
+      "processing": "Processing...",
+      "ready": "Ready",
+      "failed": "Failed"
+    },
+    "form": {
+      "heading": "Add Document",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Document title",
+      "contentLabel": "Content (paste text)",
+      "contentPlaceholder": "Paste the text content you want to add to your knowledge base...",
+      "cancelBtn": "Cancel",
+      "addingBtn": "Adding...",
+      "submitBtn": "Add & Ingest"
+    },
+    "loadingAriaLabel": "Loading documents",
+    "emptyHeading": "No documents yet",
+    "emptyBody": "Add your first document to start using RAG chat and AI flashcard generation.",
+    "errors": {
+      "createFailed": "Failed to create document"
+    }
+  },
+  "detail": {
+    "breadcrumb": "Document Library",
+    "sourceType": {
+      "pastedText": "Pasted text"
+    },
+    "chunks": "{{count}} chunks",
+    "tokens": "{{count}} tokens",
+    "ingestStatus": {
+      "registered": "Registered",
+      "pending": "Pending",
+      "processing": "Processing...",
+      "ready": "Ready",
+      "failed": "Failed"
+    },
+    "reingestingBtn": "Ingesting…",
+    "reingestBtn": "Re-ingest",
+    "deleteBtn": "Delete",
+    "deleteConfirm": "Delete this document permanently? This cannot be undone.",
+    "deletingBtn": "Deleting…",
+    "confirmDeleteBtn": "Delete",
+    "cancelBtn": "Cancel",
+    "chunksHeading": "Chunks",
+    "showLess": "Show less",
+    "showMore": "Show more",
+    "chunksLoading": "Loading chunks…",
+    "chunksEmpty": "No chunks yet. Trigger ingest to generate embeddings.",
+    "errors": {
+      "ingestFailed": "Ingest failed",
+      "deleteFailed": "Delete failed"
+    }
+  }
+}

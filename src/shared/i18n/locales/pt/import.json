@@ -1,0 +1,60 @@
+{
+  "titleGlobal": "Importar de JSON",
+  "titleScoped": "Importar para {{deckTitle}}",
+  "subtitleGlobal": "Cole um payload versionado. Nada é salvo até você revisar e aprovar.",
+  "subtitleScoped": "Cole um payload versionado. Novos cartões são adicionados a este baralho — nada é salvo até você revisar e aprovar.",
+  "breadcrumb": {
+    "myDecks": "Meus Baralhos",
+    "import": "Importar"
+  },
+  "status": {
+    "validated": "Validado",
+    "errorsFound": "Erros encontrados",
+    "ready": "Pronto"
+  },
+  "actions": {
+    "loadSample": "Carregar exemplo",
+    "clear": "Limpar",
+    "browse": "Procurar…",
+    "validateAndPreview": "Validar e pré-visualizar",
+    "preview": "Pré-visualizar",
+    "approveAndImport": "Aprovar e importar",
+    "working": "Processando…",
+    "selectAll": "Selecionar tudo",
+    "viewDeck": "Ver baralho",
+    "importAnother": "Importar outro"
+  },
+  "validation": {
+    "valid": "Válido",
+    "failed": "Validação falhou"
+  },
+  "preview": {
+    "notes": "Notas",
+    "duplicate": "Duplicado",
+    "error": "Erro",
+    "importInto": "Importar para",
+    "selectDeckPlaceholder": "Selecione um baralho…",
+    "searchDecksPlaceholder": "Pesquisar baralhos…",
+    "selectedOf": "{{selected}} de {{total}} selecionados",
+    "badgeNew": "Novo",
+    "badgeDuplicate": "Duplicado"
+  },
+  "result": {
+    "cardsImported": "{{count}} cartões importados",
+    "deckReady": "Seu baralho está pronto para estudar."
+  },
+  "emptyState": {
+    "title": "A pré-visualização aparece aqui",
+    "description": "Valide um payload e cada cartão é exibido com verificações de duplicatas e erros. Nada é escrito até você aprovar.",
+    "expectedShape": "ESTRUTURA ESPERADA"
+  },
+  "errors": {
+    "invalidJson": "JSON inválido — verifique sua entrada.",
+    "validationFailed": "Validação falhou",
+    "previewFailed": "Pré-visualização falhou",
+    "importFailed": "Importação falhou"
+  },
+  "toast": {
+    "importComplete": "Importação concluída!"
+  }
+}

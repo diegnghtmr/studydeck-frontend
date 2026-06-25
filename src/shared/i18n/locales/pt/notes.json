@@ -1,0 +1,73 @@
+{
+  "breadcrumb": {
+    "myDecks": "Meus baralhos",
+    "deckFallback": "Baralho",
+    "newNote": "Nova nota",
+    "noteLabel": "Nota {{type}}"
+  },
+  "detail": {
+    "loadingAria": "Carregando nota",
+    "editBtn": "Editar",
+    "deleteBtn": "Excluir",
+    "cardsHeading": "Cartões",
+    "derivedCardsAria": "Cartões derivados",
+    "noCardsYet": "Nenhum cartão gerado ainda.",
+    "confirmDelete": {
+      "title": "Excluir esta nota?",
+      "description": "Isso removerá permanentemente a nota e todos os seus cartões derivados. Esta ação não pode ser desfeita.",
+      "confirm": "Excluir nota",
+      "cancel": "Manter nota"
+    },
+    "errors": {
+      "updateFailed": "Falha na atualização",
+      "deleteFailed": "Falha na exclusão"
+    }
+  },
+  "create": {
+    "pageHeading": "Criar uma nota",
+    "cardCountPreview": "cartão será gerado",
+    "cardCountPreview_other": "cartões serão gerados",
+    "errors": {
+      "title": "Algo deu errado",
+      "detail": "Não foi possível criar a nota. Por favor, tente novamente."
+    }
+  },
+  "fields": {
+    "noteType": "Tipo de nota",
+    "noteTypeAria": "Tipo de nota",
+    "front": "Frente",
+    "back": "Verso",
+    "clozeText": "Texto cloze",
+    "clozeHint": "Envolva as omissões em chaves duplas: {{c1::resposta}}, {{c2::outra}}",
+    "question": "Pergunta",
+    "options": "Opções",
+    "optionsHint": "(4–5, marque a correta)",
+    "optionsHintEditor": "(4–5, marque a(s) correta(s))",
+    "markAsCorrect": "Marcar como correta",
+    "optionPlaceholder": "Texto da opção",
+    "optionAria": "Texto da opção {{key}}",
+    "removeOption": "Remover opção",
+    "addOption": "+ Adicionar opção",
+    "addOptionAria": "Adicionar opção",
+    "prompt": "Enunciado",
+    "expectedAnswer": "Resposta esperada",
+    "gradingGuidance": "Orientação de correção",
+    "optionalHint": "(opcional)"
+  },
+  "actions": {
+    "save": "Salvar",
+    "saving": "Salvando…",
+    "cancel": "Cancelar"
+  },
+  "preview": {
+    "promptLabel": "Enunciado",
+    "hintPrefix": "Dica: ",
+    "answerLabel": "Resposta",
+    "showBtn": "Mostrar",
+    "suspended": "suspensa",
+    "cardPosition": "Cartão #{{number}}"
+  },
+  "display": {
+    "correct": "(correta)"
+  }
+}

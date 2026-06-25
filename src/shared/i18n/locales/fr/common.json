@@ -1,0 +1,85 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "study": "Étudier",
+    "cardsDecks": "Cartes et paquets",
+    "importJson": "Importer JSON",
+    "aiGenerate": "Générer avec IA",
+    "askYourNotes": "Interroger vos notes",
+    "settings": "Paramètres",
+    "dailyGoal": "Objectif quotidien",
+    "collapseAria": "Réduire la barre latérale",
+    "expandAria": "Développer la barre latérale",
+    "mainNavAria": "Navigation principale",
+    "decks": "Paquets",
+    "documents": "Documents",
+    "aiChat": "Chat IA",
+    "logIn": "Se connecter",
+    "getStarted": "Commencer"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Certaines préférences sont stockées uniquement dans votre navigateur et ne sont pas synchronisées avec le serveur.",
+    "sections": {
+      "profile": "Profil",
+      "aiProviders": "Fournisseurs IA",
+      "studyScheduler": "Étude et planification",
+      "account": "Compte"
+    },
+    "profile": {
+      "displayName": "Nom d'affichage",
+      "email": "E-mail",
+      "language": "Langue",
+      "timezone": "Fuseau horaire",
+      "syncedFromHint": "Synchronisé depuis votre compte ; non modifiable ici.",
+      "syncedHint": "Synchronisé avec votre compte."
+    },
+    "aiProviders": {
+      "infoBanner": "Vos clés API sont stockées uniquement dans votre navigateur. Elles sont envoyées à notre backend pour atteindre votre fournisseur, jamais directement à des tiers.",
+      "addLabel": "Ajouter un fournisseur :",
+      "choosePlaceholder": "Choisir un modèle…",
+      "noProviders": "Aucun fournisseur configuré. Ajoutez-en un ci-dessus.",
+      "baseUrlLabel": "URL de base",
+      "modelLabel": "Modèle",
+      "apiKeyLabel": "Clé API",
+      "badgeActive": "Actif",
+      "badgeConfigured": "Configuré",
+      "badgeNotSet": "Non défini",
+      "useButton": "Utiliser",
+      "removeButton": "Supprimer",
+      "enabledLabel": "Activé",
+      "providerSavedToast": "Fournisseur enregistré",
+      "providerRemovedToast": "Fournisseur supprimé",
+      "providerAddedToast": "Fournisseur {{label}} ajouté",
+      "removeDialogTitle": "Supprimer le fournisseur ?",
+      "removeDialogDescription": "Cela supprimera le fournisseur et sa clé API de votre navigateur.",
+      "removeDialogConfirm": "Supprimer",
+      "removeDialogCancel": "Annuler"
+    },
+    "study": {
+      "schedulerAlgorithm": "Algorithme de planification",
+      "savedLocallyHint": "Enregistré localement dans votre navigateur.",
+      "dailyGoal": "Objectif quotidien",
+      "cardsPerDayOption": "{{count}} cartes / jour",
+      "cardsOption": "{{count}} cartes",
+      "dailyGoalHint": "Synchronisé avec votre compte ; pilote l'objectif et la progression dans la barre latérale.",
+      "targetRetention": "Rétention cible",
+      "syncedHint": "Synchronisé avec votre compte.",
+      "newCardsDay": "Nouvelles cartes / jour",
+      "showIntervals": "Afficher les intervalles"
+    },
+    "account": {
+      "title": "Compte",
+      "thisDevice": "Cet appareil",
+      "activeSession": "Actif",
+      "sessionHint": "Seule votre session actuelle est affichée. La gestion multi-sessions n'est pas encore disponible.",
+      "signOutEverywhere": "Se déconnecter partout",
+      "deleteAccount": "Supprimer le compte",
+      "deleteDialogTitle": "Supprimer le compte ?",
+      "deleteDialogDescription": "Cela supprimera définitivement votre compte et toutes vos données. Cette action est irréversible.",
+      "deleteDialogConfirm": "Supprimer le compte",
+      "deleteDialogCancel": "Annuler",
+      "deleteFailed": "Échec de la suppression du compte. Veuillez réessayer."
+    }
+  }
+}

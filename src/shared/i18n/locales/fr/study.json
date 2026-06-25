@@ -1,0 +1,52 @@
+{
+  "title": "Étude",
+  "subtitle": "Choisissez un paquet pour commencer votre session de révision.",
+  "reviewAllDue": "Réviser tous les dus",
+  "emptyState": {
+    "message": "Aucun paquet pour le moment. Créez-en un pour commencer.",
+    "goToDecks": "Aller aux paquets →"
+  },
+  "deckRow": {
+    "ariaLabel": "Étudier {{title}}",
+    "due": "{{count}} à réviser",
+    "zeroDue": "0 à réviser"
+  },
+  "review": {
+    "readyToReview": "Prêt à réviser ?",
+    "descDeckDue": "Les cartes dues pour ce paquet seront affichées dans l'ordre.",
+    "descAllDue": "Toutes vos cartes dues dans chaque paquet.",
+    "startSession": "Démarrer la session",
+    "starting": "Démarrage…",
+    "allDecks": "Tous les paquets",
+    "loading": "Chargement…",
+    "fsrsScheduler": "FSRS scheduler",
+    "card": "Carte {{number}}",
+    "closeSession": "Fermer la session",
+    "showAnswer": "Afficher la réponse",
+    "answer": "RÉPONSE",
+    "allDone": "Tout terminé",
+    "greatWork": "Excellent travail — continuez ainsi !",
+    "summary": {
+      "reviewed": "Révisées",
+      "again": "À refaire",
+      "good": "Bien",
+      "easy": "Facile"
+    },
+    "backToDashboard": "Retour au tableau de bord",
+    "studyAgain": "Étudier à nouveau",
+    "ratings": {
+      "again": "À refaire",
+      "hard": "Difficile",
+      "good": "Bien",
+      "easy": "Facile"
+    }
+  },
+  "stats": {
+    "notes": "Notes",
+    "cards": "Cartes",
+    "dueToday": "Dues aujourd'hui",
+    "reviewedToday": "Révisées aujourd'hui",
+    "suspended": "Suspendues",
+    "retention30d": "Rétention 30j"
+  }
+}

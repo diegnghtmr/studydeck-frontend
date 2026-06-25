@@ -1,0 +1,85 @@
+{
+  "nav": {
+    "dashboard": "Painel",
+    "study": "Estudar",
+    "cardsDecks": "Cartões e baralhos",
+    "importJson": "Importar JSON",
+    "aiGenerate": "Gerar com IA",
+    "askYourNotes": "Consultar suas notas",
+    "settings": "Configurações",
+    "dailyGoal": "Meta diária",
+    "collapseAria": "Recolher barra lateral",
+    "expandAria": "Expandir barra lateral",
+    "mainNavAria": "Navegação principal",
+    "decks": "Baralhos",
+    "documents": "Documentos",
+    "aiChat": "Chat IA",
+    "logIn": "Entrar",
+    "getStarted": "Começar"
+  },
+  "settings": {
+    "title": "Configurações",
+    "subtitle": "Algumas preferências são armazenadas apenas localmente no seu navegador e não são sincronizadas com o servidor.",
+    "sections": {
+      "profile": "Perfil",
+      "aiProviders": "Provedores de IA",
+      "studyScheduler": "Estudo e agendamento",
+      "account": "Conta"
+    },
+    "profile": {
+      "displayName": "Nome de exibição",
+      "email": "E-mail",
+      "language": "Idioma",
+      "timezone": "Fuso horário",
+      "syncedFromHint": "Sincronizado da sua conta; não editável aqui.",
+      "syncedHint": "Sincronizado com sua conta."
+    },
+    "aiProviders": {
+      "infoBanner": "Suas chaves de API são armazenadas apenas no seu navegador. Elas são enviadas ao nosso backend para alcançar seu provedor, nunca diretamente a terceiros.",
+      "addLabel": "Adicionar provedor:",
+      "choosePlaceholder": "Escolha um modelo…",
+      "noProviders": "Nenhum provedor configurado. Adicione um acima.",
+      "baseUrlLabel": "URL base",
+      "modelLabel": "Modelo",
+      "apiKeyLabel": "Chave de API",
+      "badgeActive": "Ativo",
+      "badgeConfigured": "Configurado",
+      "badgeNotSet": "Não definido",
+      "useButton": "Usar",
+      "removeButton": "Remover",
+      "enabledLabel": "Habilitado",
+      "providerSavedToast": "Provedor salvo",
+      "providerRemovedToast": "Provedor removido",
+      "providerAddedToast": "Provedor {{label}} adicionado",
+      "removeDialogTitle": "Remover provedor?",
+      "removeDialogDescription": "Isso removerá o provedor e sua chave de API do seu navegador.",
+      "removeDialogConfirm": "Remover",
+      "removeDialogCancel": "Cancelar"
+    },
+    "study": {
+      "schedulerAlgorithm": "Algoritmo do agendador",
+      "savedLocallyHint": "Salvo localmente no seu navegador.",
+      "dailyGoal": "Meta diária",
+      "cardsPerDayOption": "{{count}} cartões / dia",
+      "cardsOption": "{{count}} cartões",
+      "dailyGoalHint": "Sincronizado com sua conta; controla a meta e o progresso na barra lateral.",
+      "targetRetention": "Retenção desejada",
+      "syncedHint": "Sincronizado com sua conta.",
+      "newCardsDay": "Novos cartões / dia",
+      "showIntervals": "Mostrar intervalos"
+    },
+    "account": {
+      "title": "Conta",
+      "thisDevice": "Este dispositivo",
+      "activeSession": "Ativo",
+      "sessionHint": "Apenas sua sessão atual é exibida. O gerenciamento de múltiplas sessões ainda não está disponível.",
+      "signOutEverywhere": "Sair de todos os dispositivos",
+      "deleteAccount": "Excluir conta",
+      "deleteDialogTitle": "Excluir conta?",
+      "deleteDialogDescription": "Isso excluirá permanentemente sua conta e todos os seus dados. Esta ação não pode ser desfeita.",
+      "deleteDialogConfirm": "Excluir conta",
+      "deleteDialogCancel": "Cancelar",
+      "deleteFailed": "Falha ao excluir a conta. Tente novamente."
+    }
+  }
+}

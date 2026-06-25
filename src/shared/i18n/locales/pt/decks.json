@@ -1,0 +1,172 @@
+{
+  "page": {
+    "title": "Cartões e baralhos",
+    "subtitle": "Explore e gerencie seus baralhos e cartões de estudo."
+  },
+  "actions": {
+    "newDeck": "Novo baralho",
+    "newCard": "Novo cartão",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "saving": "Salvando…",
+    "create": "Criar baralho",
+    "creating": "Criando…",
+    "delete": "Excluir",
+    "rename": "Renomear",
+    "archive": "Arquivar",
+    "archived": "Arquivado",
+    "importJson": "Importar JSON",
+    "startReview": "Iniciar revisão",
+    "open": "Abrir baralho"
+  },
+  "sidebar": {
+    "decksLabel": "BARALHOS",
+    "allDecks": "Todos os baralhos",
+    "showAllDecks": "Mostrar todos os baralhos"
+  },
+  "search": {
+    "cardsPlaceholder": "Pesquisar cartões…",
+    "decksPlaceholder": "Pesquisar baralhos…",
+    "noCardsMatch": "Nenhum cartão corresponde à sua pesquisa."
+  },
+  "toast": {
+    "deckDeleted": "Baralho excluído.",
+    "deckCreated": "Baralho criado.",
+    "deckRenamed": "Baralho renomeado.",
+    "cardDeleted": "Cartão excluído.",
+    "cardAdded": "Cartão adicionado."
+  },
+  "deckRow": {
+    "selectDeck": "Selecionar baralho: {{title}}",
+    "openDeck": "Abrir baralho",
+    "openDeckAria": "Abrir {{title}}",
+    "renameDeck": "Renomear {{title}}",
+    "deleteDeck": "Excluir {{title}}"
+  },
+  "deckDelete": {
+    "title": "Excluir baralho?",
+    "description": "Isso excluirá permanentemente o baralho e todos os seus cartões. Esta ação não pode ser desfeita.",
+    "confirm": "Excluir baralho"
+  },
+  "cardItem": {
+    "openCard": "Abrir cartão: {{front}}",
+    "deleteCard": "Excluir cartão",
+    "unknownDeck": "Baralho desconhecido"
+  },
+  "cardDelete": {
+    "title": "Excluir cartão?",
+    "description": "Este cartão será excluído permanentemente.",
+    "confirm": "Excluir cartão"
+  },
+  "deckModal": {
+    "titleNew": "Novo baralho",
+    "titleRename": "Renomear baralho",
+    "nameLabel": "Nome do baralho",
+    "namePlaceholder": "Dê ao seu baralho um nome claro e memorável.",
+    "nameHint": "Dê ao seu baralho um nome claro e memorável.",
+    "iconLegend": "Ícone",
+    "iconAuto": "Ícone automático",
+    "iconItem": "Ícone {{name}}",
+    "iconAutoLabel": "Auto",
+    "colorLegend": "Cor",
+    "colorAuto": "Cor automática",
+    "colorItem": "Cor {{color}}",
+    "colorAutoLabel": "Auto",
+    "preview": "Pré-visualização",
+    "submitCreate": "Criar baralho",
+    "submitSave": "Salvar nome"
+  },
+  "cardModal": {
+    "title": "Novo cartão",
+    "closeAria": "Fechar",
+    "deckLabel": "Baralho",
+    "deckSelectPlaceholder": "Selecionar um baralho",
+    "cardTypeLabel": "Tipo de cartão",
+    "addCloze": "+ Exclusão cloze",
+    "clozeHint": "{{count}} exclusão(ões) cloze · envolva o texto como \\{{c1::palavra}}",
+    "mcqOptionsLabel": "Opções — toque em uma letra para marcar a correta",
+    "mcqOptionAria": "Resposta correta: opção {{key}}",
+    "mcqOptionPlaceholder": "Opção {{key}}",
+    "submitAdd": "Adicionar cartão"
+  },
+  "cardTypes": {
+    "basic": "Básico",
+    "reversed": "Invertido",
+    "cloze": "Cloze",
+    "multipleChoice": "Múltipla escolha",
+    "freeText": "Texto livre"
+  },
+  "typeFilter": {
+    "allTypes": "Todos os tipos"
+  },
+  "preview": {
+    "clozeDeletion": "(exclusão cloze)",
+    "optionsCount": "{{count}} opções"
+  },
+  "frontLabel": {
+    "cloze": "Texto cloze",
+    "question": "Pergunta",
+    "prompt": "Indicação",
+    "front": "Frente"
+  },
+  "frontPlaceholder": {
+    "cloze": "A \\{{c1::mitocôndria}} produz ATP.",
+    "question": "Qual organela produz ATP?",
+    "freeText": "Explique o processo com suas próprias palavras…",
+    "front": "Frente do cartão…"
+  },
+  "backLabel": {
+    "expectedAnswer": "Resposta esperada",
+    "back": "Verso"
+  },
+  "backPlaceholder": {
+    "modelAnswer": "Resposta modelo para autoavaliação…",
+    "back": "Verso do cartão…"
+  },
+  "detail": {
+    "loadingAria": "Carregando baralho",
+    "myDecks": "Meus baralhos",
+    "nameLabel": "Nome do baralho",
+    "descriptionLabel": "Descrição",
+    "notesHeading": "Notas",
+    "newNote": "+ Nova nota",
+    "noNotes": "Nenhuma nota ainda.",
+    "createFirstNote": "Criar a primeira nota",
+    "validation": {
+      "nameRequired": "O nome do baralho é obrigatório.",
+      "nameTooLong": "O nome deve ter 120 caracteres ou menos."
+    },
+    "archiveDialog": {
+      "title": "Arquivar este baralho?",
+      "description": "Os baralhos arquivados ficam ocultos na lista principal. Você pode desarquivá-los depois.",
+      "confirm": "Arquivar",
+      "cancel": "Manter"
+    },
+    "deleteDialog": {
+      "title": "Excluir este baralho?",
+      "description": "Isso removerá permanentemente o baralho e todas as suas notas e cartões. Esta ação não pode ser desfeita.",
+      "confirm": "Excluir para sempre",
+      "cancel": "Manter baralho"
+    }
+  },
+  "create": {
+    "breadcrumbMyDecks": "Meus baralhos",
+    "breadcrumbNew": "Novo baralho",
+    "heading": "Criar um baralho",
+    "nameLabel": "Nome do baralho",
+    "namePlaceholder": "ex. Biologia 101",
+    "descriptionLabel": "Descrição",
+    "descriptionOptional": "(opcional)",
+    "descriptionPlaceholder": "Do que se trata este baralho?",
+    "visibilityLegend": "Visibilidade",
+    "validation": {
+      "nameRequired": "O nome do baralho é obrigatório.",
+      "nameTooLong": "O nome deve ter 120 caracteres ou menos.",
+      "descriptionTooLong": "A descrição deve ter 1000 caracteres ou menos."
+    },
+    "error": {
+      "title": "Algo deu errado",
+      "description": "Não foi possível criar o baralho. Por favor, tente novamente."
+    }
+  }
+}

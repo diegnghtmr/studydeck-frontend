@@ -1,0 +1,60 @@
+{
+  "titleGlobal": "Importer depuis JSON",
+  "titleScoped": "Importer dans {{deckTitle}}",
+  "subtitleGlobal": "Collez un payload versionné. Rien n'est sauvegardé tant que vous n'avez pas vérifié et approuvé.",
+  "subtitleScoped": "Collez un payload versionné. Les nouvelles cartes sont ajoutées à ce paquet — rien n'est sauvegardé tant que vous n'avez pas vérifié et approuvé.",
+  "breadcrumb": {
+    "myDecks": "Mes Paquets",
+    "import": "Importer"
+  },
+  "status": {
+    "validated": "Validé",
+    "errorsFound": "Erreurs trouvées",
+    "ready": "Prêt"
+  },
+  "actions": {
+    "loadSample": "Charger l'exemple",
+    "clear": "Effacer",
+    "browse": "Parcourir…",
+    "validateAndPreview": "Valider et prévisualiser",
+    "preview": "Prévisualiser",
+    "approveAndImport": "Approuver et importer",
+    "working": "En cours…",
+    "selectAll": "Tout sélectionner",
+    "viewDeck": "Voir le paquet",
+    "importAnother": "Importer un autre"
+  },
+  "validation": {
+    "valid": "Valide",
+    "failed": "Validation échouée"
+  },
+  "preview": {
+    "notes": "Notes",
+    "duplicate": "Doublon",
+    "error": "Erreur",
+    "importInto": "Importer dans",
+    "selectDeckPlaceholder": "Sélectionnez un paquet…",
+    "searchDecksPlaceholder": "Rechercher des paquets…",
+    "selectedOf": "{{selected}} sur {{total}} sélectionnés",
+    "badgeNew": "Nouveau",
+    "badgeDuplicate": "Doublon"
+  },
+  "result": {
+    "cardsImported": "{{count}} cartes importées",
+    "deckReady": "Votre paquet est prêt à étudier."
+  },
+  "emptyState": {
+    "title": "La prévisualisation apparaît ici",
+    "description": "Validez un payload et chaque carte est affichée avec des vérifications de doublons et d'erreurs. Rien n'est écrit tant que vous n'approuvez pas.",
+    "expectedShape": "STRUCTURE ATTENDUE"
+  },
+  "errors": {
+    "invalidJson": "JSON invalide — veuillez vérifier votre saisie.",
+    "validationFailed": "Validation échouée",
+    "previewFailed": "Prévisualisation échouée",
+    "importFailed": "Importation échouée"
+  },
+  "toast": {
+    "importComplete": "Importation terminée !"
+  }
+}

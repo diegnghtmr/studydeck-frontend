@@ -1,0 +1,73 @@
+{
+  "breadcrumb": {
+    "myDecks": "Mis mazos",
+    "deckFallback": "Mazo",
+    "newNote": "Nueva nota",
+    "noteLabel": "Nota {{type}}"
+  },
+  "detail": {
+    "loadingAria": "Cargando nota",
+    "editBtn": "Editar",
+    "deleteBtn": "Eliminar",
+    "cardsHeading": "Tarjetas",
+    "derivedCardsAria": "Tarjetas derivadas",
+    "noCardsYet": "Aún no se han generado tarjetas.",
+    "confirmDelete": {
+      "title": "¿Eliminar esta nota?",
+      "description": "Esto eliminará permanentemente la nota y todas sus tarjetas derivadas. Esta acción no se puede deshacer.",
+      "confirm": "Eliminar nota",
+      "cancel": "Conservar nota"
+    },
+    "errors": {
+      "updateFailed": "Error al actualizar",
+      "deleteFailed": "Error al eliminar"
+    }
+  },
+  "create": {
+    "pageHeading": "Crear una nota",
+    "cardCountPreview": "tarjeta será generada",
+    "cardCountPreview_other": "tarjetas serán generadas",
+    "errors": {
+      "title": "Algo salió mal",
+      "detail": "No se pudo crear la nota. Por favor, intenta de nuevo."
+    }
+  },
+  "fields": {
+    "noteType": "Tipo de nota",
+    "noteTypeAria": "Tipo de nota",
+    "front": "Frente",
+    "back": "Reverso",
+    "clozeText": "Texto cloze",
+    "clozeHint": "Encierra las omisiones entre llaves dobles: {{c1::respuesta}}, {{c2::otra}}",
+    "question": "Pregunta",
+    "options": "Opciones",
+    "optionsHint": "(4–5, marca la correcta)",
+    "optionsHintEditor": "(4–5, marca la(s) correcta(s))",
+    "markAsCorrect": "Marcar como correcta",
+    "optionPlaceholder": "Texto de la opción",
+    "optionAria": "Texto de la opción {{key}}",
+    "removeOption": "Eliminar opción",
+    "addOption": "+ Agregar opción",
+    "addOptionAria": "Agregar opción",
+    "prompt": "Consigna",
+    "expectedAnswer": "Respuesta esperada",
+    "gradingGuidance": "Guía de corrección",
+    "optionalHint": "(opcional)"
+  },
+  "actions": {
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "cancel": "Cancelar"
+  },
+  "preview": {
+    "promptLabel": "Consigna",
+    "hintPrefix": "Pista: ",
+    "answerLabel": "Respuesta",
+    "showBtn": "Mostrar",
+    "suspended": "suspendida",
+    "cardPosition": "Tarjeta #{{number}}"
+  },
+  "display": {
+    "correct": "(correcta)"
+  }
+}

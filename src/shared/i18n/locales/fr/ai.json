@@ -1,0 +1,65 @@
+{
+  "generate": {
+    "badge": "Assisté par IA · vous approuvez tout",
+    "heading": "Générer des cartes",
+    "subtitle": "Collez des notes ou un sujet. L'IA propose des cartes ; vous approuvez chacune.",
+    "sourceLabel": "Notes, documents ou sujet source",
+    "sourcePlaceholder": "Collez vos notes, déposez un document, ou saisissez un sujet comme « Le cycle de Krebs »…",
+    "attachDocument": "Joindre un document",
+    "orTry": "ou essayez :",
+    "examples": {
+      "krebsCycle": "Le cycle de Krebs",
+      "spanishTravel": "Vocabulaire voyage en espagnol",
+      "springBoot": "Annotations Spring Boot",
+      "photosynthesis": "Photosynthèse"
+    },
+    "cardType": {
+      "label": "Type de carte",
+      "basic": "Basique",
+      "basicReversed": "Basique & inversée",
+      "cloze": "Lacune",
+      "multipleChoice": "Choix multiple",
+      "freeText": "Texte libre"
+    },
+    "howMany": "Combien",
+    "addToDeck": {
+      "label": "Ajouter au paquet",
+      "placeholder": "Nouveau paquet",
+      "searchPlaceholder": "Rechercher des paquets…"
+    },
+    "generateBtn": "Générer des cartes",
+    "generatingBtn": "Génération…",
+    "draftingStatus": "Rédaction des cartes à partir de votre source…",
+    "summary": "{{count}} proposées · {{accepted}} acceptées",
+    "acceptAll": "Tout accepter",
+    "regenerate": "Régénérer",
+    "importingBtn": "Importation…",
+    "addToDeckBtn": "Ajouter {{count}} au paquet",
+    "allDismissed": "Toutes les cartes rejetées. Essayez de générer à nouveau.",
+    "aria": {
+      "editCard": "Modifier la carte",
+      "dismissCard": "Rejeter la carte",
+      "acceptCard": "Accepter la carte",
+      "removeAttachment": "Supprimer {{filename}}"
+    },
+    "errors": {
+      "generationFailed": "Échec de la génération",
+      "importFailed": "Échec de l'importation"
+    }
+  },
+  "ragChat": {
+    "heading": "Interrogez vos notes",
+    "subtitle": "Réponses fondées sur vos documents",
+    "documentsBadge": "{{count}} documents indexés",
+    "documentsBadgeFallback": "Documents",
+    "emptyHeading": "Posez une question sur vos notes",
+    "emptyBody": "Votre réponse sera fondée sur vos documents indexés. Essayez de poser une question précise.",
+    "inputPlaceholder": "Posez une question sur vos notes…",
+    "sendMessage": "Envoyer le message",
+    "sourceChip": "Source {{index}}",
+    "errors": {
+      "chatFailed": "Échec du chat",
+      "chatFailedDetail": "Impossible d'obtenir une réponse. Veuillez réessayer."
+    }
+  }
+}

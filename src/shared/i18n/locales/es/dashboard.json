@@ -1,0 +1,43 @@
+{
+  "loading": {
+    "decksAria": "Cargando tus mazos",
+    "nextDeckAria": "Cargando tu próximo mazo"
+  },
+  "deckCard": {
+    "openAria": "Abrir mazo: {{title}}",
+    "dueSuffix": "pendientes",
+    "newSuffix": "nuevas",
+    "totalSuffix": "total"
+  },
+  "greeting": {
+    "morning": "Buenos días",
+    "afternoon": "Buenas tardes",
+    "evening": "Buenas noches"
+  },
+  "subtitle": {
+    "prefix": "Tu",
+    "deckWord": "mazo",
+    "deckWord_other": "mazos",
+    "suffix": "listo para estudiar."
+  },
+  "stats": {
+    "dueToday": "Para hoy",
+    "retention": "Retención",
+    "newCards": "Tarjetas nuevas",
+    "dayStreak": "Racha de días"
+  },
+  "upNext": {
+    "label": "A CONTINUACIÓN",
+    "readyToReview": "Listo para repasar",
+    "noDecksTitle": "Sin mazos aún",
+    "noDecksSubtitle": "Crea tu primer mazo para comenzar",
+    "startReview": "Comenzar repaso →",
+    "createDeck": "Crear mazo →"
+  },
+  "decksSection": {
+    "heading": "Tus mazos",
+    "manageLink": "Administrar mazos",
+    "noDecksYet": "Sin mazos aún.",
+    "createOne": "Crear uno"
+  }
+}

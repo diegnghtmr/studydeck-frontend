@@ -1,0 +1,52 @@
+{
+  "title": "Estudo",
+  "subtitle": "Escolha um baralho para começar sua sessão de revisão.",
+  "reviewAllDue": "Revisar todos",
+  "emptyState": {
+    "message": "Nenhum baralho ainda. Crie um para começar.",
+    "goToDecks": "Ir para baralhos →"
+  },
+  "deckRow": {
+    "ariaLabel": "Estudar {{title}}",
+    "due": "{{count}} pendentes",
+    "zeroDue": "0 pendentes"
+  },
+  "review": {
+    "readyToReview": "Pronto para revisar?",
+    "descDeckDue": "Os cartões devidos para este baralho serão mostrados em ordem.",
+    "descAllDue": "Todos os seus cartões devidos em todos os baralhos.",
+    "startSession": "Iniciar sessão",
+    "starting": "Iniciando…",
+    "allDecks": "Todos os baralhos",
+    "loading": "Carregando…",
+    "fsrsScheduler": "FSRS scheduler",
+    "card": "Cartão {{number}}",
+    "closeSession": "Fechar sessão",
+    "showAnswer": "Mostrar resposta",
+    "answer": "RESPOSTA",
+    "allDone": "Tudo pronto",
+    "greatWork": "Ótimo trabalho — continue assim!",
+    "summary": {
+      "reviewed": "Revisados",
+      "again": "De novo",
+      "good": "Bom",
+      "easy": "Fácil"
+    },
+    "backToDashboard": "Voltar ao painel",
+    "studyAgain": "Estudar novamente",
+    "ratings": {
+      "again": "De novo",
+      "hard": "Difícil",
+      "good": "Bom",
+      "easy": "Fácil"
+    }
+  },
+  "stats": {
+    "notes": "Notas",
+    "cards": "Cartões",
+    "dueToday": "Devidos hoje",
+    "reviewedToday": "Revisados hoje",
+    "suspended": "Suspensos",
+    "retention30d": "Retenção 30d"
+  }
+}

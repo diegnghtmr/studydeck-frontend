@@ -1,0 +1,60 @@
+{
+  "titleGlobal": "Import from JSON",
+  "titleScoped": "Import into {{deckTitle}}",
+  "subtitleGlobal": "Paste a versioned payload. Nothing is saved until you review and approve.",
+  "subtitleScoped": "Paste a versioned payload. New cards are added to this deck — nothing is saved until you review and approve.",
+  "breadcrumb": {
+    "myDecks": "My Decks",
+    "import": "Import"
+  },
+  "status": {
+    "validated": "Validated",
+    "errorsFound": "Errors found",
+    "ready": "Ready"
+  },
+  "actions": {
+    "loadSample": "Load sample",
+    "clear": "Clear",
+    "browse": "Browse…",
+    "validateAndPreview": "Validate & preview",
+    "preview": "Preview",
+    "approveAndImport": "Approve & import",
+    "working": "Working…",
+    "selectAll": "Select all",
+    "viewDeck": "View deck",
+    "importAnother": "Import another"
+  },
+  "validation": {
+    "valid": "Valid",
+    "failed": "Validation Failed"
+  },
+  "preview": {
+    "notes": "Notes",
+    "duplicate": "Duplicate",
+    "error": "Error",
+    "importInto": "Import into",
+    "selectDeckPlaceholder": "Select a deck…",
+    "searchDecksPlaceholder": "Search decks…",
+    "selectedOf": "{{selected}} of {{total}} selected",
+    "badgeNew": "New",
+    "badgeDuplicate": "Duplicate"
+  },
+  "result": {
+    "cardsImported": "{{count}} cards imported",
+    "deckReady": "Your deck is ready to study."
+  },
+  "emptyState": {
+    "title": "Preview appears here",
+    "description": "Validate a payload and every card is shown with duplicate and error checks. Nothing is written until you approve.",
+    "expectedShape": "EXPECTED SHAPE"
+  },
+  "errors": {
+    "invalidJson": "Invalid JSON — please check your input.",
+    "validationFailed": "Validation failed",
+    "previewFailed": "Preview failed",
+    "importFailed": "Import failed"
+  },
+  "toast": {
+    "importComplete": "Import complete!"
+  }
+}

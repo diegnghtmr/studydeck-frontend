@@ -1,0 +1,43 @@
+{
+  "loading": {
+    "decksAria": "Chargement de vos paquets",
+    "nextDeckAria": "Chargement de votre prochain paquet"
+  },
+  "deckCard": {
+    "openAria": "Ouvrir le paquet : {{title}}",
+    "dueSuffix": "à réviser",
+    "newSuffix": "nouvelles",
+    "totalSuffix": "total"
+  },
+  "greeting": {
+    "morning": "Bonjour",
+    "afternoon": "Bon après-midi",
+    "evening": "Bonsoir"
+  },
+  "subtitle": {
+    "prefix": "Votre",
+    "deckWord": "paquet",
+    "deckWord_other": "paquets",
+    "suffix": "prêt à étudier."
+  },
+  "stats": {
+    "dueToday": "À réviser aujourd'hui",
+    "retention": "Rétention",
+    "newCards": "Nouvelles cartes",
+    "dayStreak": "Série de jours"
+  },
+  "upNext": {
+    "label": "SUIVANT",
+    "readyToReview": "Prêt à réviser",
+    "noDecksTitle": "Aucun paquet",
+    "noDecksSubtitle": "Créez votre premier paquet pour commencer",
+    "startReview": "Commencer la révision →",
+    "createDeck": "Créer un paquet →"
+  },
+  "decksSection": {
+    "heading": "Vos paquets",
+    "manageLink": "Gérer les paquets",
+    "noDecksYet": "Aucun paquet pour l'instant.",
+    "createOne": "En créer un"
+  }
+}

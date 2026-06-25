@@ -1,0 +1,43 @@
+{
+  "loading": {
+    "decksAria": "Carregando seus baralhos",
+    "nextDeckAria": "Carregando seu próximo baralho"
+  },
+  "deckCard": {
+    "openAria": "Abrir baralho: {{title}}",
+    "dueSuffix": "pendentes",
+    "newSuffix": "novas",
+    "totalSuffix": "total"
+  },
+  "greeting": {
+    "morning": "Bom dia",
+    "afternoon": "Boa tarde",
+    "evening": "Boa noite"
+  },
+  "subtitle": {
+    "prefix": "Seu",
+    "deckWord": "baralho",
+    "deckWord_other": "baralhos",
+    "suffix": "pronto para estudar."
+  },
+  "stats": {
+    "dueToday": "Para hoje",
+    "retention": "Retenção",
+    "newCards": "Cartões novos",
+    "dayStreak": "Sequência de dias"
+  },
+  "upNext": {
+    "label": "A SEGUIR",
+    "readyToReview": "Pronto para revisar",
+    "noDecksTitle": "Nenhum baralho ainda",
+    "noDecksSubtitle": "Crie seu primeiro baralho para começar",
+    "startReview": "Iniciar revisão →",
+    "createDeck": "Criar baralho →"
+  },
+  "decksSection": {
+    "heading": "Seus baralhos",
+    "manageLink": "Gerenciar baralhos",
+    "noDecksYet": "Nenhum baralho ainda.",
+    "createOne": "Criar um"
+  }
+}
