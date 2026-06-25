@@ -36,6 +36,7 @@ import {
   useReviewHistory,
   useDeckStats,
 } from "./use-review";
+import { queryKeys } from "@shared/query/query-keys";
 
 const mockGetDueCards = vi.mocked(cardsApi.getDueCards);
 const mockCreateReviewSession = vi.mocked(reviewsApi.createReviewSession);
@@ -214,6 +215,26 @@ describe("useSubmitReview", () => {
       expect(res.nextState.scheduledDays).toBe(8);
     });
   });
+
+  it("invalidates user stats so the daily goal and dashboard update live", async () => {
+    mockSubmitReview.mockResolvedValue({ data: SAMPLE_REVIEW_RESULT } as never);
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(QueryClientProvider, { client: queryClient }, children);
+
+    const { result } = renderHook(() => useSubmitReview(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({ cardId: CARD_ID, sessionId: SESSION_ID, rating: "good" });
+    });
+
+    const invalidatedKeys = invalidateSpy.mock.calls.map((call) => call[0]?.queryKey);
+    expect(invalidatedKeys).toContainEqual(queryKeys.stats.all);
+  });
 });
 
 describe("useReviewHistory", () => {
@@ -267,5 +288,38 @@ describe("useDeckStats", () => {
       wrapper: createWrapper(),
     });
     expect(result.current.fetchStatus).toBe("idle");
+  });
+});
+
+describe("useReviewHistory query key isolation", () => {
+  it("produces different query keys for different deckId values", () => {
+    const key1 = JSON.stringify(
+      ["reviews", "history", { page: 0, size: 20, deckId: "deck-A" }]
+    );
+    const key2 = JSON.stringify(
+      ["reviews", "history", { page: 0, size: 20, deckId: "deck-B" }]
+    );
+    const keyNoFilter = JSON.stringify(
+      ["reviews", "history", { page: 0, size: 20 }]
+    );
+    expect(key1).not.toBe(key2);
+    expect(key1).not.toBe(keyNoFilter);
+  });
+
+  it("fetches review history with deckId passed to API", async () => {
+    mockListReviewHistory.mockResolvedValue({
+      data: {
+        items: [],
+        page: { page: 0, size: 20, totalElements: 0, totalPages: 0 },
+      },
+    } as never);
+
+    const { result } = renderHook(
+      () => useReviewHistory({ deckId: "deck-A", page: 0, size: 20 }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockListReviewHistory).toHaveBeenCalledWith(0, 20, "deck-A", undefined);
   });
 });

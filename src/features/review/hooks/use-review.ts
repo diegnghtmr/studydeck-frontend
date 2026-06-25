@@ -88,7 +88,12 @@ export function useReviewHistory(params?: {
   const { deckId, cardId, page = 0, size = 20 } = params ?? {};
 
   return useQuery<PagedReviewLogModel>({
-    queryKey: queryKeys.reviews.history({ page, size }),
+    queryKey: queryKeys.reviews.history({
+      page,
+      size,
+      ...(deckId !== undefined ? { deckId } : {}),
+      ...(cardId !== undefined ? { cardId } : {}),
+    }),
     queryFn: async () => {
       const response = await reviewsApi.listReviewHistory(
         page,
@@ -140,9 +145,13 @@ export function useSubmitReview() {
       return response.data as unknown as FSRSReviewResultModel;
     },
     onSuccess: () => {
-      // Invalidate due cards and stats so dashboard/deck pages update
+      // Invalidate due cards and deck stats so dashboard/deck pages update.
       queryClient.invalidateQueries({ queryKey: queryKeys.cards.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.decks.all });
+      // Invalidate user stats so the sidebar daily-goal widget and the dashboard
+      // metrics (reviewedToday / dueToday / streak) reflect each review live —
+      // the sidebar query is always mounted, so this refetches immediately.
+      queryClient.invalidateQueries({ queryKey: queryKeys.stats.all });
       // Invalidate review history only — NOT the per-session next-card query.
       // The component advances the session by calling getNextReviewCard directly
       // and managing state transitions itself.
