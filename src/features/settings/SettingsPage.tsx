@@ -23,14 +23,19 @@ import { formatRelativeTime } from "@shared/utils/format-relative-time";
 import { FIELD_CLASS } from "@shared/ui/field";
 import {
   useAiProviderStore,
-  selectActiveProviderOverride,
+  hasLegacyLocalStorageProviders,
+  clearLegacyLocalStorage,
   PROVIDER_PRESETS,
 } from "./store/use-ai-provider-store";
-import type { AiProvider } from "./store/use-ai-provider-store";
-
-// Suppress unused import warning — selectActiveProviderOverride is re-exported
-// for consumers of this module to use without direct store access.
-void selectActiveProviderOverride;
+import {
+  useAiProviders,
+  useCreateAiProvider,
+  useUpdateAiProvider,
+  useDeleteAiProvider,
+  useActivateAiProvider,
+} from "./hooks/use-ai-providers";
+import type { AiProvider } from "./hooks/use-ai-providers";
+import type { Session } from "./hooks/use-sessions";
 
 const LANGUAGE_ITEMS = [
   { value: "en", label: "English" },
@@ -49,8 +54,7 @@ const TIMEZONE_ITEMS = [
   { value: "Europe/Paris", label: "Europe/Paris" },
 ];
 
-
-const PRESET_ITEMS = PROVIDER_PRESETS.map((p) => ({ value: p.label, label: p.label }));
+// PROVIDER_PRESETS used directly as preset buttons (no Dropdown needed)
 
 function getDefaultTimezone(): string {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -139,14 +143,6 @@ export function SettingsPage() {
   const [retentionDisplay, setRetentionDisplay] = useState<number | null>(null);
   const displayRetention = retentionDisplay ?? retentionPct;
 
-  // AI Provider store
-  const providers = useAiProviderStore((s) => s.providers);
-  const activeProviderId = useAiProviderStore((s) => s.activeProviderId);
-  const addProvider = useAiProviderStore((s) => s.addProvider);
-  const updateProvider = useAiProviderStore((s) => s.updateProvider);
-  const removeProvider = useAiProviderStore((s) => s.removeProvider);
-  const setActiveProvider = useAiProviderStore((s) => s.setActiveProvider);
-
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -179,7 +175,6 @@ export function SettingsPage() {
   }
 
   async function handleSignOutEverywhere() {
-    // Best-effort: revoke all IdP sessions, then end this one.
     try {
       await logoutAllSessions.mutateAsync();
     } catch {
@@ -189,7 +184,25 @@ export function SettingsPage() {
     void auth?.signoutRedirect();
   }
 
-  // ConfirmDialog state
+  // AI Provider server data
+  const { data: serverProviders, isLoading: providersLoading, isError: providersError } = useAiProviders();
+  const createProvider = useCreateAiProvider();
+  const updateProvider = useUpdateAiProvider();
+  const deleteProvider = useDeleteAiProvider();
+  const activateProvider = useActivateAiProvider();
+
+  // Migration detection
+  const migrationDismissed = useAiProviderStore((s) => s.migrationDismissed);
+  const setMigrationDismissed = useAiProviderStore((s) => s.setMigrationDismissed);
+
+  // C4: guard with !providersLoading so the banner never flashes during the initial fetch
+  const showMigrationBanner =
+    !migrationDismissed &&
+    !providersLoading &&
+    hasLegacyLocalStorageProviders() &&
+    (serverProviders?.length ?? 0) === 0;
+
+  // ConfirmDialog state for remove
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
 
@@ -198,26 +211,68 @@ export function SettingsPage() {
     setConfirmOpen(true);
   }
 
+  // C1: move success/error toasts into mutation callbacks — never fire synchronously
   function confirmRemove() {
     if (pendingRemoveId) {
-      removeProvider(pendingRemoveId);
-      showToast(t("settings.aiProviders.providerRemovedToast"));
+      deleteProvider.mutate(pendingRemoveId, {
+        onSuccess: () => {
+          showToast(t("settings.aiProviders.providerRemovedToast"));
+        },
+        onError: () => {
+          showToast(t("settings.aiProviders.providerRemoveErrorToast"));
+        },
+      });
     }
     setPendingRemoveId(null);
     setConfirmOpen(false);
   }
 
-  function handleAddFromPreset(presetLabel: string) {
+  // C3: draft state for new provider — filled via preset or blank "Add" button
+  interface ProviderDraft {
+    label: string;
+    baseUrl: string;
+    model: string;
+    apiKey: string;
+  }
+  const [draftProvider, setDraftProvider] = useState<ProviderDraft | null>(null);
+
+  function openBlankDraft() {
+    setDraftProvider({ label: "", baseUrl: "", model: "", apiKey: "" });
+  }
+
+  function openPresetDraft(presetLabel: string) {
     const preset = PROVIDER_PRESETS.find((p) => p.label === presetLabel);
     if (!preset) return;
-    addProvider({
-      label: preset.label,
-      baseUrl: preset.baseUrl,
-      model: preset.model,
-      apiKey: "",
-      enabled: true,
-    });
-    showToast(t("settings.aiProviders.providerAddedToast", { label: preset.label }));
+    setDraftProvider({ label: preset.label, baseUrl: preset.baseUrl, model: preset.model, apiKey: "" });
+  }
+
+  function saveDraft() {
+    if (!draftProvider || draftProvider.apiKey.trim() === "") return;
+    createProvider.mutate(
+      {
+        label: draftProvider.label,
+        baseUrl: draftProvider.baseUrl,
+        model: draftProvider.model,
+        apiKey: draftProvider.apiKey,
+      },
+      {
+        onSuccess: () => {
+          showToast(t("settings.aiProviders.providerAddedToast", { label: draftProvider.label }));
+          // C2: only clear legacy data when migration context was active at save time
+          if (showMigrationBanner) {
+            clearLegacyLocalStorage();
+          }
+          setDraftProvider(null);
+        },
+        onError: () => {
+          showToast(t("settings.aiProviders.providerSaveErrorToast"));
+        },
+      },
+    );
+  }
+
+  function cancelDraft() {
+    setDraftProvider(null);
   }
 
   return (
@@ -330,40 +385,132 @@ export function SettingsPage() {
               {t("settings.aiProviders.infoBanner")}
             </div>
 
-            {/* Add provider */}
+            {/* Migration banner (B-5) */}
+            {showMigrationBanner && (
+              <div
+                data-testid="migration-banner"
+                style={{
+                  background: "#fff7ed",
+                  border: "1px solid #f97316",
+                  borderRadius: "10px",
+                  padding: "12px 16px",
+                  marginBottom: "20px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: "12px",
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: "13px", color: "#9a3412", marginBottom: "4px" }}>
+                    {t("settings.aiProviders.migrationBannerTitle")}
+                  </div>
+                  <div style={{ fontSize: "13px", color: "#7c2d12" }}>
+                    {t("settings.aiProviders.migrationBannerBody")}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  data-testid="migration-banner-dismiss"
+                  onClick={() => setMigrationDismissed(true)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    color: "#9a3412",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  {t("settings.aiProviders.migrationBannerDismiss")}
+                </button>
+              </div>
+            )}
+
+            {/* Add provider — blank button + preset buttons */}
             <div
-              style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" }}
+              style={{ marginBottom: "20px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" }}
             >
-              <span style={{ fontSize: "13px", color: "var(--color-ash)" }}>{t("settings.aiProviders.addLabel")}</span>
-              <Dropdown
-                items={PRESET_ITEMS}
-                placeholder={t("settings.aiProviders.choosePlaceholder")}
-                onSelect={handleAddFromPreset}
-                data-testid="add-provider-dropdown"
-              />
+              <PillButton
+                size="sm"
+                variant="primary"
+                onClick={openBlankDraft}
+                data-testid="add-provider-btn"
+              >
+                {t("settings.aiProviders.addButton")}
+              </PillButton>
+              {PROVIDER_PRESETS.map((preset) => (
+                <PillButton
+                  key={preset.label}
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => openPresetDraft(preset.label)}
+                  data-testid={`preset-${preset.label}`}
+                >
+                  {preset.label}
+                </PillButton>
+              ))}
             </div>
 
+            {/* Draft form for a new provider (C3) */}
+            {draftProvider !== null && (
+              <NewProviderDraftEntry
+                draft={draftProvider}
+                onChange={setDraftProvider}
+                onSave={saveDraft}
+                onCancel={cancelDraft}
+                isPending={createProvider.isPending}
+              />
+            )}
+
             {/* Provider list */}
-            {providers.length === 0 && (
+            {providersLoading && (
+              <p style={{ fontSize: "13px", color: "var(--color-ash)" }}>
+                {t("settings.aiProviders.loadingProviders")}
+              </p>
+            )}
+
+            {!providersLoading && providersError && (
+              <p style={{ fontSize: "13px", color: "#ff3e00" }}>
+                {t("settings.aiProviders.providersError")}
+              </p>
+            )}
+
+            {!providersLoading && !providersError && (serverProviders?.length ?? 0) === 0 && (
               <p style={{ fontSize: "13px", color: "var(--color-ash)" }}>
                 {t("settings.aiProviders.noProviders")}
               </p>
             )}
 
-            {providers.map((provider, idx) => (
-              <ProviderEntry
-                key={provider.id}
-                provider={provider}
-                isActive={provider.id === activeProviderId}
-                onUpdate={(patch) => {
-                  updateProvider(provider.id, patch);
-                  showToast(t("settings.aiProviders.providerSavedToast"));
-                }}
-                onSetActive={() => setActiveProvider(provider.id)}
-                onRemove={() => requestRemove(provider.id)}
-                showDivider={idx > 0}
-              />
-            ))}
+            {!providersLoading &&
+              !providersError &&
+              serverProviders?.map((provider, idx) => (
+                <ServerProviderEntry
+                  key={provider.id}
+                  provider={provider}
+                  onSave={(patch) => {
+                    updateProvider.mutate(
+                      { id: provider.id, ...patch },
+                      {
+                        onSuccess: () => {
+                          showToast(t("settings.aiProviders.providerSavedToast"));
+                          // C2: only clear legacy data when migration context was active at save time
+                          if (showMigrationBanner) {
+                            clearLegacyLocalStorage();
+                          }
+                        },
+                        onError: () => {
+                          showToast(t("settings.aiProviders.providerSaveErrorToast"));
+                        },
+                      },
+                    );
+                  }}
+                  onActivate={() => activateProvider.mutate(provider.id)}
+                  onRemove={() => requestRemove(provider.id)}
+                  showDivider={idx > 0}
+                />
+              ))}
           </div>
         </Card>
       </div>
@@ -581,50 +728,62 @@ export function SettingsPage() {
   );
 }
 
-// ---- ProviderEntry component -----------------------------------------------
+// ---- ServerProviderEntry component -----------------------------------------
 
-interface ProviderEntryProps {
+interface ServerProviderEntryProps {
   provider: AiProvider;
-  isActive: boolean;
-  onUpdate: (patch: Partial<Omit<AiProvider, "id">>) => void;
-  onSetActive: () => void;
+  onSave: (patch: { label: string; baseUrl: string; model: string; apiKey?: string }) => void;
+  onActivate: () => void;
   onRemove: () => void;
   showDivider: boolean;
 }
 
-function ProviderEntry({
+function ServerProviderEntry({
   provider,
-  isActive,
-  onUpdate,
-  onSetActive,
+  onSave,
+  onActivate,
   onRemove,
   showDivider,
-}: ProviderEntryProps) {
+}: ServerProviderEntryProps) {
   const { t } = useTranslation();
-  const hasAllFields =
-    provider.baseUrl.trim() !== "" &&
-    provider.apiKey.trim() !== "" &&
-    provider.model.trim() !== "";
-  const badgeTone = isActive ? "green" : hasAllFields ? "blue" : "gray";
-  const badgeLabel = isActive
+
+  // Local draft state — the apiKey input is write-only and NEVER pre-filled
+  const [draftLabel, setDraftLabel] = useState(provider.label);
+  const [draftBaseUrl, setDraftBaseUrl] = useState(provider.baseUrl);
+  const [draftModel, setDraftModel] = useState(provider.model);
+  // Write-only: starts empty; user must type to replace; never bound to stored value
+  const [draftApiKey, setDraftApiKey] = useState("");
+
+  const badgeTone = provider.active ? "green" : provider.keyHint ? "blue" : "gray";
+  const badgeLabel = provider.active
     ? t("settings.aiProviders.badgeActive")
-    : hasAllFields
+    : provider.keyHint
     ? t("settings.aiProviders.badgeConfigured")
     : t("settings.aiProviders.badgeNotSet");
 
+  function handleSave() {
+    // Only include apiKey in the payload when the user typed something
+    const patch = draftApiKey.trim() !== ""
+      ? { label: draftLabel, baseUrl: draftBaseUrl, model: draftModel, apiKey: draftApiKey }
+      : { label: draftLabel, baseUrl: draftBaseUrl, model: draftModel };
+    onSave(patch);
+    // Clear the draft key after save — write-only; never retained locally
+    setDraftApiKey("");
+  }
+
   return (
-    <div>
+    <div data-testid={`provider-row-${provider.id}`}>
       {showDivider && <div style={{ borderTop: "1px solid #eee", margin: "16px 0" }} />}
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {/* Header row: label + badge + use + remove */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span style={{ fontWeight: 600, fontSize: "14px", flex: 1 }}>{provider.label}</span>
           <Badge tone={badgeTone} label={badgeLabel} data-testid={`badge-${provider.id}`} />
-          {!isActive && (
+          {!provider.active && (
             <PillButton
               size="sm"
               variant="secondary"
-              onClick={onSetActive}
+              onClick={onActivate}
               data-testid={`use-${provider.id}`}
             >
               {t("settings.aiProviders.useButton")}
@@ -638,12 +797,8 @@ function ProviderEntry({
           >
             {t("settings.aiProviders.removeButton")}
           </PillButton>
-          <ToggleSwitch
-            checked={provider.enabled}
-            onChange={(v) => onUpdate({ enabled: v })}
-            label={t("settings.aiProviders.enabledLabel")}
-          />
         </div>
+
         {/* Fields */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
           <div>
@@ -651,8 +806,8 @@ function ProviderEntry({
             <input
               type="text"
               className={`w-full text-[14px] ${FIELD_CLASS}`}
-              value={provider.baseUrl}
-              onChange={(e) => onUpdate({ baseUrl: e.target.value })}
+              value={draftBaseUrl}
+              onChange={(e) => setDraftBaseUrl(e.target.value)}
               placeholder="https://api.openai.com/v1"
               data-testid={`baseUrl-${provider.id}`}
             />
@@ -662,24 +817,156 @@ function ProviderEntry({
             <input
               type="text"
               className={`w-full text-[14px] ${FIELD_CLASS}`}
-              value={provider.model}
-              onChange={(e) => onUpdate({ model: e.target.value })}
+              value={draftModel}
+              onChange={(e) => setDraftModel(e.target.value)}
               placeholder="gpt-4o"
               data-testid={`model-${provider.id}`}
             />
           </div>
+        </div>
+
+        {/* API Key — write-only input */}
+        <div>
+          <label style={fieldLabelStyle}>{t("settings.aiProviders.apiKeyLabel")}</label>
+          {/* Show masked hint as read-only adjacent text when a key is stored */}
+          {provider.keyHint && (
+            <p style={{ ...helperStyle, marginTop: 0, marginBottom: "4px" }}>
+              <span style={{ fontWeight: 500 }}>{t("settings.aiProviders.apiKeyHintLabel")}:</span>{" "}
+              <span data-testid={`keyhint-${provider.id}`}>{provider.keyHint}</span>
+            </p>
+          )}
+          {/* The input itself is always empty on mount — write-only */}
+          <input
+            type="password"
+            className={`w-full text-[14px] ${FIELD_CLASS}`}
+            value={draftApiKey}
+            onChange={(e) => setDraftApiKey(e.target.value)}
+            placeholder={t("settings.aiProviders.apiKeyPlaceholder")}
+            data-testid={`apiKey-${provider.id}`}
+          />
+        </div>
+
+        {/* Label */}
+        <div>
+          <label style={fieldLabelStyle}>Label</label>
+          <input
+            type="text"
+            className={`w-full text-[14px] ${FIELD_CLASS}`}
+            value={draftLabel}
+            onChange={(e) => setDraftLabel(e.target.value)}
+            placeholder="My Provider"
+            data-testid={`label-${provider.id}`}
+          />
+        </div>
+
+        {/* Save button */}
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <PillButton
+            size="sm"
+            variant="primary"
+            onClick={handleSave}
+            data-testid={`save-${provider.id}`}
+          >
+            {t("settings.aiProviders.saveButton")}
+          </PillButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- NewProviderDraftEntry component ---------------------------------------
+
+interface NewProviderDraftEntryProps {
+  draft: { label: string; baseUrl: string; model: string; apiKey: string };
+  onChange: (next: { label: string; baseUrl: string; model: string; apiKey: string }) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  isPending: boolean;
+}
+
+function NewProviderDraftEntry({ draft, onChange, onSave, onCancel, isPending }: NewProviderDraftEntryProps) {
+  const { t } = useTranslation();
+  const canSave = draft.apiKey.trim() !== "" && !isPending;
+
+  return (
+    <div
+      data-testid="new-provider-draft"
+      style={{
+        border: "1px solid #e5e7eb",
+        borderRadius: "10px",
+        padding: "16px",
+        marginBottom: "20px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        background: "#fafafa",
+      }}
+    >
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+        <div>
+          <label style={fieldLabelStyle}>Label</label>
+          <input
+            type="text"
+            className={`w-full text-[14px] ${FIELD_CLASS}`}
+            value={draft.label}
+            onChange={(e) => onChange({ ...draft, label: e.target.value })}
+            placeholder="My Provider"
+            data-testid="draft-label-input"
+          />
+        </div>
+        <div>
+          <label style={fieldLabelStyle}>{t("settings.aiProviders.baseUrlLabel")}</label>
+          <input
+            type="text"
+            className={`w-full text-[14px] ${FIELD_CLASS}`}
+            value={draft.baseUrl}
+            onChange={(e) => onChange({ ...draft, baseUrl: e.target.value })}
+            placeholder="https://api.openai.com/v1"
+            data-testid="draft-baseUrl-input"
+          />
+        </div>
+        <div>
+          <label style={fieldLabelStyle}>{t("settings.aiProviders.modelLabel")}</label>
+          <input
+            type="text"
+            className={`w-full text-[14px] ${FIELD_CLASS}`}
+            value={draft.model}
+            onChange={(e) => onChange({ ...draft, model: e.target.value })}
+            placeholder="gpt-4o"
+            data-testid="draft-model-input"
+          />
         </div>
         <div>
           <label style={fieldLabelStyle}>{t("settings.aiProviders.apiKeyLabel")}</label>
           <input
             type="password"
             className={`w-full text-[14px] ${FIELD_CLASS}`}
-            value={provider.apiKey}
-            onChange={(e) => onUpdate({ apiKey: e.target.value })}
-            placeholder="sk-••••••••••••"
-            data-testid={`apiKey-${provider.id}`}
+            value={draft.apiKey}
+            onChange={(e) => onChange({ ...draft, apiKey: e.target.value })}
+            placeholder={t("settings.aiProviders.apiKeyPlaceholder")}
+            data-testid="draft-apiKey-input"
           />
         </div>
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+        <PillButton
+          size="sm"
+          variant="secondary"
+          onClick={onCancel}
+          data-testid="draft-cancel-btn"
+        >
+          {t("settings.aiProviders.cancelButton")}
+        </PillButton>
+        <PillButton
+          size="sm"
+          variant="primary"
+          onClick={onSave}
+          disabled={!canSave}
+          data-testid="draft-save-btn"
+        >
+          {t("settings.aiProviders.saveButton")}
+        </PillButton>
       </div>
     </div>
   );
@@ -742,7 +1029,7 @@ function SessionList({ showToast }: SessionListProps) {
   return (
     <>
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        {sessions.map((session, i) => (
+        {(sessions as Session[]).map((session, i) => (
           <div
             key={session.id}
             style={{
@@ -750,8 +1037,6 @@ function SessionList({ showToast }: SessionListProps) {
               justifyContent: "space-between",
               alignItems: "flex-start",
               padding: "10px 0",
-              // Last row drops its divider so it doesn't double up with the
-              // section separator that follows.
               borderBottom: i < sessions.length - 1 ? "1px solid #f0f0f0" : "none",
             }}
           >
