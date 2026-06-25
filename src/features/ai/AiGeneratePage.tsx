@@ -3,12 +3,14 @@ import { useNavigate } from "react-router";
 import { useTranslation } from 'react-i18next';
 import { ProblemBanner } from "@shared/ui/ProblemBanner";
 import { normalizeApiProblem } from "@shared/api/problem";
-import { useGenerateFlashcards } from "./hooks/use-ai";
+import { useGenerateFlashcards, useImproveFlashcard } from "./hooks/use-ai";
 import { useValidateImport, usePreviewImport, useExecuteImport } from "@features/import/hooks/use-import";
 import { useDecks } from "@features/decks/hooks/use-decks";
 import { Card, Dropdown } from "@shared/ui";
 import type { GeneratedFlashcardDraftModel } from "@shared/api/types";
 import type { NoteType } from "@shared/api/generated/models/note-type";
+import { ImproveFlashcardRequestObjectiveEnum } from "@shared/api/generated/models/improve-flashcard-request";
+import type { ImproveFlashcardRequestObjectiveEnum as ObjectiveEnum } from "@shared/api/generated/models/improve-flashcard-request";
 
 // ---- Intent -----------------------------------------------------------------
 // Who: A user who wants AI to generate flashcards from text or documents.
@@ -101,6 +103,16 @@ function isBasicContent(content: unknown): content is NoteContentBasic {
   );
 }
 
+// ---- Improve objective enum values (from generated model) -------------------
+
+const OBJECTIVE_VALUES = [
+  ImproveFlashcardRequestObjectiveEnum.Clarity,
+  ImproveFlashcardRequestObjectiveEnum.Brevity,
+  ImproveFlashcardRequestObjectiveEnum.Memorability,
+  ImproveFlashcardRequestObjectiveEnum.Distractors,
+  ImproveFlashcardRequestObjectiveEnum.ActiveRecall,
+] as const;
+
 // ---- Example topics ---------------------------------------------------------
 
 const EXAMPLE_TOPICS = [
@@ -158,6 +170,282 @@ function ExampleChip({ label, onClick }: { label: string; onClick: () => void })
   );
 }
 
+// ---- CardEditPanel ----------------------------------------------------------
+
+interface CardEditPanelProps {
+  index: number;
+  initialFront: string;
+  initialBack: string;
+  onSave: (front: string, back: string) => void;
+  onCancel: () => void;
+  frontLabel: string;
+  backLabel: string;
+  frontPlaceholder: string;
+  backPlaceholder: string;
+  improveLabel: string;
+  improveBtnLabel: string;
+  improvingBtnLabel: string;
+  saveBtnLabel: string;
+  cancelBtnLabel: string;
+  objectiveLabels: Record<ObjectiveEnum, string>;
+  improveErrorLabel: string;
+}
+
+function CardEditPanel({
+  index,
+  initialFront,
+  initialBack,
+  onSave,
+  onCancel,
+  frontLabel,
+  backLabel,
+  frontPlaceholder,
+  backPlaceholder,
+  improveLabel,
+  improveBtnLabel,
+  improvingBtnLabel,
+  saveBtnLabel,
+  cancelBtnLabel,
+  objectiveLabels,
+  improveErrorLabel,
+}: CardEditPanelProps) {
+  const [front, setFront] = useState(initialFront);
+  const [back, setBack] = useState(initialBack);
+  const [selectedObjective, setSelectedObjective] = useState<ObjectiveEnum>(
+    ImproveFlashcardRequestObjectiveEnum.Clarity,
+  );
+  const [frontFocused, setFrontFocused] = useState(false);
+  const [backFocused, setBackFocused] = useState(false);
+  const [improveError, setImproveError] = useState<string | null>(null);
+
+  const improveMutation = useImproveFlashcard();
+
+  async function handleImprove() {
+    setImproveError(null);
+    try {
+      const result = await improveMutation.mutateAsync({
+        noteType: "basic" as NoteType,
+        content: { front, back } as never,
+        objective: selectedObjective,
+        preserveMeaning: true,
+      });
+      if (isBasicContent(result.content)) {
+        setFront(result.content.front);
+        setBack(result.content.back);
+      }
+    } catch (err) {
+      const p = normalizeApiProblem(
+        (err as { response?: { data?: unknown } })?.response?.data,
+        (err as { response?: { status?: number } })?.response?.status ?? 500,
+      );
+      setImproveError(p?.title ?? improveErrorLabel);
+    }
+  }
+
+  const isImproving = improveMutation.isPending;
+
+  const textareaStyle = (focused: boolean): React.CSSProperties => ({
+    width: "100%",
+    borderRadius: 10,
+    border: "none",
+    outline: "none",
+    resize: "vertical",
+    padding: "10px 12px",
+    fontSize: 13.5,
+    color: "var(--color-charcoal-primary)",
+    fontFamily: "var(--font-inter)",
+    boxSizing: "border-box",
+    boxShadow: focused ? "#0090ff 0 0 0 1.5px inset" : "#e7e4df 0 0 0 1px inset",
+    background: focused ? "#fff" : "var(--color-warm-canvas)",
+  });
+
+  return (
+    <div
+      style={{
+        marginTop: 14,
+        padding: "16px 18px",
+        background: "#f9f8f6",
+        borderRadius: 10,
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      {/* Front textarea */}
+      <div>
+        <label
+          htmlFor={`card-front-input-${index}`}
+          style={{ fontSize: 11.5, fontWeight: 500, color: "#848281", display: "block", marginBottom: 5 }}
+        >
+          {frontLabel}
+        </label>
+        <textarea
+          id={`card-front-input-${index}`}
+          data-testid={`card-front-input-${index}`}
+          value={front}
+          onChange={(e) => setFront(e.target.value)}
+          placeholder={frontPlaceholder}
+          rows={2}
+          onFocus={() => setFrontFocused(true)}
+          onBlur={() => setFrontFocused(false)}
+          style={textareaStyle(frontFocused)}
+        />
+      </div>
+
+      {/* Back textarea */}
+      <div>
+        <label
+          htmlFor={`card-back-input-${index}`}
+          style={{ fontSize: 11.5, fontWeight: 500, color: "#848281", display: "block", marginBottom: 5 }}
+        >
+          {backLabel}
+        </label>
+        <textarea
+          id={`card-back-input-${index}`}
+          data-testid={`card-back-input-${index}`}
+          value={back}
+          onChange={(e) => setBack(e.target.value)}
+          placeholder={backPlaceholder}
+          rows={2}
+          onFocus={() => setBackFocused(true)}
+          onBlur={() => setBackFocused(false)}
+          style={textareaStyle(backFocused)}
+        />
+      </div>
+
+      {/* Improve with AI row */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
+          paddingTop: 8,
+          borderTop: "1px solid #f2f0ed",
+        }}
+      >
+        <span style={{ fontSize: 12, fontWeight: 500, color: "#848281", flexShrink: 0 }}>
+          {improveLabel}
+        </span>
+
+        {/* Objective chips */}
+        {OBJECTIVE_VALUES.map((obj) => {
+          const active = selectedObjective === obj;
+          return (
+            <button
+              key={obj}
+              type="button"
+              data-testid={`improve-objective-${obj}`}
+              onClick={() => setSelectedObjective(obj)}
+              style={{
+                border: "none",
+                borderRadius: 32,
+                padding: "5px 12px",
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                background: active ? "#121212" : "#f6f4ef",
+                color: active ? "#fff" : "#474645",
+              }}
+            >
+              {objectiveLabels[obj]}
+            </button>
+          );
+        })}
+
+        {/* Improve button */}
+        <button
+          type="button"
+          data-testid={`improve-card-${index}`}
+          disabled={isImproving}
+          onClick={() => { void handleImprove(); }}
+          style={{
+            border: "none",
+            borderRadius: 32,
+            padding: "6px 14px",
+            fontSize: 12.5,
+            fontWeight: 600,
+            cursor: isImproving ? "not-allowed" : "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: isImproving ? "#f6f4ef" : "#eaf4ff",
+            color: isImproving ? "#848281" : "#0090ff",
+            opacity: isImproving ? 0.7 : 1,
+            transition: "all 0.15s ease",
+          }}
+        >
+          {isImproving ? (
+            <>
+              <div
+                className="sd-spin"
+                style={{
+                  width: 12,
+                  height: 12,
+                  border: "2px solid #dce9ff",
+                  borderTopColor: "#0090ff",
+                  borderRadius: "50%",
+                  flexShrink: 0,
+                }}
+              />
+              {improvingBtnLabel}
+            </>
+          ) : (
+            <>
+              <StarIcon />
+              {improveBtnLabel}
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Improve error */}
+      {improveError && (
+        <p style={{ fontSize: 12, color: "#ff3e00", margin: 0 }}>{improveError}</p>
+      )}
+
+      {/* Save / Cancel row */}
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 4 }}>
+        <button
+          type="button"
+          data-testid={`cancel-card-${index}`}
+          onClick={onCancel}
+          style={{
+            border: "none",
+            borderRadius: 32,
+            padding: "8px 16px",
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: "pointer",
+            background: "#f6f4ef",
+            color: "#474645",
+          }}
+        >
+          {cancelBtnLabel}
+        </button>
+        <button
+          type="button"
+          data-testid={`save-card-${index}`}
+          onClick={() => onSave(front, back)}
+          style={{
+            border: "none",
+            borderRadius: 32,
+            padding: "8px 18px",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            background: "#121212",
+            color: "#fff",
+          }}
+        >
+          {saveBtnLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ---- ProposedCard component -------------------------------------------------
 
 interface ProposedCardProps {
@@ -166,12 +454,43 @@ interface ProposedCardProps {
   onDismiss: (index: number) => void;
   accepted: boolean;
   onAccept: () => void;
+  onEdit: (index: number) => void;
+  isEditOpen: boolean;
+  onUpdateCard: (front: string, back: string) => void;
+  onCloseEdit: () => void;
   editLabel: string;
   dismissLabel: string;
   acceptLabel: string;
+  editPanel: {
+    frontLabel: string;
+    backLabel: string;
+    frontPlaceholder: string;
+    backPlaceholder: string;
+    improveLabel: string;
+    improveBtnLabel: string;
+    improvingBtnLabel: string;
+    saveBtnLabel: string;
+    cancelBtnLabel: string;
+    objectiveLabels: Record<ObjectiveEnum, string>;
+    improveErrorLabel: string;
+  };
 }
 
-function ProposedCard({ draft, index, onDismiss, accepted, onAccept, editLabel, dismissLabel, acceptLabel }: ProposedCardProps) {
+function ProposedCard({
+  draft,
+  index,
+  onDismiss,
+  accepted,
+  onAccept,
+  onEdit,
+  isEditOpen,
+  onUpdateCard,
+  onCloseEdit,
+  editLabel,
+  dismissLabel,
+  acceptLabel,
+  editPanel,
+}: ProposedCardProps) {
   const content = isBasicContent(draft.content)
     ? draft.content
     : { front: JSON.stringify(draft.content), back: "" };
@@ -189,115 +508,142 @@ function ProposedCard({ draft, index, onDismiss, accepted, onAccept, editLabel, 
           : "#f2f0ed 0 0 0 1px inset",
         borderRadius: "14px",
         padding: "18px 20px",
-        display: "flex",
-        alignItems: "flex-start",
-        gap: "16px",
         transition: "box-shadow 0.2s ease, opacity 0.2s ease",
       }}
     >
-      {/* Type chip */}
-      <span
-        style={{
-          flexShrink: 0,
-          fontSize: "10px",
-          fontWeight: 600,
-          letterSpacing: "0.3px",
-          textTransform: "uppercase" as const,
-          color: "#0090ff",
-          background: "#eaf4ff",
-          padding: "3px 7px",
-          borderRadius: "5px",
-          marginTop: "2px",
-        }}
-      >
-        {draft.noteType}
-      </span>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
+        {/* Type chip */}
+        <span
+          style={{
+            flexShrink: 0,
+            fontSize: "10px",
+            fontWeight: 600,
+            letterSpacing: "0.3px",
+            textTransform: "uppercase" as const,
+            color: "#0090ff",
+            background: "#eaf4ff",
+            padding: "3px 7px",
+            borderRadius: "5px",
+            marginTop: "2px",
+          }}
+        >
+          {draft.noteType}
+        </span>
 
-      {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: "14px", fontWeight: 500, color: "#343433", marginBottom: "4px", lineHeight: 1.45 }}>
-          {content.front}
-        </p>
-        {content.back && (
-          <p style={{ fontSize: "13px", color: "#848281", lineHeight: 1.5, margin: 0 }}>
-            {content.back}
+        {/* Content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: "14px", fontWeight: 500, color: "#343433", marginBottom: "4px", lineHeight: 1.45 }}>
+            {content.front}
           </p>
-        )}
+          {content.back && (
+            <p style={{ fontSize: "13px", color: "#848281", lineHeight: 1.5, margin: 0 }}>
+              {content.back}
+            </p>
+          )}
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display: "flex", gap: "7px", flexShrink: 0 }}>
+          {/* Edit */}
+          <button
+            type="button"
+            data-testid={`edit-card-${index}`}
+            aria-label={editLabel}
+            onClick={() => onEdit(index)}
+            onMouseEnter={() => setEditHover(true)}
+            onMouseLeave={() => setEditHover(false)}
+            style={{
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              border: "none",
+              background: isEditOpen ? "#eaf4ff" : "#fff",
+              boxShadow: isEditOpen
+                ? "#0090ff 0 0 0 1.5px inset"
+                : editHover
+                  ? "#0090ff 0 0 0 1.5px inset"
+                  : "#f2f0ed 0 0 0 1px inset",
+              color: isEditOpen || editHover ? "#0090ff" : "#a7a7a7",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "box-shadow 0.15s ease, color 0.15s ease",
+            }}
+          >
+            <PencilIcon />
+          </button>
+
+          {/* Reject */}
+          <button
+            type="button"
+            data-testid={`dismiss-card-${index}`}
+            onClick={() => onDismiss(index)}
+            aria-label={dismissLabel}
+            onMouseEnter={() => setRejectHover(true)}
+            onMouseLeave={() => setRejectHover(false)}
+            style={{
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              border: "none",
+              background: "#fff",
+              boxShadow: rejectHover ? "#ff3e00 0 0 0 1.5px inset" : "#f2f0ed 0 0 0 1px inset",
+              color: rejectHover ? "#ff3e00" : "#a7a7a7",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "box-shadow 0.15s ease, color 0.15s ease",
+            }}
+          >
+            <XIcon />
+          </button>
+
+          {/* Accept */}
+          <button
+            type="button"
+            aria-label={acceptLabel}
+            onClick={onAccept}
+            style={{
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              border: "none",
+              background: accepted ? "#00ca48" : "#cfeede",
+              color: "#fff",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <CheckIcon />
+          </button>
+        </div>
       </div>
 
-      {/* Action buttons */}
-      <div style={{ display: "flex", gap: "7px", flexShrink: 0 }}>
-        {/* Edit */}
-        <button
-          type="button"
-          aria-label={editLabel}
-          onMouseEnter={() => setEditHover(true)}
-          onMouseLeave={() => setEditHover(false)}
-          style={{
-            width: "32px",
-            height: "32px",
-            borderRadius: "50%",
-            border: "none",
-            background: "#fff",
-            boxShadow: editHover ? "#0090ff 0 0 0 1.5px inset" : "#f2f0ed 0 0 0 1px inset",
-            color: editHover ? "#0090ff" : "#a7a7a7",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "box-shadow 0.15s ease, color 0.15s ease",
-          }}
-        >
-          <PencilIcon />
-        </button>
-
-        {/* Reject */}
-        <button
-          type="button"
-          data-testid={`dismiss-card-${index}`}
-          onClick={() => onDismiss(index)}
-          aria-label={dismissLabel}
-          onMouseEnter={() => setRejectHover(true)}
-          onMouseLeave={() => setRejectHover(false)}
-          style={{
-            width: "32px",
-            height: "32px",
-            borderRadius: "50%",
-            border: "none",
-            background: "#fff",
-            boxShadow: rejectHover ? "#ff3e00 0 0 0 1.5px inset" : "#f2f0ed 0 0 0 1px inset",
-            color: rejectHover ? "#ff3e00" : "#a7a7a7",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "box-shadow 0.15s ease, color 0.15s ease",
-          }}
-        >
-          <XIcon />
-        </button>
-
-        {/* Accept */}
-        <button
-          type="button"
-          aria-label={acceptLabel}
-          onClick={onAccept}
-          style={{
-            width: "32px",
-            height: "32px",
-            borderRadius: "50%",
-            border: "none",
-            background: accepted ? "#00ca48" : "#cfeede",
-            color: "#fff",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <CheckIcon />
-        </button>
-      </div>
+      {/* Inline edit panel — renders below the card row when open */}
+      {isEditOpen && (
+        <CardEditPanel
+          index={index}
+          initialFront={content.front}
+          initialBack={content.back}
+          onSave={onUpdateCard}
+          onCancel={onCloseEdit}
+          frontLabel={editPanel.frontLabel}
+          backLabel={editPanel.backLabel}
+          frontPlaceholder={editPanel.frontPlaceholder}
+          backPlaceholder={editPanel.backPlaceholder}
+          improveLabel={editPanel.improveLabel}
+          improveBtnLabel={editPanel.improveBtnLabel}
+          improvingBtnLabel={editPanel.improvingBtnLabel}
+          saveBtnLabel={editPanel.saveBtnLabel}
+          cancelBtnLabel={editPanel.cancelBtnLabel}
+          objectiveLabels={editPanel.objectiveLabels}
+          improveErrorLabel={editPanel.improveErrorLabel}
+        />
+      )}
     </div>
   );
 }
@@ -326,6 +672,9 @@ export function AiGeneratePage() {
   const [regenerateHover, setRegenerateHover] = useState(false);
   const [addHover, setAddHover] = useState(false);
 
+  // Edit panel — tracks which card index is open (-1 = none)
+  const [editOpenIndex, setEditOpenIndex] = useState<number>(-1);
+
   const generateMutation = useGenerateFlashcards();
   const validateMutation = useValidateImport();
   const previewMutation = usePreviewImport();
@@ -341,6 +690,7 @@ export function AiGeneratePage() {
     setApiError(null);
     setShowProposals(false);
     setAcceptedIndices(new Set());
+    setEditOpenIndex(-1);
 
     // Combine the typed notes with any attached documents into a single text source.
     const combinedSource = [
@@ -385,6 +735,7 @@ export function AiGeneratePage() {
   }
 
   function handleDismissCard(index: number) {
+    if (editOpenIndex === index) setEditOpenIndex(-1);
     setProposedCards((prev) => prev.filter((_, i) => i !== index));
     // Also remove from accepted set
     setAcceptedIndices((prev) => {
@@ -407,6 +758,25 @@ export function AiGeneratePage() {
       else next.add(index);
       return next;
     });
+  }
+
+  function handleEditCard(index: number) {
+    // Toggle: clicking same index closes, clicking different index opens that one
+    setEditOpenIndex((prev) => (prev === index ? -1 : index));
+  }
+
+  function handleUpdateCard(index: number, front: string, back: string) {
+    setProposedCards((prev) =>
+      prev.map((draft, i) => {
+        if (i !== index) return draft;
+        return { ...draft, content: { front, back } };
+      }),
+    );
+    setEditOpenIndex(-1);
+  }
+
+  function handleCloseEdit() {
+    setEditOpenIndex(-1);
   }
 
   // ---- Approval: convert proposed cards to import format and route through import ----
@@ -516,6 +886,32 @@ export function AiGeneratePage() {
     "Spanish travel vocab": t('generate.examples.spanishTravel'),
     "Spring Boot annotations": t('generate.examples.springBoot'),
     "Photosynthesis": t('generate.examples.photosynthesis'),
+  };
+
+  // ---- Translated objective labels -----------------------------------------
+
+  const objectiveLabels: Record<ObjectiveEnum, string> = {
+    clarity: t('generate.edit.objectives.clarity'),
+    brevity: t('generate.edit.objectives.brevity'),
+    memorability: t('generate.edit.objectives.memorability'),
+    distractors: t('generate.edit.objectives.distractors'),
+    "active-recall": t('generate.edit.objectives.active-recall'),
+  };
+
+  // ---- Edit panel prop bundle (built once, passed down) --------------------
+
+  const editPanelProps = {
+    frontLabel: t('generate.edit.frontLabel'),
+    backLabel: t('generate.edit.backLabel'),
+    frontPlaceholder: t('generate.edit.frontPlaceholder'),
+    backPlaceholder: t('generate.edit.backPlaceholder'),
+    improveLabel: t('generate.edit.improveLabel'),
+    improveBtnLabel: t('generate.edit.improveBtn'),
+    improvingBtnLabel: t('generate.edit.improvingBtn'),
+    saveBtnLabel: t('generate.edit.saveBtn'),
+    cancelBtnLabel: t('generate.edit.cancelBtn'),
+    objectiveLabels,
+    improveErrorLabel: t('generate.edit.errors.improveFailed'),
   };
 
   // ---- Render -----------------------------------------------------------------
@@ -938,9 +1334,14 @@ export function AiGeneratePage() {
                       onDismiss={handleDismissCard}
                       accepted={acceptedIndices.has(i)}
                       onAccept={() => handleAcceptCard(i)}
+                      onEdit={handleEditCard}
+                      isEditOpen={editOpenIndex === i}
+                      onUpdateCard={(front, back) => handleUpdateCard(i, front, back)}
+                      onCloseEdit={handleCloseEdit}
                       editLabel={t('generate.aria.editCard')}
                       dismissLabel={t('generate.aria.dismissCard')}
                       acceptLabel={t('generate.aria.acceptCard')}
+                      editPanel={editPanelProps}
                     />
                   ))}
                 </div>

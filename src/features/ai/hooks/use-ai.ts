@@ -28,6 +28,10 @@ type RagChatRequestWithOverride = RagChatRequest & {
   providerOverride?: AiProviderOverride;
 };
 
+type ImproveFlashcardRequestWithOverride = ImproveFlashcardRequest & {
+  providerOverride?: AiProviderOverride;
+};
+
 // ---- AI mutations -----------------------------------------------------------
 
 /**
@@ -56,7 +60,12 @@ export function useGenerateFlashcards() {
 export function useImproveFlashcard() {
   return useMutation<ImproveFlashcardResponseModel, Error, ImproveFlashcardRequest>({
     mutationFn: async (body) => {
-      const response = await aiApi.improveFlashcard(body);
+      const override = selectActiveProviderOverride(useAiProviderStore.getState());
+      const extBody: ImproveFlashcardRequestWithOverride = {
+        ...body,
+        ...(override ? { providerOverride: override } : {}),
+      };
+      const response = await aiApi.improveFlashcard(extBody as ImproveFlashcardRequest);
       return response.data as unknown as ImproveFlashcardResponseModel;
     },
   });

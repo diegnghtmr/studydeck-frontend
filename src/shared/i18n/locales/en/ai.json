@@ -42,6 +42,27 @@
       "acceptCard": "Accept card",
       "removeAttachment": "Remove {{filename}}"
     },
+    "edit": {
+      "frontLabel": "Front",
+      "backLabel": "Back",
+      "frontPlaceholder": "Front of card…",
+      "backPlaceholder": "Back of card…",
+      "improveLabel": "Improve with AI",
+      "improveBtn": "Improve",
+      "improvingBtn": "Improving…",
+      "saveBtn": "Save",
+      "cancelBtn": "Cancel",
+      "objectives": {
+        "clarity": "Clarity",
+        "brevity": "Brevity",
+        "memorability": "Memorability",
+        "distractors": "Distractors",
+        "active-recall": "Active recall"
+      },
+      "errors": {
+        "improveFailed": "Improve failed"
+      }
+    },
     "errors": {
       "generationFailed": "Generation failed",
       "importFailed": "Import failed"
