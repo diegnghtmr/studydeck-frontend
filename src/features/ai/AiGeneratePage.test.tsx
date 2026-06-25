@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
+import type { ImproveFlashcardResponseModel } from "@shared/api/types";
 
 // --- Mocks -------------------------------------------------------------------
 
@@ -32,6 +33,7 @@ import { AiGeneratePage } from "./AiGeneratePage";
 import type { GenerateFlashcardsResponseModel } from "@shared/api/types";
 
 const mockGenerateFlashcards = vi.mocked(aiApi.generateFlashcards);
+const mockImproveFlashcard = vi.mocked(aiApi.improveFlashcard);
 const mockListDecks = vi.mocked(decksApi.listDecks);
 
 // ---- Sample data ------------------------------------------------------------
@@ -240,6 +242,236 @@ describe("AiGeneratePage", () => {
     await waitFor(() => {
       const remaining = screen.getAllByTestId(/propose-card-/);
       expect(remaining.length).toBe(1);
+    });
+  });
+
+  // ---- Edit panel tests -------------------------------------------------------
+
+  it("pencil button opens the inline edit panel for that card", async () => {
+    mockGenerateFlashcards.mockResolvedValueOnce({ data: GENERATE_RESPONSE } as never);
+    renderPage();
+
+    fireEvent.change(screen.getByTestId("generate-text-input"), {
+      target: { value: "Cell biology notes" },
+    });
+    fireEvent.click(screen.getByTestId("generate-submit-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("proposed-cards")).toBeInTheDocument();
+    });
+
+    // Edit panel is not visible yet
+    expect(screen.queryByTestId("card-front-input-0")).not.toBeInTheDocument();
+
+    // Click the edit (pencil) button on card 0
+    fireEvent.click(screen.getByTestId("edit-card-0"));
+
+    // Edit panel is now visible
+    expect(screen.getByTestId("card-front-input-0")).toBeInTheDocument();
+    expect(screen.getByTestId("card-back-input-0")).toBeInTheDocument();
+  });
+
+  it("edit panel is prefilled with the current front/back content", async () => {
+    mockGenerateFlashcards.mockResolvedValueOnce({ data: GENERATE_RESPONSE } as never);
+    renderPage();
+
+    fireEvent.change(screen.getByTestId("generate-text-input"), {
+      target: { value: "Cell biology notes" },
+    });
+    fireEvent.click(screen.getByTestId("generate-submit-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("proposed-cards")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("edit-card-0"));
+
+    const frontInput = screen.getByTestId("card-front-input-0") as HTMLTextAreaElement;
+    const backInput = screen.getByTestId("card-back-input-0") as HTMLTextAreaElement;
+
+    expect(frontInput.value).toBe("What is photosynthesis?");
+    expect(backInput.value).toBe("Converting sunlight to energy.");
+  });
+
+  it("cancel button closes the edit panel without saving changes", async () => {
+    mockGenerateFlashcards.mockResolvedValueOnce({ data: GENERATE_RESPONSE } as never);
+    renderPage();
+
+    fireEvent.change(screen.getByTestId("generate-text-input"), {
+      target: { value: "Cell biology notes" },
+    });
+    fireEvent.click(screen.getByTestId("generate-submit-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("proposed-cards")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("edit-card-0"));
+
+    // Change the front text
+    fireEvent.change(screen.getByTestId("card-front-input-0"), {
+      target: { value: "Modified front text" },
+    });
+
+    // Cancel
+    fireEvent.click(screen.getByTestId("cancel-card-0"));
+
+    // Panel is closed
+    expect(screen.queryByTestId("card-front-input-0")).not.toBeInTheDocument();
+
+    // The card still shows the original text
+    expect(screen.getByText("What is photosynthesis?")).toBeInTheDocument();
+  });
+
+  it("save button applies edited front/back back to the proposal and closes panel", async () => {
+    mockGenerateFlashcards.mockResolvedValueOnce({ data: GENERATE_RESPONSE } as never);
+    renderPage();
+
+    fireEvent.change(screen.getByTestId("generate-text-input"), {
+      target: { value: "Cell biology notes" },
+    });
+    fireEvent.click(screen.getByTestId("generate-submit-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("proposed-cards")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("edit-card-0"));
+
+    // Edit both fields
+    fireEvent.change(screen.getByTestId("card-front-input-0"), {
+      target: { value: "Updated front" },
+    });
+    fireEvent.change(screen.getByTestId("card-back-input-0"), {
+      target: { value: "Updated back" },
+    });
+
+    // Save
+    fireEvent.click(screen.getByTestId("save-card-0"));
+
+    // Panel closed, updated text is now shown in the card
+    await waitFor(() => {
+      expect(screen.queryByTestId("card-front-input-0")).not.toBeInTheDocument();
+      expect(screen.getByText("Updated front")).toBeInTheDocument();
+      expect(screen.getByText("Updated back")).toBeInTheDocument();
+    });
+  });
+
+  it("clicking improve calls the improve API and updates the textareas with the response", async () => {
+    mockGenerateFlashcards.mockResolvedValueOnce({ data: GENERATE_RESPONSE } as never);
+
+    const IMPROVE_RESPONSE: ImproveFlashcardResponseModel = {
+      noteType: "basic",
+      content: { front: "Improved front", back: "Improved back" },
+      explanation: "Made it clearer",
+    };
+    mockImproveFlashcard.mockResolvedValueOnce({ data: IMPROVE_RESPONSE } as never);
+
+    renderPage();
+
+    fireEvent.change(screen.getByTestId("generate-text-input"), {
+      target: { value: "Cell biology notes" },
+    });
+    fireEvent.click(screen.getByTestId("generate-submit-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("proposed-cards")).toBeInTheDocument();
+    });
+
+    // Open edit panel for card 0
+    fireEvent.click(screen.getByTestId("edit-card-0"));
+
+    // Click the Improve button
+    fireEvent.click(screen.getByTestId("improve-card-0"));
+
+    // Textareas should update with improved content
+    await waitFor(() => {
+      const frontInput = screen.getByTestId("card-front-input-0") as HTMLTextAreaElement;
+      const backInput = screen.getByTestId("card-back-input-0") as HTMLTextAreaElement;
+      expect(frontInput.value).toBe("Improved front");
+      expect(backInput.value).toBe("Improved back");
+    });
+
+    expect(mockImproveFlashcard).toHaveBeenCalledOnce();
+  });
+
+  it("objective chips are rendered with the correct enum values", async () => {
+    mockGenerateFlashcards.mockResolvedValueOnce({ data: GENERATE_RESPONSE } as never);
+    renderPage();
+
+    fireEvent.change(screen.getByTestId("generate-text-input"), {
+      target: { value: "Cell biology notes" },
+    });
+    fireEvent.click(screen.getByTestId("generate-submit-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("proposed-cards")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("edit-card-0"));
+
+    // All 5 objective chips should be present
+    expect(screen.getByTestId("improve-objective-clarity")).toBeInTheDocument();
+    expect(screen.getByTestId("improve-objective-brevity")).toBeInTheDocument();
+    expect(screen.getByTestId("improve-objective-memorability")).toBeInTheDocument();
+    expect(screen.getByTestId("improve-objective-distractors")).toBeInTheDocument();
+    expect(screen.getByTestId("improve-objective-active-recall")).toBeInTheDocument();
+  });
+
+  it("clicking a different card's pencil closes the first panel and opens the second", async () => {
+    mockGenerateFlashcards.mockResolvedValueOnce({ data: GENERATE_RESPONSE } as never);
+    renderPage();
+
+    fireEvent.change(screen.getByTestId("generate-text-input"), {
+      target: { value: "Cell biology notes" },
+    });
+    fireEvent.click(screen.getByTestId("generate-submit-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("proposed-cards")).toBeInTheDocument();
+    });
+
+    // Open card 0
+    fireEvent.click(screen.getByTestId("edit-card-0"));
+    expect(screen.getByTestId("card-front-input-0")).toBeInTheDocument();
+
+    // Open card 1 — card 0 should close
+    fireEvent.click(screen.getByTestId("edit-card-1"));
+    expect(screen.queryByTestId("card-front-input-0")).not.toBeInTheDocument();
+    expect(screen.getByTestId("card-front-input-1")).toBeInTheDocument();
+  });
+
+  it("shows inline error message when improve API fails", async () => {
+    mockGenerateFlashcards.mockResolvedValueOnce({ data: GENERATE_RESPONSE } as never);
+    mockImproveFlashcard.mockRejectedValueOnce(
+      Object.assign(new Error("Service Unavailable"), {
+        response: {
+          status: 503,
+          data: {
+            type: "about:blank",
+            title: "AI provider not configured",
+            status: 503,
+          },
+        },
+      }),
+    );
+
+    renderPage();
+
+    fireEvent.change(screen.getByTestId("generate-text-input"), {
+      target: { value: "Cell biology notes" },
+    });
+    fireEvent.click(screen.getByTestId("generate-submit-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("proposed-cards")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("edit-card-0"));
+    fireEvent.click(screen.getByTestId("improve-card-0"));
+
+    await waitFor(() => {
+      expect(screen.getByText("AI provider not configured")).toBeInTheDocument();
     });
   });
 });

@@ -42,6 +42,27 @@
       "acceptCard": "Aceitar cartão",
       "removeAttachment": "Remover {{filename}}"
     },
+    "edit": {
+      "frontLabel": "Frente",
+      "backLabel": "Verso",
+      "frontPlaceholder": "Frente do cartão…",
+      "backPlaceholder": "Verso do cartão…",
+      "improveLabel": "Melhorar com IA",
+      "improveBtn": "Melhorar",
+      "improvingBtn": "Melhorando…",
+      "saveBtn": "Salvar",
+      "cancelBtn": "Cancelar",
+      "objectives": {
+        "clarity": "Clareza",
+        "brevity": "Brevidade",
+        "memorability": "Memorabilidade",
+        "distractors": "Distratores",
+        "active-recall": "Recuperação ativa"
+      },
+      "errors": {
+        "improveFailed": "Falha na melhoria"
+      }
+    },
     "errors": {
       "generationFailed": "Falha na geração",
       "importFailed": "Falha na importação"
