@@ -6,10 +6,14 @@
  */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { cardsApi } from "@shared/api/client";
 import { queryKeys } from "@shared/query/query-keys";
 import type { CardModel, CardPreviewModel } from "@shared/api/types";
 import { cn } from "@shared/lib/cn";
+import { Card } from "@shared/ui/Card";
+import { Badge } from "@shared/ui/Badge";
+import { FieldLabel } from "@shared/ui/FieldLabel";
 
 // ---- Props ------------------------------------------------------------------
 
@@ -44,85 +48,77 @@ interface PreviewCardProps {
 }
 
 function PreviewCard({ front, back, hint, variant }: PreviewCardProps) {
+  const { t } = useTranslation("notes");
   const [revealed, setRevealed] = useState(false);
+  const [showHover, setShowHover] = useState(false);
 
   return (
-    <div
-      data-testid="card-preview-item"
-      className="rounded-[10px] p-4"
-      style={{
-        backgroundColor: "var(--color-parchment-card)",
-        boxShadow: "var(--shadow-subtle)",
-      }}
-    >
-      <div className="mb-2 flex items-center justify-between">
-        <span
-          className="rounded-[6px] px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide"
-          style={{
-            backgroundColor: "var(--color-stone-surface)",
-            color: "var(--color-ash)",
-          }}
-        >
-          {variant}
-        </span>
-      </div>
+    <Card data-testid="card-preview-item">
+      <div className="p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <Badge label={variant} tone="blue" />
+        </div>
 
-      {/* Front / Prompt */}
-      <div className="mb-3">
-        <p className="mb-1 text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--color-smoke)" }}>
-          Prompt
-        </p>
-        <p
-          className="text-[15px] leading-[1.5]"
-          style={{ color: "var(--color-charcoal-primary)" }}
-        >
-          {front}
-        </p>
-        {hint && (
-          <p className="mt-1 text-[12px] italic" style={{ color: "var(--color-ash)" }}>
-            Hint: {hint}
+        {/* Front / Prompt */}
+        <div className="mb-4">
+          <FieldLabel className="mb-1.5">{t("preview.promptLabel")}</FieldLabel>
+          <p
+            className="text-[15px] leading-[1.5] break-words"
+            style={{ color: "var(--color-charcoal-primary)" }}
+          >
+            {front}
           </p>
-        )}
-      </div>
-
-      {/* Back / Answer (reveal on click) */}
-      <div className="border-t pt-3" style={{ borderColor: "var(--color-stone-surface)" }}>
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--color-smoke)" }}>
-            Answer
-          </p>
-          {!revealed && (
-            <button
-              type="button"
-              onClick={() => setRevealed(true)}
-              className="rounded-[6px] px-2 py-0.5 text-[12px] transition-opacity hover:opacity-70"
-              style={{
-                backgroundColor: "var(--color-stone-surface)",
-                color: "var(--color-graphite)",
-              }}
-            >
-              Show
-            </button>
+          {hint && (
+            <p className="mt-1.5 text-[12px] italic break-words" style={{ color: "var(--color-ash)" }}>
+              {t("preview.hintPrefix")}{hint}
+            </p>
           )}
         </div>
-        <div
-          className={cn(
-            "mt-1 text-[15px] leading-[1.5] transition-all",
-            !revealed && "select-none blur-sm",
-          )}
-          style={{ color: "var(--color-graphite)" }}
-          aria-hidden={!revealed}
-        >
-          {back}
+
+        {/* Back / Answer (reveal on click) */}
+        <div className="pt-4" style={{ borderTop: "1px dashed var(--color-stone-surface)" }}>
+          <div className="flex items-center justify-between" style={{ minHeight: 28 }}>
+            <FieldLabel>{t("preview.answerLabel")}</FieldLabel>
+            {!revealed && (
+              <button
+                type="button"
+                onClick={() => setRevealed(true)}
+                onMouseEnter={() => setShowHover(true)}
+                onMouseLeave={() => setShowHover(false)}
+                className="rounded-[8px] text-[13px] font-medium"
+                style={{
+                  padding: "5px 13px",
+                  cursor: "pointer",
+                  border: "none",
+                  transition: "background 0.15s ease, color 0.15s ease",
+                  backgroundColor: showHover ? "#ece9e4" : "#f6f4ef",
+                  color: showHover ? "#121212" : "#474645",
+                }}
+              >
+                {t("preview.showBtn")}
+              </button>
+            )}
+          </div>
+          <div
+            className={cn(
+              "mt-1.5 text-[15px] leading-[1.5] break-words transition-all",
+              !revealed && "select-none blur-sm",
+            )}
+            style={{ color: "var(--color-graphite)" }}
+            aria-hidden={!revealed}
+          >
+            {back}
+          </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
 // ---- CardPreview (main) -----------------------------------------------------
 
 export function CardPreview({ card, fetchPreview = false }: CardPreviewProps) {
+  const { t } = useTranslation("notes");
   const { data: preview, isLoading } = useQuery<CardPreviewModel>({
     queryKey: [...queryKeys.cards.detail(card.id), "preview"],
     queryFn: async () => {
@@ -149,31 +145,16 @@ export function CardPreview({ card, fetchPreview = false }: CardPreviewProps) {
 
   // Local fallback — show variant label without real content
   return (
-    <div
-      data-testid="card-preview-item"
-      className="rounded-[10px] p-4"
-      style={{
-        backgroundColor: "var(--color-parchment-card)",
-        boxShadow: "var(--shadow-subtle)",
-      }}
-    >
-      <span
-        className="rounded-[6px] px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide"
-        style={{
-          backgroundColor: "var(--color-stone-surface)",
-          color: "var(--color-ash)",
-        }}
-      >
-        {card.cardVariant}
-      </span>
-      <p className="mt-2 text-[13px]" style={{ color: "var(--color-ash)" }}>
-        Card #{card.position + 1}
-        {card.suspended && (
-          <span className="ml-2 text-[11px]" style={{ color: "var(--color-ember-orange)" }}>
-            suspended
-          </span>
-        )}
-      </p>
-    </div>
+    <Card data-testid="card-preview-item">
+      <div className="p-5">
+        <div className="flex items-center gap-2">
+          <Badge label={card.cardVariant} tone="blue" />
+          {card.suspended && <Badge label={t("preview.suspended")} tone="amber" />}
+        </div>
+        <p className="mt-2.5 text-[13px]" style={{ color: "var(--color-ash)" }}>
+          {t("preview.cardPosition", { number: card.position + 1 })}
+        </p>
+      </div>
+    </Card>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import { ProblemBanner } from "@shared/ui/ProblemBanner";
 import { normalizeApiProblem } from "@shared/api/problem";
 import { cn } from "@shared/lib/cn";
@@ -69,9 +70,10 @@ interface SourceChipProps {
 }
 
 function SourceChip({ citation, index }: SourceChipProps) {
+  const { t } = useTranslation('ai');
   const label = citation.content
     ? citation.content.slice(0, 40) + (citation.content.length > 40 ? "…" : "")
-    : `Source ${index + 1}`;
+    : t('ragChat.sourceChip', { index: index + 1 });
 
   return (
     <span
@@ -178,6 +180,7 @@ function TypingBubble() {
 // ---- Empty state ------------------------------------------------------------
 
 function EmptyState() {
+  const { t } = useTranslation('ai');
   return (
     <div
       data-testid="chat-empty-state"
@@ -204,7 +207,7 @@ function EmptyState() {
           margin: "0 0 8px",
         }}
       >
-        Ask a question about your notes
+        {t('ragChat.emptyHeading')}
       </p>
       <p
         style={{
@@ -215,8 +218,7 @@ function EmptyState() {
           lineHeight: 1.6,
         }}
       >
-        Your answer will be grounded in your indexed documents. Try asking
-        something specific.
+        {t('ragChat.emptyBody')}
       </p>
     </div>
   );
@@ -225,6 +227,7 @@ function EmptyState() {
 // ---- Documents indexed badge ------------------------------------------------
 
 function DocumentsBadge() {
+  const { t } = useTranslation('ai');
   // Filter to only completed/indexed documents for an honest count.
   // The ingestStatus filter is not supported by the list endpoint in all
   // backend versions, so we fetch size=1 of all docs and use totalElements
@@ -253,7 +256,9 @@ function DocumentsBadge() {
         }}
       />
       <span style={{ fontSize: 12, fontWeight: 500, color: "#474645" }}>
-        {total !== undefined ? `${total} documents indexed` : "Documents"}
+        {total !== undefined
+          ? t('ragChat.documentsBadge', { count: total })
+          : t('ragChat.documentsBadgeFallback')}
       </span>
     </div>
   );
@@ -262,6 +267,7 @@ function DocumentsBadge() {
 // ---- Main page --------------------------------------------------------------
 
 export function RagChatPage() {
+  const { t } = useTranslation('ai');
   const [messages, setMessages] = useState<RagChatMessageModel[]>([]);
   const [input, setInput] = useState("");
   const [apiError, setApiError] = useState<ReturnType<typeof normalizeApiProblem>>(null);
@@ -307,9 +313,9 @@ export function RagChatPage() {
       setApiError(
         p ?? {
           type: "about:blank",
-          title: "Chat failed",
+          title: t('ragChat.errors.chatFailed'),
           status: 500,
-          detail: "Could not get a response. Please try again.",
+          detail: t('ragChat.errors.chatFailedDetail'),
         },
       );
     }
@@ -355,7 +361,7 @@ export function RagChatPage() {
               lineHeight: 1.25,
             }}
           >
-            Ask your notes
+            {t('ragChat.heading')}
           </p>
           <p
             style={{
@@ -365,7 +371,7 @@ export function RagChatPage() {
               lineHeight: 1.4,
             }}
           >
-            Answers grounded in your documents
+            {t('ragChat.subtitle')}
           </p>
         </div>
 
@@ -424,7 +430,7 @@ export function RagChatPage() {
           <div
             style={{
               display: "flex",
-              alignItems: "flex-end",
+              alignItems: "center",
               backgroundColor: "#ffffff",
               borderRadius: "32px",
               padding: "6px 6px 6px 20px",
@@ -439,7 +445,7 @@ export function RagChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask a question about your notes…"
+              placeholder={t('ragChat.inputPlaceholder')}
               style={{
                 flex: 1,
                 border: "none",
@@ -466,7 +472,7 @@ export function RagChatPage() {
               data-testid="chat-send-btn"
               onClick={() => void handleSend()}
               disabled={!canSend}
-              aria-label="Send message"
+              aria-label={t('ragChat.sendMessage')}
               style={{
                 width: 42,
                 height: 42,

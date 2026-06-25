@@ -5,11 +5,18 @@
  * and derived cards using CardPreview.
  */
 import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router";
+import { useParams, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { ProblemBanner } from "@shared/ui/ProblemBanner";
 import { ConfirmDialog } from "@shared/ui/ConfirmDialog";
+import { Card } from "@shared/ui/Card";
+import { Badge } from "@shared/ui/Badge";
+import { Breadcrumb } from "@shared/ui/Breadcrumb";
+import { FieldLabel } from "@shared/ui/FieldLabel";
+import { PillButton } from "@shared/ui/PillButton";
 import { normalizeApiProblem } from "@shared/api/problem";
 import { useNote, useUpdateNote, useDeleteNote, useCardsForNote } from "./hooks/use-notes";
+import { useDeck } from "@features/decks/hooks/use-decks";
 import { NoteEditor } from "./components/NoteEditor";
 import { CardPreview } from "./components/CardPreview";
 import type { NoteFormValues } from "./schemas/note-schemas";
@@ -17,6 +24,7 @@ import type { NoteFormValues } from "./schemas/note-schemas";
 // ---- Helper — render note content as readable text --------------------------
 
 function NoteContentDisplay({ note }: { note: { noteType: string; content: unknown } }) {
+  const { t } = useTranslation("notes");
   const content = note.content as Record<string, unknown>;
 
   switch (note.noteType) {
@@ -25,17 +33,13 @@ function NoteContentDisplay({ note }: { note: { noteType: string; content: unkno
       return (
         <div className="space-y-4">
           <div>
-            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--color-smoke)" }}>
-              Front
-            </p>
+            <FieldLabel className="mb-1.5">{t("fields.front")}</FieldLabel>
             <p className="text-[15px] leading-[1.5]" style={{ color: "var(--color-charcoal-primary)" }}>
               {String(content.front ?? "")}
             </p>
           </div>
           <div>
-            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--color-smoke)" }}>
-              Back
-            </p>
+            <FieldLabel className="mb-1.5">{t("fields.back")}</FieldLabel>
             <p className="text-[15px] leading-[1.5]" style={{ color: "var(--color-graphite)" }}>
               {String(content.back ?? "")}
             </p>
@@ -46,9 +50,7 @@ function NoteContentDisplay({ note }: { note: { noteType: string; content: unkno
     case "cloze":
       return (
         <div>
-          <p className="mb-1 text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--color-smoke)" }}>
-            Cloze Text
-          </p>
+          <FieldLabel className="mb-1.5">{t("fields.clozeText")}</FieldLabel>
           <p className="font-mono text-[14px] leading-[1.6]" style={{ color: "var(--color-charcoal-primary)" }}>
             {String(content.text ?? "")}
           </p>
@@ -75,7 +77,7 @@ function NoteContentDisplay({ note }: { note: { noteType: string; content: unkno
                 <span className="font-semibold">{opt.key}.</span>
                 <span>{opt.text}</span>
                 {correctKeys.includes(opt.key) && (
-                  <span className="text-[11px] font-medium">(correct)</span>
+                  <span className="text-[11px] font-medium">{t("display.correct")}</span>
                 )}
               </li>
             ))}
@@ -88,17 +90,13 @@ function NoteContentDisplay({ note }: { note: { noteType: string; content: unkno
       return (
         <div className="space-y-4">
           <div>
-            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--color-smoke)" }}>
-              Prompt
-            </p>
+            <FieldLabel className="mb-1.5">{t("fields.prompt")}</FieldLabel>
             <p className="text-[15px] leading-[1.5]" style={{ color: "var(--color-charcoal-primary)" }}>
               {String(content.prompt ?? "")}
             </p>
           </div>
           <div>
-            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--color-smoke)" }}>
-              Expected Answer
-            </p>
+            <FieldLabel className="mb-1.5">{t("fields.expectedAnswer")}</FieldLabel>
             <p className="text-[15px] leading-[1.5]" style={{ color: "var(--color-graphite)" }}>
               {String(content.expectedAnswer ?? "")}
             </p>
@@ -120,8 +118,10 @@ function NoteContentDisplay({ note }: { note: { noteType: string; content: unkno
 export function NoteDetailPage() {
   const { deckId, noteId } = useParams<{ deckId: string; noteId: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation("notes");
 
   const { data: note, isPending, isError, error } = useNote(noteId ?? "");
+  const { data: deck } = useDeck(deckId ?? "");
   const { data: cards } = useCardsForNote(noteId ?? "");
   const updateNote = useUpdateNote(noteId ?? "");
   const deleteNote = useDeleteNote(noteId ?? "");
@@ -138,7 +138,7 @@ export function NoteDetailPage() {
         data-testid="note-detail-loading"
         className="mx-auto max-w-[720px] px-6 py-12"
         aria-busy="true"
-        aria-label="Loading note"
+        aria-label={t("detail.loadingAria")}
       >
         <div className="h-8 w-48 animate-pulse rounded-[10px]" style={{ backgroundColor: "var(--color-stone-surface)" }} />
         <div className="mt-4 h-4 w-96 animate-pulse rounded-[10px]" style={{ backgroundColor: "var(--color-stone-surface)" }} />
@@ -163,6 +163,8 @@ export function NoteDetailPage() {
 
   if (!note) return null;
 
+  const noteTypeLabel = note.noteType.charAt(0).toUpperCase() + note.noteType.slice(1);
+
   // ---- Handlers -------------------------------------------------------
 
   async function handleUpdateSubmit(values: NoteFormValues) {
@@ -178,7 +180,7 @@ export function NoteDetailPage() {
         (err as { response?: { data?: unknown } })?.response?.data,
         (err as { response?: { status?: number } })?.response?.status ?? 500,
       );
-      setActionError(p ?? { type: "about:blank", title: "Update failed", status: 500 });
+      setActionError(p ?? { type: "about:blank", title: t("detail.errors.updateFailed"), status: 500 });
     }
   }
 
@@ -193,7 +195,7 @@ export function NoteDetailPage() {
         (err as { response?: { data?: unknown } })?.response?.data,
         (err as { response?: { status?: number } })?.response?.status ?? 500,
       );
-      setActionError(p ?? { type: "about:blank", title: "Delete failed", status: 500 });
+      setActionError(p ?? { type: "about:blank", title: t("detail.errors.deleteFailed"), status: 500 });
     }
   }
 
@@ -202,104 +204,82 @@ export function NoteDetailPage() {
   return (
     <>
       <main data-testid="note-detail-page" className="mx-auto max-w-[720px] px-6 py-12">
-        {/* Breadcrumb */}
-        <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-[13px]">
-          <Link to="/decks" className="no-underline transition-opacity hover:opacity-70" style={{ color: "var(--color-ash)" }}>
-            My Decks
-          </Link>
-          <span style={{ color: "var(--color-fog)" }} aria-hidden="true">/</span>
-          <Link to={`/decks/${deckId}`} className="no-underline transition-opacity hover:opacity-70" style={{ color: "var(--color-ash)" }}>
-            Deck
-          </Link>
-          <span style={{ color: "var(--color-fog)" }} aria-hidden="true">/</span>
-          <span className="max-w-[200px] truncate capitalize" style={{ color: "var(--color-charcoal-primary)" }}>
-            {note.noteType} note
-          </span>
-        </nav>
+        <Breadcrumb
+          items={[
+            { label: t("breadcrumb.myDecks"), href: "/decks" },
+            { label: deck?.title ?? t("breadcrumb.deckFallback"), href: `/decks/${deckId}` },
+            { label: t("breadcrumb.noteLabel", { type: noteTypeLabel }) },
+          ]}
+        />
 
         {actionError && (
           <ProblemBanner problem={actionError} className="mb-6" onDismiss={() => setActionError(null)} />
         )}
 
         {/* Note content card */}
-        <div
-          className="mb-6 rounded-[10px] p-6"
-          style={{ backgroundColor: "var(--color-parchment-card)", boxShadow: "var(--shadow-subtle)" }}
-        >
-          {/* Header */}
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span
-                className="rounded-[6px] px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide"
-                style={{ backgroundColor: "var(--color-stone-surface)", color: "var(--color-ash)" }}
-              >
-                {note.noteType}
-              </span>
-              {note.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-[6px] px-2 py-0.5 text-[11px]"
-                  style={{ backgroundColor: "var(--color-stone-surface)", color: "var(--color-graphite)" }}
-                >
-                  {tag}
-                </span>
-              ))}
+        <Card className="mb-6">
+          <div className="p-6">
+            {/* Header */}
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge label={note.noteType} tone="blue" />
+                {note.tags.map((tag) => (
+                  <Badge key={tag} label={tag} tone="gray" />
+                ))}
+              </div>
+
+              {!isEditing && (
+                <div className="flex shrink-0 gap-2">
+                  <PillButton
+                    variant="secondary"
+                    size="sm"
+                    data-testid="edit-note-btn"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    {t("detail.editBtn")}
+                  </PillButton>
+                  <PillButton
+                    variant="ghost-danger"
+                    size="sm"
+                    data-testid="delete-note-btn"
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
+                    {t("detail.deleteBtn")}
+                  </PillButton>
+                </div>
+              )}
             </div>
 
-            {!isEditing && (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  data-testid="edit-note-btn"
-                  onClick={() => setIsEditing(true)}
-                  className="rounded-[32px] px-4 py-1.5 text-[13px] font-medium transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: "var(--color-stone-surface)", color: "var(--color-graphite)" }}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  data-testid="delete-note-btn"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="rounded-[32px] px-4 py-1.5 text-[13px] font-medium text-white transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: "var(--color-coral-red)" }}
-                >
-                  Delete
-                </button>
-              </div>
+            {isEditing ? (
+              <NoteEditor
+                deckId={deckId ?? ""}
+                initialNote={note}
+                onSubmit={handleUpdateSubmit}
+                onCancel={() => setIsEditing(false)}
+              />
+            ) : (
+              <NoteContentDisplay note={note} />
             )}
           </div>
-
-          {isEditing ? (
-            <NoteEditor
-              deckId={deckId ?? ""}
-              initialNote={note}
-              onSubmit={handleUpdateSubmit}
-              onCancel={() => setIsEditing(false)}
-            />
-          ) : (
-            <NoteContentDisplay note={note} />
-          )}
-        </div>
+        </Card>
 
         {/* Derived cards section */}
-        <section data-testid="cards-section" aria-label="Derived cards">
+        <section data-testid="cards-section" aria-label={t("detail.derivedCardsAria")}>
           <h2
             className="mb-3 text-[19px] font-semibold"
             style={{ color: "var(--color-charcoal-primary)", letterSpacing: "-0.25px" }}
           >
-            Cards
+            {t("detail.cardsHeading")}
           </h2>
 
           {!cards || cards.length === 0 ? (
-            <div
-              className="flex items-center justify-center py-10 text-center"
-              style={{ backgroundColor: "var(--color-parchment-card)", borderRadius: "10px", boxShadow: "var(--shadow-subtle)" }}
-            >
-              <p className="text-[15px]" style={{ color: "var(--color-ash)" }}>
-                No cards generated yet.
-              </p>
-            </div>
+            <Card>
+              <div className="flex items-center justify-center py-10 text-center">
+                <p className="text-[15px]" style={{ color: "var(--color-ash)" }}>
+                  {t("detail.noCardsYet")}
+                </p>
+              </div>
+            </Card>
           ) : (
             <div className="flex flex-col gap-3">
               {cards.map((card) => (
@@ -312,10 +292,10 @@ export function NoteDetailPage() {
 
       <ConfirmDialog
         open={showDeleteConfirm}
-        title="Delete this note?"
-        description="This will permanently remove the note and all its derived cards. This action cannot be undone."
-        confirmLabel="Delete note"
-        cancelLabel="Keep note"
+        title={t("detail.confirmDelete.title")}
+        description={t("detail.confirmDelete.description")}
+        confirmLabel={t("detail.confirmDelete.confirm")}
+        cancelLabel={t("detail.confirmDelete.cancel")}
         destructive
         onConfirm={handleDeleteConfirm}
         onCancel={() => setShowDeleteConfirm(false)}

@@ -197,7 +197,8 @@ describe("RagChatPage", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("problem-banner")).toBeInTheDocument();
-      expect(screen.getByText(/AI provider not configured/i)).toBeInTheDocument();
+      // Server errors are shown with friendly, on-brand copy (backend internals hidden).
+      expect(screen.getByText(/AI features are unavailable/i)).toBeInTheDocument();
     });
   });
 

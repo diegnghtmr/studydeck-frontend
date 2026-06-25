@@ -9,6 +9,18 @@ export interface UserStats {
   dayStreak: number;
   retention30d?: number;
   dailyGoal: number;
+  desiredRetention?: number;
+  newCardsPerDay?: number;
+  language?: string;
+  timezone?: string;
+}
+
+export interface PreferencesPayload {
+  dailyGoal?: number;
+  desiredRetention?: number;
+  newCardsPerDay?: number;
+  language?: string;
+  timezone?: string;
 }
 
 export function useUserStats() {
@@ -26,18 +38,40 @@ export function useUserStats() {
 }
 
 /**
- * Updates the user's daily study goal (synced to the backend) and refreshes the stats so the
- * sidebar goal widget and dashboard reflect the new target.
+ * Updates one or more user preferences (synced to the backend) and refreshes stats on success.
+ * Only the fields actually present in the payload are sent to the API — never explicit undefined.
  */
-export function useUpdateDailyGoal() {
+export function useUpdatePreferences() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, number>({
-    mutationFn: async (dailyGoal) => {
-      await axiosInstance.patch("/v1/account/preferences", { dailyGoal });
+  return useMutation<void, Error, PreferencesPayload>({
+    mutationFn: async (payload) => {
+      const body: PreferencesPayload = {
+        ...(payload.dailyGoal !== undefined && { dailyGoal: payload.dailyGoal }),
+        ...(payload.desiredRetention !== undefined && { desiredRetention: payload.desiredRetention }),
+        ...(payload.newCardsPerDay !== undefined && { newCardsPerDay: payload.newCardsPerDay }),
+        ...(payload.language !== undefined && { language: payload.language }),
+        ...(payload.timezone !== undefined && { timezone: payload.timezone }),
+      };
+      await axiosInstance.patch("/v1/account/preferences", body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.stats.user() });
     },
   });
+}
+
+/**
+ * Updates the user's daily study goal (synced to the backend) and refreshes the stats so the
+ * sidebar goal widget and dashboard reflect the new target.
+ *
+ * Delegates to useUpdatePreferences internally.
+ */
+export function useUpdateDailyGoal() {
+  const updatePreferences = useUpdatePreferences();
+  return {
+    ...updatePreferences,
+    mutate: (dailyGoal: number) => updatePreferences.mutate({ dailyGoal }),
+    mutateAsync: (dailyGoal: number) => updatePreferences.mutateAsync({ dailyGoal }),
+  };
 }

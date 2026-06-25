@@ -63,6 +63,32 @@ describe("CreateDeckPage", () => {
     vi.clearAllMocks();
   });
 
+  describe("fieldClass migration", () => {
+    it("title input applies FIELD_CLASS base tokens when no error", () => {
+      renderPage();
+      const titleInput = screen.getByLabelText(/deck name/i);
+      expect(titleInput.className).toContain("bg-[#fbfaf9]");
+      expect(titleInput.className).toContain("ring-[#e7e4df]");
+      expect(titleInput.className).not.toContain("ring-[var(--color-coral-red)]");
+    });
+
+    it("title input applies error ring on submit with empty title", async () => {
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(screen.getByTestId("create-deck-submit"));
+      await waitFor(() => screen.getByTestId("title-error"));
+      const titleInput = screen.getByLabelText(/deck name/i);
+      expect(titleInput.className).toContain("ring-[var(--color-coral-red)]");
+      expect(titleInput.className).not.toContain("ring-[#e7e4df]");
+    });
+
+    it("description textarea applies FIELD_CLASS base tokens", () => {
+      renderPage();
+      const descTextarea = screen.getByLabelText(/description/i);
+      expect(descTextarea.className).toContain("bg-[#fbfaf9]");
+    });
+  });
+
   it("renders the form", () => {
     renderPage();
     expect(screen.getByTestId("create-deck-form")).toBeInTheDocument();

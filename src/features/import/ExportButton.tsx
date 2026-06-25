@@ -2,6 +2,7 @@ import { useExportDeck } from "./hooks/use-import";
 import { normalizeApiProblem } from "@shared/api/problem";
 import { useState } from "react";
 import { ProblemBanner } from "@shared/ui/ProblemBanner";
+import { PillButton } from "@shared/ui/PillButton";
 
 interface ExportButtonProps {
   deckId: string;
@@ -50,20 +51,17 @@ export function ExportButton({ deckId, deckTitle, className }: ExportButtonProps
           onDismiss={() => setExportError(null)}
         />
       )}
-      <button
+      <PillButton
         type="button"
+        variant="secondary"
+        size="sm"
         data-testid="export-deck-btn"
         onClick={handleExport}
         disabled={exportMutation.isPending}
         aria-label={`Export ${deckTitle ?? "deck"} as JSON`}
-        className="rounded-[32px] px-4 py-1.5 text-[13px] font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
-        style={{
-          backgroundColor: "var(--color-stone-surface)",
-          color: "var(--color-graphite)",
-        }}
       >
         {exportMutation.isPending ? "Exporting…" : "Export JSON"}
-      </button>
+      </PillButton>
     </div>
   );
 }

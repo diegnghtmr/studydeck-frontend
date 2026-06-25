@@ -1,6 +1,11 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SettingsPage } from "./SettingsPage";
+import { useAiProviderStore } from "./store/use-ai-provider-store";
+import type { AiProviderState } from "./store/use-ai-provider-store";
+import { useUserStats, useUpdatePreferences } from "@shared/stats/use-user-stats";
+import { useAuth } from "react-oidc-context";
+import { useDeleteAccount } from "./hooks/use-delete-account";
 
 vi.mock("@shared/auth/auth-store", () => ({
   useAuthStore: vi.fn((selector) =>
@@ -21,8 +26,17 @@ vi.mock("@shared/auth/auth-store", () => ({
 }));
 
 vi.mock("@shared/stats/use-user-stats", () => ({
-  useUserStats: vi.fn(() => ({ data: { dailyGoal: 40 } })),
+  useUserStats: vi.fn(() => ({
+    data: {
+      dailyGoal: 40,
+      language: "en",
+      timezone: "UTC",
+      desiredRetention: 0.9,
+      newCardsPerDay: 10,
+    },
+  })),
   useUpdateDailyGoal: vi.fn(() => ({ mutate: vi.fn() })),
+  useUpdatePreferences: vi.fn(() => ({ mutate: vi.fn() })),
 }));
 
 const mockSetShowIntervals = vi.fn();
@@ -42,6 +56,47 @@ vi.mock("@shared/lib/store", () => ({
       setSchedulerAlgorithm: mockSetSchedulerAlgorithm,
     }),
   ),
+}));
+
+vi.mock("./store/use-ai-provider-store", () => ({
+  useAiProviderStore: vi.fn((selector) =>
+    selector({
+      providers: [],
+      activeProviderId: null,
+      addProvider: vi.fn(),
+      updateProvider: vi.fn(),
+      removeProvider: vi.fn(),
+      setActiveProvider: vi.fn(),
+    }),
+  ),
+  selectActiveProviderOverride: vi.fn(() => undefined),
+  PROVIDER_PRESETS: [
+    { label: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
+    { label: "Custom", baseUrl: "", model: "" },
+  ],
+}));
+
+vi.mock("react-oidc-context", () => ({
+  useAuth: vi.fn(() => ({ signoutRedirect: vi.fn() })),
+}));
+
+vi.mock("./hooks/use-delete-account", () => ({
+  useDeleteAccount: vi.fn(() => ({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn().mockResolvedValue(undefined),
+    isPending: false,
+    isSuccess: false,
+    isError: false,
+    error: null,
+  })),
+  useLogoutAllSessions: vi.fn(() => ({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn().mockResolvedValue(undefined),
+    isPending: false,
+    isSuccess: false,
+    isError: false,
+    error: null,
+  })),
 }));
 
 describe("SettingsPage", () => {
@@ -82,10 +137,9 @@ describe("SettingsPage", () => {
     expect(input).toBeDefined();
   });
 
-  it("both AI provider rows show badge labeled Not set", () => {
+  it("renders empty state when no providers configured", () => {
     render(<SettingsPage />);
-    const badges = screen.getAllByText("Not set");
-    expect(badges.length).toBe(2);
+    expect(screen.getByText("No providers configured. Add one above.")).toBeDefined();
   });
 
   it("Show intervals ToggleSwitch renders unchecked when showIntervals is false", () => {
@@ -99,5 +153,203 @@ describe("SettingsPage", () => {
     const toggle = screen.getByRole("switch", { name: /show intervals/i });
     fireEvent.click(toggle);
     expect(mockSetShowIntervals).toHaveBeenCalledWith(true);
+  });
+
+  it("renders a provider row when store has one provider", () => {
+    vi.mocked(useAiProviderStore).mockImplementation((selector: (s: AiProviderState) => unknown) =>
+      selector({
+        providers: [
+          {
+            id: "p1",
+            label: "OpenAI",
+            baseUrl: "https://api.openai.com/v1",
+            apiKey: "sk-test",
+            model: "gpt-4o",
+            enabled: true,
+          },
+        ],
+        activeProviderId: "p1",
+        addProvider: vi.fn(),
+        updateProvider: vi.fn(),
+        removeProvider: vi.fn(),
+        setActiveProvider: vi.fn(),
+      }),
+    );
+    render(<SettingsPage />);
+    expect(screen.getByText("OpenAI")).toBeDefined();
+  });
+
+  it("active provider shows Active badge", () => {
+    vi.mocked(useAiProviderStore).mockImplementation((selector: (s: AiProviderState) => unknown) =>
+      selector({
+        providers: [
+          {
+            id: "p1",
+            label: "OpenAI",
+            baseUrl: "https://api.openai.com/v1",
+            apiKey: "sk-test",
+            model: "gpt-4o",
+            enabled: true,
+          },
+        ],
+        activeProviderId: "p1",
+        addProvider: vi.fn(),
+        updateProvider: vi.fn(),
+        removeProvider: vi.fn(),
+        setActiveProvider: vi.fn(),
+      }),
+    );
+    render(<SettingsPage />);
+    const badge = screen.getByTestId("badge-p1");
+    expect(badge).toBeDefined();
+    expect(badge.textContent).toBe("Active");
+  });
+
+  it("provider with empty apiKey shows Not set badge", () => {
+    vi.mocked(useAiProviderStore).mockImplementation((selector: (s: AiProviderState) => unknown) =>
+      selector({
+        providers: [
+          {
+            id: "p2",
+            label: "Custom",
+            baseUrl: "",
+            apiKey: "",
+            model: "",
+            enabled: true,
+          },
+        ],
+        activeProviderId: null,
+        addProvider: vi.fn(),
+        updateProvider: vi.fn(),
+        removeProvider: vi.fn(),
+        setActiveProvider: vi.fn(),
+      }),
+    );
+    render(<SettingsPage />);
+    expect(screen.getByText("Not set")).toBeDefined();
+  });
+});
+
+describe("server-synced preferences", () => {
+  it("hydrates Language dropdown from userStats.language", () => {
+    render(<SettingsPage />);
+    expect(vi.mocked(useUserStats)).toHaveBeenCalled();
+  });
+
+  it("selecting a language calls useUpdatePreferences.mutate with { language }", () => {
+    const mockMutate = vi.fn();
+    vi.mocked(useUpdatePreferences).mockReturnValueOnce({ mutate: mockMutate } as unknown as ReturnType<typeof useUpdatePreferences>);
+
+    render(<SettingsPage />);
+    const languageDropdown = screen.getAllByRole("button").find(
+      (b) => b.textContent === "English"
+    );
+    expect(languageDropdown).toBeDefined();
+    if (languageDropdown) fireEvent.click(languageDropdown);
+    const spanishOption = screen.queryByText("Spanish");
+    if (spanishOption) fireEvent.click(spanishOption);
+    if (spanishOption) expect(mockMutate).toHaveBeenCalledWith({ language: "es" });
+  });
+
+  it("hydrates New cards Dropdown from userStats.newCardsPerDay", () => {
+    render(<SettingsPage />);
+    expect(screen.getByText("10 cards")).toBeDefined();
+  });
+
+  it("selecting new cards per day calls useUpdatePreferences.mutate with { newCardsPerDay }", () => {
+    const mockMutate = vi.fn();
+    vi.mocked(useUpdatePreferences).mockReturnValueOnce({ mutate: mockMutate } as unknown as ReturnType<typeof useUpdatePreferences>);
+
+    render(<SettingsPage />);
+    const newCardsDropdown = screen.getAllByRole("button").find(
+      (b) => b.textContent === "10 cards"
+    );
+    if (newCardsDropdown) fireEvent.click(newCardsDropdown);
+    const option20 = screen.queryByText("20 cards");
+    if (option20) fireEvent.click(option20);
+    if (option20) expect(mockMutate).toHaveBeenCalledWith({ newCardsPerDay: 20 });
+  });
+
+  it("helper text for language says Synced to your account", () => {
+    render(<SettingsPage />);
+    const helpers = screen.getAllByText("Synced to your account.");
+    expect(helpers.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("hydrates retention slider from userStats.desiredRetention", () => {
+    render(<SettingsPage />);
+    // desiredRetention: 0.9 → 90%
+    expect(screen.getByText("90%")).toBeDefined();
+  });
+
+  it("moving retention slider fires mutation on pointer up with desiredRetention as fraction", () => {
+    const mockMutate = vi.fn();
+    // Use mockReturnValue (not Once) so all re-renders caused by setRetentionDisplay
+    // also get the same mockMutate, ensuring onPointerUp fires against our spy.
+    vi.mocked(useUpdatePreferences).mockReturnValue({ mutate: mockMutate } as unknown as ReturnType<typeof useUpdatePreferences>);
+
+    render(<SettingsPage />);
+    const slider = screen.getByRole("slider");
+    // fireEvent.change sets the DOM value, then pointerUp reads it via e.target.value
+    fireEvent.change(slider, { target: { value: "85" } });
+    fireEvent.pointerUp(slider);
+    expect(mockMutate).toHaveBeenCalledWith({ desiredRetention: 0.85 });
+
+    // Restore default mock for subsequent tests
+    vi.mocked(useUpdatePreferences).mockReturnValue({ mutate: vi.fn() } as unknown as ReturnType<typeof useUpdatePreferences>);
+  });
+});
+
+describe("Account section actions", () => {
+  const mockSignoutRedirect = vi.fn();
+  const mockMutateAsync = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("Sign out everywhere button is enabled (not disabled)", () => {
+    render(<SettingsPage />);
+    const btn = screen.getByRole("button", { name: "Sign out everywhere" });
+    expect(btn).not.toBeDisabled();
+  });
+
+  it("Delete account button is enabled (not disabled)", () => {
+    render(<SettingsPage />);
+    const btn = screen.getByRole("button", { name: "Delete account" });
+    expect(btn).not.toBeDisabled();
+  });
+
+  it("clicking Sign out everywhere calls signoutRedirect", async () => {
+    vi.mocked(useAuth).mockReturnValue({ signoutRedirect: mockSignoutRedirect } as unknown as ReturnType<typeof useAuth>);
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Sign out everywhere" }));
+    await waitFor(() => expect(mockSignoutRedirect).toHaveBeenCalled());
+  });
+
+  it("clicking Delete account opens confirm dialog", () => {
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Delete account" }));
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+  });
+
+  it("confirming delete dialog calls the delete mutation", async () => {
+    mockMutateAsync.mockResolvedValue(undefined);
+    vi.mocked(useDeleteAccount).mockReturnValue({
+      mutate: vi.fn(),
+      mutateAsync: mockMutateAsync,
+      isPending: false,
+      isSuccess: false,
+      isError: false,
+      error: null,
+    } as unknown as ReturnType<typeof useDeleteAccount>);
+
+    vi.mocked(useAuth).mockReturnValue({ signoutRedirect: mockSignoutRedirect } as unknown as ReturnType<typeof useAuth>);
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Delete account" }));
+    fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
+
+    await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
   });
 });

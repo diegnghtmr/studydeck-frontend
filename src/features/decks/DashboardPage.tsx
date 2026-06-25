@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useDecks } from "./hooks/use-decks";
 import { useDeckStats } from "@features/review/hooks/use-review";
 import { useAuthStore } from "@shared/auth/auth-store";
@@ -11,6 +12,7 @@ import { useUserStats } from "@shared/stats/use-user-stats";
 // ---- DashboardDeckCard -------------------------------------------------------
 
 function DashboardDeckCard({ deck }: { deck: DeckModel }) {
+  const { t } = useTranslation("dashboard");
   const { data: stats } = useDeckStats(deck.id);
   const { color } = getDeckColor(deck.id);
   const navigate = useNavigate();
@@ -30,7 +32,7 @@ function DashboardDeckCard({ deck }: { deck: DeckModel }) {
       data-deck-id={deck.id}
       role="button"
       tabIndex={0}
-      aria-label={`Open deck: ${deck.title}`}
+      aria-label={t("deckCard.openAria", { title: deck.title })}
       onClick={() => navigate(`/decks/${deck.id}`)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -79,7 +81,7 @@ function DashboardDeckCard({ deck }: { deck: DeckModel }) {
             }}
           />
           <span data-testid={`deck-due-${deck.id}`}>
-            {dueCount !== undefined ? dueCount : "—"} due
+            {dueCount !== undefined ? dueCount : "—"} {t("deckCard.dueSuffix")}
           </span>
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -93,28 +95,67 @@ function DashboardDeckCard({ deck }: { deck: DeckModel }) {
             }}
           />
           <span data-testid={`deck-new-${deck.id}`}>
-            {newCount !== undefined ? newCount : "—"} new
+            {newCount !== undefined ? newCount : "—"} {t("deckCard.newSuffix")}
           </span>
         </span>
         <span style={{ marginLeft: "auto" }}>
-          {totalCards !== undefined ? totalCards : "—"} total
+          {totalCards !== undefined ? totalCards : "—"} {t("deckCard.totalSuffix")}
         </span>
       </div>
     </article>
   );
 }
 
+// ---- Skeleton primitive -----------------------------------------------------
+
+/**
+ * A single shimmering placeholder bar. Used while data is loading so the UI never
+ * flashes default/empty values (e.g. "No decks yet" or "0 decks") before the real
+ * data arrives. `dark` adapts the tint for use on the dark "Up next" banner.
+ */
+function SkeletonBar({
+  width = "100%",
+  height = 12,
+  radius = 6,
+  dark = false,
+}: {
+  width?: number | string;
+  height?: number;
+  radius?: number;
+  dark?: boolean;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className="sd-pulse"
+      style={{
+        display: "block",
+        width,
+        height,
+        borderRadius: radius,
+        backgroundColor: dark ? "rgba(255,255,255,0.16)" : "var(--color-stone-surface)",
+      }}
+    />
+  );
+}
+
 // ---- DashboardPage ----------------------------------------------------------
 
 export function DashboardPage() {
+  const { t } = useTranslation("dashboard");
   const { data: decksPage, isPending } = useDecks({ size: 10 });
   const user = useAuthStore((s) => s.user);
-  const { data: userStats } = useUserStats();
+  const { data: userStats, isPending: statsPending } = useUserStats();
 
   const firstName = user?.displayName?.split(" ")[0] ?? "there";
   const deckCount = decksPage?.page.totalElements ?? 0;
   const activeDecks = decksPage?.items.filter((d) => !d.archived) ?? [];
   const firstDeck = activeDecks[0] ?? null;
+
+  const hours = new Date().getHours();
+  const greetingKey =
+    hours < 12 ? "greeting.morning" : hours < 18 ? "greeting.afternoon" : "greeting.evening";
+
   const today = new Intl.DateTimeFormat(undefined, {
     weekday: "long",
     month: "long",
@@ -151,15 +192,21 @@ export function DashboardPage() {
           margin: "8px 0 0",
         }}
       >
-        Good morning, {firstName}
+        {t(greetingKey)}, {firstName}
       </h1>
-      <p style={{ fontSize: 16, color: "#848281", margin: "8px 0 0" }}>
-        Your{" "}
-        <strong style={{ color: "#474645", fontWeight: 600 }}>
-          {deckCount} deck{deckCount !== 1 ? "s" : ""}
-        </strong>{" "}
-        ready to study.
-      </p>
+      {isPending ? (
+        <div style={{ margin: "12px 0 0" }} role="status" aria-label={t("loading.decksAria")}>
+          <SkeletonBar width={240} height={16} />
+        </div>
+      ) : (
+        <p style={{ fontSize: 16, color: "#848281", margin: "8px 0 0" }}>
+          {t("subtitle.prefix")}{" "}
+          <strong style={{ color: "#474645", fontWeight: 600 }}>
+            {deckCount} {t("subtitle.deckWord", { count: deckCount })}
+          </strong>{" "}
+          {t("subtitle.suffix")}
+        </p>
+      )}
 
       {/* B. Stats grid */}
       <div
@@ -172,7 +219,7 @@ export function DashboardPage() {
       >
         <Card radius={14} className="p-[22px]">
           <p style={{ fontSize: 12, fontWeight: 500, color: "#a7a7a7", margin: 0 }}>
-            Due today
+            {t("stats.dueToday")}
           </p>
           <p
             data-testid="stat-due-today"
@@ -182,16 +229,20 @@ export function DashboardPage() {
               fontWeight: 500,
               letterSpacing: "-1px",
               color: "var(--color-ember-orange)",
-              margin: "4px 0 0",
+              margin: "8px 0 0",
             }}
           >
-            {userStats?.dueToday ?? "—"}
+            {statsPending ? (
+              <SkeletonBar width={56} height={30} radius={8} />
+            ) : (
+              (userStats?.dueToday ?? "—")
+            )}
           </p>
         </Card>
 
         <Card radius={14} className="p-[22px]">
           <p style={{ fontSize: 12, fontWeight: 500, color: "#a7a7a7", margin: 0 }}>
-            Retention
+            {t("stats.retention")}
           </p>
           <p
             data-testid="stat-retention"
@@ -201,18 +252,22 @@ export function DashboardPage() {
               fontWeight: 500,
               letterSpacing: "-1px",
               color: "#00ca48",
-              margin: "4px 0 0",
+              margin: "8px 0 0",
             }}
           >
-            {userStats?.retention30d !== undefined
-              ? `${Math.round(userStats.retention30d * 100)}%`
-              : "—"}
+            {statsPending ? (
+              <SkeletonBar width={64} height={30} radius={8} />
+            ) : userStats?.retention30d !== undefined ? (
+              `${Math.round(userStats.retention30d * 100)}%`
+            ) : (
+              "—"
+            )}
           </p>
         </Card>
 
         <Card radius={14} className="p-[22px]">
           <p style={{ fontSize: 12, fontWeight: 500, color: "#a7a7a7", margin: 0 }}>
-            New cards
+            {t("stats.newCards")}
           </p>
           <p
             data-testid="stat-new-cards"
@@ -222,16 +277,20 @@ export function DashboardPage() {
               fontWeight: 500,
               letterSpacing: "-1px",
               color: "#343433",
-              margin: "4px 0 0",
+              margin: "8px 0 0",
             }}
           >
-            {userStats?.newCards ?? "—"}
+            {statsPending ? (
+              <SkeletonBar width={56} height={30} radius={8} />
+            ) : (
+              (userStats?.newCards ?? "—")
+            )}
           </p>
         </Card>
 
         <Card radius={14} className="p-[22px]">
           <p style={{ fontSize: 12, fontWeight: 500, color: "#a7a7a7", margin: 0 }}>
-            Day streak
+            {t("stats.dayStreak")}
           </p>
           <p
             data-testid="stat-day-streak"
@@ -241,10 +300,14 @@ export function DashboardPage() {
               fontWeight: 500,
               letterSpacing: "-1px",
               color: "#343433",
-              margin: "4px 0 0",
+              margin: "8px 0 0",
             }}
           >
-            {userStats?.dayStreak ?? "—"}
+            {statsPending ? (
+              <SkeletonBar width={56} height={30} radius={8} />
+            ) : (
+              (userStats?.dayStreak ?? "—")
+            )}
           </p>
         </Card>
       </div>
@@ -274,9 +337,18 @@ export function DashboardPage() {
               textTransform: "uppercase",
             }}
           >
-            UP NEXT
+            {t("upNext.label")}
           </p>
-          {firstDeck ? (
+          {isPending ? (
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 2 }}
+              role="status"
+              aria-label={t("loading.nextDeckAria")}
+            >
+              <SkeletonBar width={180} height={22} radius={7} dark />
+              <SkeletonBar width={120} height={13} radius={6} dark />
+            </div>
+          ) : firstDeck ? (
             <>
               <p
                 style={{
@@ -290,7 +362,7 @@ export function DashboardPage() {
                 {firstDeck.title}
               </p>
               <p style={{ fontSize: 14, color: "#a7a7a7", margin: 0 }}>
-                {firstDeck.description ?? "Ready to review"}
+                {firstDeck.description ?? t("upNext.readyToReview")}
               </p>
             </>
           ) : (
@@ -304,32 +376,36 @@ export function DashboardPage() {
                   margin: 0,
                 }}
               >
-                No decks yet
+                {t("upNext.noDecksTitle")}
               </p>
               <p style={{ fontSize: 14, color: "#a7a7a7", margin: 0 }}>
-                Create your first deck to get started
+                {t("upNext.noDecksSubtitle")}
               </p>
             </>
           )}
         </div>
 
-        <Link
-          to={firstDeck ? `/review/${firstDeck.id}` : "/decks/new"}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            backgroundColor: "#ffffff",
-            color: "#121212",
-            borderRadius: 32,
-            padding: "14px 26px",
-            fontSize: 14,
-            fontWeight: 600,
-            textDecoration: "none",
-          }}
-        >
-          {firstDeck ? "Start review →" : "Create deck →"}
-        </Link>
+        {isPending ? (
+          <SkeletonBar width={140} height={48} radius={32} dark />
+        ) : (
+          <Link
+            to={firstDeck ? `/review/${firstDeck.id}` : "/decks/new"}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              backgroundColor: "#ffffff",
+              color: "#121212",
+              borderRadius: 32,
+              padding: "14px 26px",
+              fontSize: 14,
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            {firstDeck ? t("upNext.startReview") : t("upNext.createDeck")}
+          </Link>
+        )}
       </div>
 
       {/* D. Decks section */}
@@ -346,13 +422,13 @@ export function DashboardPage() {
           data-testid="decks-section-heading"
           style={{ fontSize: 19, fontWeight: 600, color: "#343433", margin: 0 }}
         >
-          Your decks
+          {t("decksSection.heading")}
         </h2>
         <Link
           to="/decks"
           style={{ fontSize: 14, color: "var(--color-ember-orange)", textDecoration: "none" }}
         >
-          Manage decks
+          {t("decksSection.manageLink")}
         </Link>
       </div>
 
@@ -366,7 +442,7 @@ export function DashboardPage() {
         {isPending ? (
           <>
             {[0, 1, 2].map((i) => (
-              <Card key={i} recessed radius={16} className="p-[22px] animate-pulse">
+              <Card key={i} recessed radius={16} className="p-[22px] sd-pulse">
                 <div
                   style={{
                     height: 36,
@@ -398,9 +474,9 @@ export function DashboardPage() {
         ) : activeDecks.length === 0 ? (
           <Card recessed radius={16} className="p-[22px] col-span-3 text-center">
             <p style={{ fontSize: 15, color: "var(--color-ash)", margin: 0 }}>
-              No decks yet.{" "}
+              {t("decksSection.noDecksYet")}{" "}
               <Link to="/decks/new" style={{ color: "var(--color-ember-orange)" }}>
-                Create one
+                {t("decksSection.createOne")}
               </Link>
             </p>
           </Card>

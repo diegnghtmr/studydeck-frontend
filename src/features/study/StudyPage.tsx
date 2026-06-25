@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useDecks } from "@features/decks/hooks/use-decks";
 import { useDeckStats } from "@features/review/hooks/use-review";
 import { getDeckColor } from "@features/decks/lib/deck-color";
@@ -15,6 +16,7 @@ import type { DeckModel } from "@shared/api/types";
 
 function DeckRow({ deck }: { deck: DeckModel }) {
   const navigate = useNavigate();
+  const { t } = useTranslation("study");
   const { data: stats } = useDeckStats(deck.id);
   const { color } = getDeckColor(deck.id);
   const [hovered, setHovered] = useState(false);
@@ -36,7 +38,7 @@ function DeckRow({ deck }: { deck: DeckModel }) {
     <article
       role="button"
       tabIndex={0}
-      aria-label={`Study ${deck.title}`}
+      aria-label={t("deckRow.ariaLabel", { title: deck.title })}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       onMouseEnter={() => setHovered(true)}
@@ -68,7 +70,7 @@ function DeckRow({ deck }: { deck: DeckModel }) {
       {/* Due badge */}
       {dueToday !== undefined && (
         <Badge
-          label={dueToday > 0 ? `${dueToday} due` : "0 due"}
+          label={dueToday > 0 ? t("deckRow.due", { count: dueToday }) : t("deckRow.zeroDue")}
           tone={dueToday > 0 ? "red" : "gray"}
         />
       )}
@@ -85,6 +87,7 @@ function DeckRow({ deck }: { deck: DeckModel }) {
 
 export function StudyPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation("study");
   const { data: decksPage, isPending } = useDecks({ archived: false });
   const activeDecks = decksPage?.items.filter((d) => !d.archived) ?? [];
 
@@ -104,14 +107,14 @@ export function StudyPage() {
               marginBottom: 6,
             }}
           >
-            Study
+            {t("title")}
           </h1>
           <p style={{ fontSize: 15, color: "#848281", margin: 0 }}>
-            Choose a deck to begin your review session.
+            {t("subtitle")}
           </p>
         </div>
         <PillButton variant="primary" onClick={() => navigate("/review")}>
-          Review all due
+          {t("reviewAllDue")}
         </PillButton>
       </div>
 
@@ -137,7 +140,7 @@ export function StudyPage() {
       {!isPending && activeDecks.length === 0 && (
         <div style={{ textAlign: "center", padding: "80px 0" }}>
           <p style={{ fontSize: 15, color: "#848281", marginBottom: 16 }}>
-            No decks yet. Create one to get started.
+            {t("emptyState.message")}
           </p>
           <Link
             to="/decks"
@@ -148,7 +151,7 @@ export function StudyPage() {
               fontWeight: 500,
             }}
           >
-            Go to decks →
+            {t("emptyState.goToDecks")}
           </Link>
         </div>
       )}

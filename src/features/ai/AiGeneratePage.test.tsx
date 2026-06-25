@@ -84,9 +84,11 @@ describe("AiGeneratePage", () => {
     expect(screen.getByTestId("ai-generate-page")).toBeInTheDocument();
   });
 
-  it("shows a text source input option", () => {
+  it("shows the source input with an inline document attach option", () => {
     renderPage();
-    expect(screen.getByTestId("source-text-tab")).toBeInTheDocument();
+    // No more tabs — the textarea is always visible with an inline "Attach document" control.
+    expect(screen.getByTestId("generate-text-input")).toBeInTheDocument();
+    expect(screen.getByTestId("generate-attach-input")).toBeInTheDocument();
   });
 
   it("generates flashcard proposals from text input", async () => {
@@ -209,7 +211,7 @@ describe("AiGeneratePage", () => {
     // The first card wrapper should now have the outline style
     await waitFor(() => {
       const cardWrapper = screen.getByTestId("propose-card-0");
-      expect(cardWrapper).toHaveStyle({ outline: "2px solid #00ca48" });
+      expect(cardWrapper).toHaveStyle({ boxShadow: "#00ca48 0 0 0 2px inset" });
     });
   });
 

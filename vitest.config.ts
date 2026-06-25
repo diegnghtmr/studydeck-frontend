@@ -19,5 +19,6 @@ export default defineConfig({
       "@features": resolve(__dirname, "./src/features"),
       "@shared": resolve(__dirname, "./src/shared"),
     },
+    dedupe: ["react", "react-dom"],
   },
 });

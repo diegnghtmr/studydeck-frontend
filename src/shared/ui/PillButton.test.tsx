@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import userEvent from "@testing-library/user-event";
 import { PillButton } from "./PillButton";
 
@@ -9,22 +10,39 @@ describe("PillButton", () => {
     expect(screen.getByRole("button", { name: /click me/i })).toBeInTheDocument();
   });
 
-  it("applies primary background color token", () => {
+  it("applies primary variant classes by default", () => {
     render(<PillButton variant="primary">Save</PillButton>);
-    const btn = screen.getByRole("button");
-    expect(btn).toHaveStyle({ backgroundColor: "var(--color-midnight)" });
+    expect(screen.getByRole("button")).toHaveClass("bg-[var(--color-midnight)]");
   });
 
-  it("applies secondary background", () => {
+  it("applies secondary variant classes", () => {
     render(<PillButton variant="secondary">Cancel</PillButton>);
-    const btn = screen.getByRole("button");
-    expect(btn).toHaveStyle({ backgroundColor: "#f6f4ef" });
+    expect(screen.getByRole("button")).toHaveClass("bg-[#f6f4ef]");
   });
 
-  it("applies danger background", () => {
+  it("applies danger variant classes (coral red)", () => {
     render(<PillButton variant="danger">Delete</PillButton>);
-    const btn = screen.getByRole("button");
-    expect(btn).toHaveStyle({ backgroundColor: "var(--color-ember-orange)" });
+    expect(screen.getByRole("button")).toHaveClass("bg-[var(--color-coral-red)]");
+  });
+
+  it("applies ghost-danger variant classes", () => {
+    render(<PillButton variant="ghost-danger">Delete</PillButton>);
+    expect(screen.getByRole("button")).toHaveClass("bg-transparent");
+  });
+
+  it("supports the small size", () => {
+    render(<PillButton size="sm">Small</PillButton>);
+    expect(screen.getByRole("button")).toHaveClass("text-[13px]");
+  });
+
+  it("renders as a link when href is set", () => {
+    render(
+      <MemoryRouter>
+        <PillButton href="/decks">Open</PillButton>
+      </MemoryRouter>,
+    );
+    const link = screen.getByRole("link", { name: /open/i });
+    expect(link).toHaveAttribute("href", "/decks");
   });
 
   it("is disabled when disabled prop is true", () => {

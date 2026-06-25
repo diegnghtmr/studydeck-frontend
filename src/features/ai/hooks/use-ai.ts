@@ -10,6 +10,23 @@ import type {
   ImproveFlashcardRequest,
   RagChatRequest,
 } from "@shared/api/generated/models";
+import {
+  useAiProviderStore,
+  selectActiveProviderOverride,
+} from "@features/settings/store/use-ai-provider-store";
+import type { AiProviderOverride } from "@features/settings/store/use-ai-provider-store";
+
+// ---- Local extended types ---------------------------------------------------
+
+// These carry providerOverride through the cast without touching generated files.
+
+type GenerateFlashcardsRequestWithOverride = GenerateFlashcardsRequest & {
+  providerOverride?: AiProviderOverride;
+};
+
+type RagChatRequestWithOverride = RagChatRequest & {
+  providerOverride?: AiProviderOverride;
+};
 
 // ---- AI mutations -----------------------------------------------------------
 
@@ -21,7 +38,12 @@ import type {
 export function useGenerateFlashcards() {
   return useMutation<GenerateFlashcardsResponseModel, Error, GenerateFlashcardsRequest>({
     mutationFn: async (body) => {
-      const response = await aiApi.generateFlashcards(body);
+      const override = selectActiveProviderOverride(useAiProviderStore.getState());
+      const extBody: GenerateFlashcardsRequestWithOverride = {
+        ...body,
+        ...(override ? { providerOverride: override } : {}),
+      };
+      const response = await aiApi.generateFlashcards(extBody as GenerateFlashcardsRequest);
       return response.data as unknown as GenerateFlashcardsResponseModel;
     },
   });
@@ -50,7 +72,12 @@ export function useImproveFlashcard() {
 export function useRagChat() {
   return useMutation<RagChatResponseModel, Error, RagChatRequest>({
     mutationFn: async (body) => {
-      const response = await ragApi.ragChat(body);
+      const override = selectActiveProviderOverride(useAiProviderStore.getState());
+      const extBody: RagChatRequestWithOverride = {
+        ...body,
+        ...(override ? { providerOverride: override } : {}),
+      };
+      const response = await ragApi.ragChat(extBody as RagChatRequest);
       return response.data as unknown as RagChatResponseModel;
     },
   });

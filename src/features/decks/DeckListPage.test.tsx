@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -226,5 +226,88 @@ describe("DeckListPage", () => {
         expect.objectContaining({ title: "My New Deck" }),
       ),
     );
+  });
+
+  it("DeckModal closes on Escape key (a11y)", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await waitFor(() => expect(screen.getByText("New deck")).toBeInTheDocument());
+    await user.click(screen.getAllByText("New deck")[0]);
+    await waitFor(() =>
+      expect(screen.getByTestId("deck-modal")).toBeInTheDocument(),
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() =>
+      expect(screen.queryByTestId("deck-modal")).not.toBeInTheDocument(),
+    );
+  });
+
+  it("DeckModal has role=dialog and aria-labelledby (a11y)", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await waitFor(() => expect(screen.getByText("New deck")).toBeInTheDocument());
+    await user.click(screen.getAllByText("New deck")[0]);
+    await waitFor(() =>
+      expect(screen.getByTestId("deck-modal")).toBeInTheDocument(),
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toHaveAttribute("aria-labelledby", "deck-modal-title");
+  });
+
+  describe("fieldClass migration — modal inputs", () => {
+    it("DeckModal deck-name-input uses FIELD_CLASS tokens (bg-[#fbfaf9], ring-[#e7e4df])", async () => {
+      renderPage();
+      const user = userEvent.setup();
+      await waitFor(() => expect(screen.getByText("New deck")).toBeInTheDocument());
+      await user.click(screen.getAllByText("New deck")[0]);
+      await waitFor(() => expect(screen.getByTestId("deck-modal")).toBeInTheDocument());
+      const input = screen.getByTestId("deck-name-input");
+      expect(input.className).toContain("bg-[#fbfaf9]");
+      expect(input.className).toContain("ring-[#e7e4df]");
+    });
+
+    it("DeckModal deck-name-input has no inline border style", async () => {
+      renderPage();
+      const user = userEvent.setup();
+      await waitFor(() => expect(screen.getByText("New deck")).toBeInTheDocument());
+      await user.click(screen.getAllByText("New deck")[0]);
+      await waitFor(() => expect(screen.getByTestId("deck-modal")).toBeInTheDocument());
+      const input = screen.getByTestId("deck-name-input");
+      expect((input as HTMLElement).style.border).toBeFalsy();
+    });
+
+    it("CardModal card-front-input uses FIELD_CLASS tokens", async () => {
+      renderPage();
+      const user = userEvent.setup();
+      await waitFor(() => expect(screen.getByTestId("new-card-btn")).toBeInTheDocument());
+      await user.click(screen.getByTestId("new-card-btn"));
+      await waitFor(() => expect(screen.getByTestId("card-front-input")).toBeInTheDocument());
+      const frontInput = screen.getByTestId("card-front-input");
+      expect(frontInput.className).toContain("bg-[#fbfaf9]");
+    });
+
+    it("CardModal card-back-input uses FIELD_CLASS tokens", async () => {
+      renderPage();
+      const user = userEvent.setup();
+      await waitFor(() => expect(screen.getByTestId("new-card-btn")).toBeInTheDocument());
+      await user.click(screen.getByTestId("new-card-btn"));
+      await waitFor(() => expect(screen.getByTestId("card-back-input")).toBeInTheDocument());
+      const backInput = screen.getByTestId("card-back-input");
+      expect(backInput.className).toContain("bg-[#fbfaf9]");
+    });
+
+    it("CardModal textareas are not vertically resizable (cannot shrink to clip text)", async () => {
+      renderPage();
+      const user = userEvent.setup();
+      await waitFor(() => expect(screen.getByTestId("new-card-btn")).toBeInTheDocument());
+      await user.click(screen.getByTestId("new-card-btn"));
+      await waitFor(() => expect(screen.getByTestId("card-front-input")).toBeInTheDocument());
+      for (const id of ["card-front-input", "card-back-input"]) {
+        const ta = screen.getByTestId(id);
+        expect(ta.className).toContain("resize-none");
+        expect(ta.className).not.toContain("resize-y");
+      }
+    });
   });
 });

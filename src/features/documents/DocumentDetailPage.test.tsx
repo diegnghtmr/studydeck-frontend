@@ -86,6 +86,87 @@ describe("DocumentDetailPage", () => {
     vi.clearAllMocks();
   });
 
+  describe("PillButton migration", () => {
+    it("reingest-btn is a PillButton (rounded-[32px] class present)", async () => {
+      mockGetDocument.mockResolvedValueOnce({ data: SAMPLE_DOCUMENT } as never);
+      mockListDocumentChunks.mockResolvedValueOnce({ data: PAGED_CHUNKS } as never);
+      renderPage();
+      const btn = await screen.findByTestId("reingest-btn");
+      expect(btn.className).toContain("rounded-[32px]");
+    });
+
+    it("reingest-btn has secondary variant tokens (bg-[#f6f4ef])", async () => {
+      mockGetDocument.mockResolvedValueOnce({ data: SAMPLE_DOCUMENT } as never);
+      mockListDocumentChunks.mockResolvedValueOnce({ data: PAGED_CHUNKS } as never);
+      renderPage();
+      const btn = await screen.findByTestId("reingest-btn");
+      expect(btn.className).toContain("bg-[#f6f4ef]");
+    });
+
+    it("reingest-btn label changes to Ingesting… while ingesting", async () => {
+      mockGetDocument.mockResolvedValueOnce({ data: SAMPLE_DOCUMENT } as never);
+      mockListDocumentChunks.mockResolvedValueOnce({ data: PAGED_CHUNKS } as never);
+      // Keep ingest pending
+      mockIngestDocument.mockReturnValueOnce(new Promise(() => {}));
+      renderPage();
+      const btn = await screen.findByTestId("reingest-btn");
+      fireEvent.click(btn);
+      await waitFor(() => expect(btn).toHaveTextContent("Ingesting…"));
+      expect(btn).toBeDisabled();
+    });
+
+    it("delete-doc-btn is a PillButton ghost-danger variant (bg-transparent)", async () => {
+      mockGetDocument.mockResolvedValueOnce({ data: SAMPLE_DOCUMENT } as never);
+      mockListDocumentChunks.mockResolvedValueOnce({ data: PAGED_CHUNKS } as never);
+      renderPage();
+      const btn = await screen.findByTestId("delete-doc-btn");
+      expect(btn.className).toContain("bg-transparent");
+    });
+
+    it("confirm-delete-btn is danger PillButton and cancel is secondary", async () => {
+      mockGetDocument.mockResolvedValueOnce({ data: SAMPLE_DOCUMENT } as never);
+      mockListDocumentChunks.mockResolvedValueOnce({ data: PAGED_CHUNKS } as never);
+      renderPage();
+      const deleteBtn = await screen.findByTestId("delete-doc-btn");
+      fireEvent.click(deleteBtn);
+      await waitFor(() => expect(screen.getByTestId("confirm-delete-btn")).toBeInTheDocument());
+      const confirmBtn = screen.getByTestId("confirm-delete-btn");
+      expect(confirmBtn.className).toContain("bg-[var(--color-coral-red)]");
+      // Cancel button — find secondary variant (bg-[#f6f4ef])
+      const allButtons = screen.getAllByRole("button");
+      const cancelBtn = allButtons.find((b) => b.textContent === "Cancel");
+      expect(cancelBtn).toBeDefined();
+      expect(cancelBtn!.className).toContain("bg-[#f6f4ef]");
+    });
+  });
+
+  describe("Badge shape=pill migration", () => {
+    it("detail-ingest-status badge has borderRadius 9999px (pill shape)", async () => {
+      mockGetDocument.mockResolvedValueOnce({ data: SAMPLE_DOCUMENT } as never);
+      mockListDocumentChunks.mockResolvedValueOnce({ data: PAGED_CHUNKS } as never);
+      renderPage();
+      const badge = await screen.findByTestId("detail-ingest-status");
+      expect(badge).toHaveStyle({ borderRadius: "9999px" });
+    });
+
+    it("detail-ingest-status badge reflects completed status label Ready", async () => {
+      mockGetDocument.mockResolvedValueOnce({ data: SAMPLE_DOCUMENT } as never);
+      mockListDocumentChunks.mockResolvedValueOnce({ data: PAGED_CHUNKS } as never);
+      renderPage();
+      const badge = await screen.findByTestId("detail-ingest-status");
+      expect(badge).toHaveTextContent(/ready/i);
+    });
+
+    it("detail-ingest-status badge has dynamic backgroundColor for processing status", async () => {
+      const processingDoc = { ...SAMPLE_DOCUMENT, ingestStatus: "processing" as const };
+      mockGetDocument.mockResolvedValueOnce({ data: processingDoc } as never);
+      mockListDocumentChunks.mockResolvedValueOnce({ data: PAGED_CHUNKS } as never);
+      renderPage();
+      const badge = await screen.findByTestId("detail-ingest-status");
+      expect(badge).toHaveTextContent(/processing/i);
+    });
+  });
+
   it("renders document metadata", async () => {
     mockGetDocument.mockResolvedValueOnce({ data: SAMPLE_DOCUMENT } as never);
     mockListDocumentChunks.mockResolvedValueOnce({ data: PAGED_CHUNKS } as never);

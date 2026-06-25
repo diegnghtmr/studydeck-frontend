@@ -1,8 +1,34 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "../../shared/i18n/i18n";
 import { useAuthStore } from "@shared/auth/auth-store";
 import { usePreferencesStore } from "@shared/lib/store";
-import { useUserStats, useUpdateDailyGoal } from "@shared/stats/use-user-stats";
-import { Card, Badge, SegmentedTab, Dropdown, ToggleSwitch } from "@shared/ui";
+import { useUserStats, useUpdateDailyGoal, useUpdatePreferences } from "@shared/stats/use-user-stats";
+import type { ApiProblem } from "@shared/api/problem";
+import {
+  Card,
+  Badge,
+  SegmentedTab,
+  Dropdown,
+  ToggleSwitch,
+  PillButton,
+  Toast,
+  ConfirmDialog,
+  ProblemBanner,
+} from "@shared/ui";
+import { useAuth } from "react-oidc-context";
+import { useDeleteAccount, useLogoutAllSessions } from "./hooks/use-delete-account";
+import { FIELD_CLASS } from "@shared/ui/field";
+import {
+  useAiProviderStore,
+  selectActiveProviderOverride,
+  PROVIDER_PRESETS,
+} from "./store/use-ai-provider-store";
+import type { AiProvider } from "./store/use-ai-provider-store";
+
+// Suppress unused import warning — selectActiveProviderOverride is re-exported
+// for consumers of this module to use without direct store access.
+void selectActiveProviderOverride;
 
 const LANGUAGE_ITEMS = [
   { value: "en", label: "English" },
@@ -21,23 +47,8 @@ const TIMEZONE_ITEMS = [
   { value: "Europe/Paris", label: "Europe/Paris" },
 ];
 
-const NEW_CARDS_ITEMS = [
-  { value: "5", label: "5 cards" },
-  { value: "10", label: "10 cards" },
-  { value: "20", label: "20 cards" },
-  { value: "30", label: "30 cards" },
-  { value: "50", label: "50 cards" },
-];
 
-const DAILY_GOAL_ITEMS = [
-  { value: "10", label: "10 cards / day" },
-  { value: "20", label: "20 cards / day" },
-  { value: "30", label: "30 cards / day" },
-  { value: "40", label: "40 cards / day" },
-  { value: "60", label: "60 cards / day" },
-  { value: "80", label: "80 cards / day" },
-  { value: "100", label: "100 cards / day" },
-];
+const PRESET_ITEMS = PROVIDER_PRESETS.map((p) => ({ value: p.label, label: p.label }));
 
 function getDefaultTimezone(): string {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -86,6 +97,26 @@ const cardPad = "28px";
 const cardMb = "20px";
 
 export function SettingsPage() {
+  const { t } = useTranslation();
+
+  const NEW_CARDS_ITEMS = [
+    { value: "5", label: t("settings.study.cardsOption", { count: 5 }) },
+    { value: "10", label: t("settings.study.cardsOption", { count: 10 }) },
+    { value: "20", label: t("settings.study.cardsOption", { count: 20 }) },
+    { value: "30", label: t("settings.study.cardsOption", { count: 30 }) },
+    { value: "50", label: t("settings.study.cardsOption", { count: 50 }) },
+  ];
+
+  const DAILY_GOAL_ITEMS = [
+    { value: "10", label: t("settings.study.cardsPerDayOption", { count: 10 }) },
+    { value: "20", label: t("settings.study.cardsPerDayOption", { count: 20 }) },
+    { value: "30", label: t("settings.study.cardsPerDayOption", { count: 30 }) },
+    { value: "40", label: t("settings.study.cardsPerDayOption", { count: 40 }) },
+    { value: "60", label: t("settings.study.cardsPerDayOption", { count: 60 }) },
+    { value: "80", label: t("settings.study.cardsPerDayOption", { count: 80 }) },
+    { value: "100", label: t("settings.study.cardsPerDayOption", { count: 100 }) },
+  ];
+
   const displayName = useAuthStore((s) => s.user?.displayName ?? "");
   const email = useAuthStore((s) => s.user?.email ?? "");
 
@@ -96,12 +127,97 @@ export function SettingsPage() {
 
   const { data: userStats } = useUserStats();
   const updateDailyGoal = useUpdateDailyGoal();
+  const updatePreferences = useUpdatePreferences();
   const dailyGoal = userStats?.dailyGoal ?? 40;
 
-  const [language, setLanguage] = useState("en");
-  const [timezone, setTimezone] = useState(getDefaultTimezone);
-  const [retention, setRetention] = useState(90);
-  const [newCardsPerDay, setNewCardsPerDay] = useState("10");
+  const language = userStats?.language ?? "en";
+  const timezone = userStats?.timezone ?? getDefaultTimezone();
+  const retentionPct = Math.round((userStats?.desiredRetention ?? 0.9) * 100);
+  const newCardsPerDay = String(userStats?.newCardsPerDay ?? 10);
+
+  const [retentionDisplay, setRetentionDisplay] = useState<number | null>(null);
+  const displayRetention = retentionDisplay ?? retentionPct;
+
+  // AI Provider store
+  const providers = useAiProviderStore((s) => s.providers);
+  const activeProviderId = useAiProviderStore((s) => s.activeProviderId);
+  const addProvider = useAiProviderStore((s) => s.addProvider);
+  const updateProvider = useAiProviderStore((s) => s.updateProvider);
+  const removeProvider = useAiProviderStore((s) => s.removeProvider);
+  const setActiveProvider = useAiProviderStore((s) => s.setActiveProvider);
+
+  // Toast state
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  function showToast(msg: string) {
+    setToastMessage(msg);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2500);
+  }
+
+  // Auth
+  const auth = useAuth();
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+
+  // Delete account
+  const deleteAccount = useDeleteAccount();
+  const logoutAllSessions = useLogoutAllSessions();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<ApiProblem | null>(null);
+
+  async function handleDeleteConfirm() {
+    setDeleteConfirmOpen(false);
+    try {
+      await deleteAccount.mutateAsync();
+      clearAuth();
+      void auth?.signoutRedirect();
+    } catch {
+      setDeleteError({ type: "about:blank", status: 500, title: t("settings.account.deleteFailed") });
+    }
+  }
+
+  async function handleSignOutEverywhere() {
+    // Best-effort: revoke all IdP sessions, then end this one.
+    try {
+      await logoutAllSessions.mutateAsync();
+    } catch {
+      // Ignore — still sign out locally below.
+    }
+    clearAuth();
+    void auth?.signoutRedirect();
+  }
+
+  // ConfirmDialog state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
+
+  function requestRemove(id: string) {
+    setPendingRemoveId(id);
+    setConfirmOpen(true);
+  }
+
+  function confirmRemove() {
+    if (pendingRemoveId) {
+      removeProvider(pendingRemoveId);
+      showToast(t("settings.aiProviders.providerRemovedToast"));
+    }
+    setPendingRemoveId(null);
+    setConfirmOpen(false);
+  }
+
+  function handleAddFromPreset(presetLabel: string) {
+    const preset = PROVIDER_PRESETS.find((p) => p.label === presetLabel);
+    if (!preset) return;
+    addProvider({
+      label: preset.label,
+      baseUrl: preset.baseUrl,
+      model: preset.model,
+      apiKey: "",
+      enabled: true,
+    });
+    showToast(t("settings.aiProviders.providerAddedToast", { label: preset.label }));
+  }
 
   return (
     <div
@@ -117,17 +233,17 @@ export function SettingsPage() {
           marginBottom: "8px",
         }}
       >
-        Settings
+        {t("settings.title")}
       </h1>
       <p style={{ fontSize: "13px", color: "var(--color-ash)", marginBottom: "32px" }}>
-        Some preferences are stored locally in your browser only and not synced to the server.
+        {t("settings.subtitle")}
       </p>
 
       {/* Section 1 — Profile */}
       <div style={{ marginBottom: cardMb }}>
         <Card radius={16}>
           <div style={{ padding: cardPad }}>
-            <div style={sectionTitleStyle}>Profile</div>
+            <div style={sectionTitleStyle}>{t("settings.sections.profile")}</div>
             <div
               style={{
                 display: "grid",
@@ -137,53 +253,56 @@ export function SettingsPage() {
             >
               {/* Display name */}
               <div>
-                <label style={fieldLabelStyle}>Display name</label>
+                <label style={fieldLabelStyle}>{t("settings.profile.displayName")}</label>
                 <input
                   type="text"
                   value={displayName}
                   readOnly
                   style={recessedInputStyle}
                 />
-                <p style={helperStyle}>Synced from your account — not editable here.</p>
+                <p style={helperStyle}>{t("settings.profile.syncedFromHint")}</p>
               </div>
 
               {/* Email */}
               <div>
-                <label style={fieldLabelStyle}>Email</label>
+                <label style={fieldLabelStyle}>{t("settings.profile.email")}</label>
                 <input
                   type="email"
                   value={email}
                   readOnly
                   style={recessedInputStyle}
                 />
-                <p style={helperStyle}>Synced from your account — not editable here.</p>
+                <p style={helperStyle}>{t("settings.profile.syncedFromHint")}</p>
               </div>
 
               {/* Language */}
               <div>
-                <label style={fieldLabelStyle}>Language</label>
+                <label style={fieldLabelStyle}>{t("settings.profile.language")}</label>
                 <div style={{ width: "100%" }}>
                   <Dropdown
                     items={LANGUAGE_ITEMS}
                     value={language}
-                    onSelect={setLanguage}
+                    onSelect={(v) => {
+                      updatePreferences.mutate({ language: v });
+                      void i18n.changeLanguage(v);
+                    }}
                   />
                 </div>
-                <p style={helperStyle}>Local preference — not synced.</p>
+                <p style={helperStyle}>{t("settings.profile.syncedHint")}</p>
               </div>
 
               {/* Timezone */}
               <div>
-                <label style={fieldLabelStyle}>Timezone</label>
+                <label style={fieldLabelStyle}>{t("settings.profile.timezone")}</label>
                 <div style={{ width: "100%" }}>
                   <Dropdown
                     items={TIMEZONE_ITEMS}
                     value={timezone}
-                    onSelect={setTimezone}
+                    onSelect={(v) => updatePreferences.mutate({ timezone: v })}
                     searchable
                   />
                 </div>
-                <p style={helperStyle}>Local preference — not synced.</p>
+                <p style={helperStyle}>{t("settings.profile.syncedHint")}</p>
               </div>
             </div>
           </div>
@@ -194,8 +313,9 @@ export function SettingsPage() {
       <div style={{ marginBottom: cardMb }}>
         <Card radius={16}>
           <div style={{ padding: cardPad }}>
-            <div style={sectionTitleStyle}>AI Providers</div>
+            <div style={sectionTitleStyle}>{t("settings.sections.aiProviders")}</div>
 
+            {/* Info banner */}
             <div
               style={{
                 background: "#eaf4ff",
@@ -206,37 +326,74 @@ export function SettingsPage() {
                 marginBottom: "20px",
               }}
             >
-              Your API keys are stored securely in your browser only. They are never sent to our servers.
+              {t("settings.aiProviders.infoBanner")}
             </div>
 
-            <ProviderRow
-              initials="OA"
-              badgeBg="#10a37f"
-              name="OpenAI"
-              description="Powers GPT-4o card generation and AI features."
-            />
+            {/* Add provider */}
+            <div
+              style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" }}
+            >
+              <span style={{ fontSize: "13px", color: "var(--color-ash)" }}>{t("settings.aiProviders.addLabel")}</span>
+              <Dropdown
+                items={PRESET_ITEMS}
+                placeholder={t("settings.aiProviders.choosePlaceholder")}
+                onSelect={handleAddFromPreset}
+                data-testid="add-provider-dropdown"
+              />
+            </div>
 
-            <div style={{ borderTop: "1px solid #eee", margin: "16px 0" }} />
+            {/* Provider list */}
+            {providers.length === 0 && (
+              <p style={{ fontSize: "13px", color: "var(--color-ash)" }}>
+                {t("settings.aiProviders.noProviders")}
+              </p>
+            )}
 
-            <ProviderRow
-              initials="AN"
-              badgeBg="#c25b2f"
-              name="Anthropic"
-              description="Powers Claude-based explanations and summaries."
-            />
+            {providers.map((provider, idx) => (
+              <ProviderEntry
+                key={provider.id}
+                provider={provider}
+                isActive={provider.id === activeProviderId}
+                onUpdate={(patch) => {
+                  updateProvider(provider.id, patch);
+                  showToast(t("settings.aiProviders.providerSavedToast"));
+                }}
+                onSetActive={() => setActiveProvider(provider.id)}
+                onRemove={() => requestRemove(provider.id)}
+                showDivider={idx > 0}
+              />
+            ))}
           </div>
         </Card>
       </div>
+
+      {/* Toast */}
+      <Toast visible={toastVisible} message={toastMessage} />
+
+      {/* Confirm remove dialog */}
+      <ConfirmDialog
+        open={confirmOpen}
+        title={t("settings.aiProviders.removeDialogTitle")}
+        description={t("settings.aiProviders.removeDialogDescription")}
+        confirmLabel={t("settings.aiProviders.removeDialogConfirm")}
+        cancelLabel={t("settings.aiProviders.removeDialogCancel")}
+        destructive
+        onConfirm={confirmRemove}
+        onCancel={() => {
+          setPendingRemoveId(null);
+          setConfirmOpen(false);
+        }}
+      />
 
       {/* Section 3 — Study & Scheduler */}
       <div style={{ marginBottom: cardMb }}>
         <Card radius={16}>
           <div style={{ padding: cardPad }}>
-            <div style={sectionTitleStyle}>Study & Scheduler</div>
+            <div style={sectionTitleStyle}>{t("settings.sections.studyScheduler")}</div>
 
             {/* Scheduler algorithm */}
             <div>
-              <label style={fieldLabelStyle}>Scheduler algorithm</label>
+              <label style={fieldLabelStyle}>{t("settings.study.schedulerAlgorithm")}</label>
               <div
                 style={{
                   background: "#f6f4ef",
@@ -258,19 +415,19 @@ export function SettingsPage() {
                   SM-2
                 </SegmentedTab>
               </div>
-              <p style={helperStyle}>Saved locally in your browser.</p>
+              <p style={helperStyle}>{t("settings.study.savedLocallyHint")}</p>
             </div>
 
             {/* Daily goal — synced to the backend */}
             <div style={rowDividerStyle}>
-              <label style={fieldLabelStyle}>Daily goal</label>
+              <label style={fieldLabelStyle}>{t("settings.study.dailyGoal")}</label>
               <Dropdown
                 items={DAILY_GOAL_ITEMS}
                 value={String(dailyGoal)}
                 onSelect={(v) => updateDailyGoal.mutate(Number(v))}
               />
               <p style={helperStyle}>
-                Synced to your account — drives the sidebar goal and progress.
+                {t("settings.study.dailyGoalHint")}
               </p>
             </div>
 
@@ -284,7 +441,7 @@ export function SettingsPage() {
                   marginBottom: "8px",
                 }}
               >
-                <label style={{ ...fieldLabelStyle, marginBottom: 0 }}>Target retention</label>
+                <label style={{ ...fieldLabelStyle, marginBottom: 0 }}>{t("settings.study.targetRetention")}</label>
                 <span
                   style={{
                     fontFamily: "var(--font-family)",
@@ -293,7 +450,7 @@ export function SettingsPage() {
                     fontWeight: 700,
                   }}
                 >
-                  {retention}%
+                  {displayRetention}%
                 </span>
               </div>
               <input
@@ -301,22 +458,27 @@ export function SettingsPage() {
                 min="50"
                 max="99"
                 step="1"
-                value={retention}
-                onChange={(e) => setRetention(Number(e.target.value))}
+                value={displayRetention}
+                onChange={(e) => setRetentionDisplay(Number(e.target.value))}
+                onPointerUp={(e) => {
+                  const val = Number((e.target as HTMLInputElement).value);
+                  setRetentionDisplay(null);
+                  updatePreferences.mutate({ desiredRetention: val / 100 });
+                }}
                 style={{ width: "100%", accentColor: "#121212" }}
               />
-              <p style={helperStyle}>Local preference — resets on reload.</p>
+              <p style={helperStyle}>{t("settings.study.syncedHint")}</p>
             </div>
 
             {/* New cards per day */}
             <div style={rowDividerStyle}>
-              <label style={fieldLabelStyle}>New cards / day</label>
+              <label style={fieldLabelStyle}>{t("settings.study.newCardsDay")}</label>
               <Dropdown
                 items={NEW_CARDS_ITEMS}
                 value={newCardsPerDay}
-                onSelect={setNewCardsPerDay}
+                onSelect={(v) => updatePreferences.mutate({ newCardsPerDay: Number(v) })}
               />
-              <p style={helperStyle}>Local preference — not synced.</p>
+              <p style={helperStyle}>{t("settings.study.syncedHint")}</p>
             </div>
 
             {/* Show intervals */}
@@ -329,15 +491,15 @@ export function SettingsPage() {
                 }}
               >
                 <span style={{ fontSize: "14px", color: "var(--color-charcoal-primary)" }}>
-                  Show intervals
+                  {t("settings.study.showIntervals")}
                 </span>
                 <ToggleSwitch
                   checked={showIntervals}
                   onChange={setShowIntervals}
-                  label="Show intervals"
+                  label={t("settings.study.showIntervals")}
                 />
               </div>
-              <p style={helperStyle}>Saved locally in your browser.</p>
+              <p style={helperStyle}>{t("settings.study.savedLocallyHint")}</p>
             </div>
           </div>
         </Card>
@@ -347,7 +509,7 @@ export function SettingsPage() {
       <div style={{ marginBottom: cardMb }}>
         <Card radius={16}>
           <div style={{ padding: cardPad }}>
-            <div style={sectionTitleStyle}>Account</div>
+            <div style={sectionTitleStyle}>{t("settings.sections.account")}</div>
 
             {/* Current session row */}
             <div
@@ -359,7 +521,7 @@ export function SettingsPage() {
               }}
             >
               <span style={{ fontSize: "14px", color: "var(--color-charcoal-primary)" }}>
-                This device
+                {t("settings.account.thisDevice")}
               </span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                 <span
@@ -371,11 +533,11 @@ export function SettingsPage() {
                     display: "inline-block",
                   }}
                 />
-                <span style={{ fontSize: "12px", color: "#00ca48" }}>Active</span>
+                <span style={{ fontSize: "12px", color: "#00ca48" }}>{t("settings.account.activeSession")}</span>
               </span>
             </div>
             <p style={{ ...helperStyle, fontSize: "11px" }}>
-              Only your current session is shown. Multi-session management is not yet available.
+              {t("settings.account.sessionHint")}
             </p>
 
             <div style={{ borderTop: "1px solid #eee", margin: "16px 0" }} />
@@ -384,123 +546,162 @@ export function SettingsPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "16px" }}>
               <button
                 type="button"
-                disabled
-                title="Coming soon"
+                onClick={handleSignOutEverywhere}
                 style={{
                   background: "none",
                   border: "none",
                   padding: 0,
                   fontSize: "14px",
                   color: "var(--color-charcoal-primary)",
-                  cursor: "not-allowed",
+                  cursor: "pointer",
                   textAlign: "left",
-                  opacity: 0.6,
                 }}
               >
-                Sign out everywhere
+                {t("settings.account.signOutEverywhere")}
               </button>
               <button
                 type="button"
-                disabled
-                title="Coming soon"
+                onClick={() => setDeleteConfirmOpen(true)}
                 style={{
                   background: "none",
                   border: "none",
                   padding: 0,
                   fontSize: "14px",
                   color: "#ff3e00",
-                  cursor: "not-allowed",
+                  cursor: "pointer",
                   textAlign: "left",
-                  opacity: 0.6,
                 }}
               >
-                Delete account
+                {t("settings.account.deleteAccount")}
               </button>
             </div>
+
+            {deleteError !== null && (
+              <div style={{ marginTop: "12px" }}>
+                <ProblemBanner
+                  problem={deleteError}
+                  onDismiss={() => setDeleteError(null)}
+                />
+              </div>
+            )}
           </div>
         </Card>
       </div>
+
+      {/* Confirm delete account dialog */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title={t("settings.account.deleteDialogTitle")}
+        description={t("settings.account.deleteDialogDescription")}
+        confirmLabel={t("settings.account.deleteDialogConfirm")}
+        cancelLabel={t("settings.account.deleteDialogCancel")}
+        destructive
+        onConfirm={() => { void handleDeleteConfirm(); }}
+        onCancel={() => setDeleteConfirmOpen(false)}
+      />
     </div>
   );
 }
 
-interface ProviderRowProps {
-  initials: string;
-  badgeBg: string;
-  name: string;
-  description: string;
+// ---- ProviderEntry component -----------------------------------------------
+
+interface ProviderEntryProps {
+  provider: AiProvider;
+  isActive: boolean;
+  onUpdate: (patch: Partial<Omit<AiProvider, "id">>) => void;
+  onSetActive: () => void;
+  onRemove: () => void;
+  showDivider: boolean;
 }
 
-function ProviderRow({ initials, badgeBg, name, description }: ProviderRowProps) {
+function ProviderEntry({
+  provider,
+  isActive,
+  onUpdate,
+  onSetActive,
+  onRemove,
+  showDivider,
+}: ProviderEntryProps) {
+  const { t } = useTranslation();
+  const hasAllFields =
+    provider.baseUrl.trim() !== "" &&
+    provider.apiKey.trim() !== "" &&
+    provider.model.trim() !== "";
+  const badgeTone = isActive ? "green" : hasAllFields ? "blue" : "gray";
+  const badgeLabel = isActive
+    ? t("settings.aiProviders.badgeActive")
+    : hasAllFields
+    ? t("settings.aiProviders.badgeConfigured")
+    : t("settings.aiProviders.badgeNotSet");
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-      {/* Provider icon */}
-      <div
-        style={{
-          width: "32px",
-          height: "32px",
-          borderRadius: "8px",
-          backgroundColor: badgeBg,
-          color: "#ffffff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "11px",
-          fontWeight: 700,
-          flexShrink: 0,
-        }}
-      >
-        {initials}
-      </div>
-
-      {/* Provider info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{ fontSize: "15px", fontWeight: 600, color: "var(--color-charcoal-primary)" }}
-        >
-          {name}
+    <div>
+      {showDivider && <div style={{ borderTop: "1px solid #eee", margin: "16px 0" }} />}
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {/* Header row: label + badge + use + remove */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{ fontWeight: 600, fontSize: "14px", flex: 1 }}>{provider.label}</span>
+          <Badge tone={badgeTone} label={badgeLabel} data-testid={`badge-${provider.id}`} />
+          {!isActive && (
+            <PillButton
+              size="sm"
+              variant="secondary"
+              onClick={onSetActive}
+              data-testid={`use-${provider.id}`}
+            >
+              {t("settings.aiProviders.useButton")}
+            </PillButton>
+          )}
+          <PillButton
+            size="sm"
+            variant="ghost-danger"
+            onClick={onRemove}
+            data-testid={`remove-${provider.id}`}
+          >
+            {t("settings.aiProviders.removeButton")}
+          </PillButton>
+          <ToggleSwitch
+            checked={provider.enabled}
+            onChange={(v) => onUpdate({ enabled: v })}
+            label={t("settings.aiProviders.enabledLabel")}
+          />
         </div>
-        <div style={{ fontSize: "12px", color: "var(--color-ash)" }}>{description}</div>
-      </div>
-
-      {/* Right area */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px", width: "220px" }}>
-        <Badge tone="gray" label="Not set" />
-        <input
-          type="password"
-          placeholder="sk-••••••••••••"
-          disabled
-          style={{
-            backgroundColor: "var(--color-stone-surface)",
-            borderRadius: "8px",
-            border: "none",
-            padding: "8px 12px",
-            fontSize: "14px",
-            color: "var(--color-charcoal-primary)",
-            width: "100%",
-            outline: "none",
-            opacity: 0.6,
-            cursor: "not-allowed",
-          }}
-        />
-        <button
-          type="button"
-          disabled
-          title="Coming soon"
-          style={{
-            backgroundColor: "#121212",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "10px",
-            padding: "8px 14px",
-            fontSize: "13px",
-            fontWeight: 500,
-            cursor: "not-allowed",
-            opacity: 0.5,
-          }}
-        >
-          Save key
-        </button>
+        {/* Fields */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+          <div>
+            <label style={fieldLabelStyle}>{t("settings.aiProviders.baseUrlLabel")}</label>
+            <input
+              type="text"
+              className={`w-full text-[14px] ${FIELD_CLASS}`}
+              value={provider.baseUrl}
+              onChange={(e) => onUpdate({ baseUrl: e.target.value })}
+              placeholder="https://api.openai.com/v1"
+              data-testid={`baseUrl-${provider.id}`}
+            />
+          </div>
+          <div>
+            <label style={fieldLabelStyle}>{t("settings.aiProviders.modelLabel")}</label>
+            <input
+              type="text"
+              className={`w-full text-[14px] ${FIELD_CLASS}`}
+              value={provider.model}
+              onChange={(e) => onUpdate({ model: e.target.value })}
+              placeholder="gpt-4o"
+              data-testid={`model-${provider.id}`}
+            />
+          </div>
+        </div>
+        <div>
+          <label style={fieldLabelStyle}>{t("settings.aiProviders.apiKeyLabel")}</label>
+          <input
+            type="password"
+            className={`w-full text-[14px] ${FIELD_CLASS}`}
+            value={provider.apiKey}
+            onChange={(e) => onUpdate({ apiKey: e.target.value })}
+            placeholder="sk-••••••••••••"
+            data-testid={`apiKey-${provider.id}`}
+          />
+        </div>
       </div>
     </div>
   );

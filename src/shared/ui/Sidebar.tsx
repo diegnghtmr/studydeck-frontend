@@ -1,7 +1,9 @@
 import { NavLink, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { usePreferencesStore } from "@shared/lib/store";
 import { useAuthStore } from "@shared/auth/auth-store";
 import { ProgressBar } from "./ProgressBar";
+import { BrandMark } from "./BrandMark";
 
 // ---- SVG icon helpers (inline, placeholder quality) ----
 
@@ -154,6 +156,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ studyDueCount = 0, goalCurrent = 0, goalTotal = 40 }: SidebarProps) {
+  const { t } = useTranslation();
   const sidebarOpen = usePreferencesStore((s) => s.sidebarOpen);
   const toggleSidebar = usePreferencesStore((s) => s.toggleSidebar);
   const navigate = useNavigate();
@@ -186,83 +189,52 @@ export function Sidebar({ studyDueCount = 0, goalCurrent = 0, goalTotal = 40 }: 
       >
         {/* Brand row */}
         <div className="mb-4 flex items-center" style={{ gap: "8px" }}>
-          {/* Logo mark */}
-          <div
-            className="flex shrink-0 items-center justify-center"
-            style={{
-              width: "30px",
-              height: "30px",
-              backgroundColor: "#121212",
-              borderRadius: "8px",
-              color: "#ff3e00",
-            }}
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M12 3l8.5 4.7L12 12.4 3.5 7.7 12 3ZM4 12l8 4.5 8-4.5M4 16.3l8 4.5 8-4.5"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
+          <BrandMark size="sm" wordmarkTestId="sidebar-wordmark" className="flex-1" />
           {sidebarOpen && (
-            <>
-              <span
-                data-testid="sidebar-wordmark"
-                className="truncate text-[16px] font-semibold"
-                style={{ color: "#343433" }}
-              >
-                StudyDeck
-                <span style={{ color: "#ff3e00" }}>.</span>
-              </span>
-              {/* Collapse button */}
-              <button
-                type="button"
-                aria-label="Collapse sidebar"
-                data-testid="sidebar-collapse-btn"
-                onClick={toggleSidebar}
-                className="flex items-center justify-center transition-colors hover:opacity-80"
-                style={{
-                  marginLeft: "auto",
-                  width: "30px",
-                  height: "30px",
-                  borderRadius: "8px",
-                  border: "none",
-                  backgroundColor: "transparent",
-                  cursor: "pointer",
-                  color: "var(--color-ash)",
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#f2f0ed";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
-                }}
-              >
-                <IconCollapse />
-              </button>
-            </>
+            <button
+              type="button"
+              aria-label={t('nav.collapseAria')}
+              data-testid="sidebar-collapse-btn"
+              onClick={toggleSidebar}
+              className="flex items-center justify-center transition-colors hover:opacity-80"
+              style={{
+                marginLeft: "auto",
+                width: "30px",
+                height: "30px",
+                borderRadius: "8px",
+                border: "none",
+                backgroundColor: "transparent",
+                cursor: "pointer",
+                color: "var(--color-ash)",
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#f2f0ed";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
+              }}
+            >
+              <IconCollapse />
+            </button>
           )}
         </div>
 
         {/* Nav items */}
-        <nav aria-label="Main navigation" data-testid="sidebar-nav" style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-          <NavItem to="/" icon={<IconDashboard />} label="Dashboard" end collapsed={!sidebarOpen} />
-          <NavItem to="/study" icon={<IconStudy />} label="Study" dueCount={studyDueCount} collapsed={!sidebarOpen} />
-          <NavItem to="/decks" icon={<IconDecks />} label="Cards & Decks" collapsed={!sidebarOpen} />
-          <NavItem to="/import" icon={<IconImport />} label="Import JSON" collapsed={!sidebarOpen} />
-          <NavItem to="/ai/generate" icon={<IconAiGenerate />} label="AI Generate" collapsed={!sidebarOpen} />
-          <NavItem to="/rag/chat" icon={<IconAskNotes />} label="Ask your notes" collapsed={!sidebarOpen} />
+        <nav aria-label={t('nav.mainNavAria')} data-testid="sidebar-nav" style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+          <NavItem to="/" icon={<IconDashboard />} label={t('nav.dashboard')} end collapsed={!sidebarOpen} />
+          <NavItem to="/study" icon={<IconStudy />} label={t('nav.study')} dueCount={studyDueCount} collapsed={!sidebarOpen} />
+          <NavItem to="/decks" icon={<IconDecks />} label={t('nav.cardsDecks')} collapsed={!sidebarOpen} />
+          <NavItem to="/import" icon={<IconImport />} label={t('nav.importJson')} collapsed={!sidebarOpen} />
+          <NavItem to="/ai/generate" icon={<IconAiGenerate />} label={t('nav.aiGenerate')} collapsed={!sidebarOpen} />
+          <NavItem to="/rag/chat" icon={<IconAskNotes />} label={t('nav.askYourNotes')} collapsed={!sidebarOpen} />
         </nav>
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />
 
         {/* Settings nav item */}
-        <NavItem to="/settings" icon={<IconSettings />} label="Settings" collapsed={!sidebarOpen} />
+        <NavItem to="/settings" icon={<IconSettings />} label={t('nav.settings')} collapsed={!sidebarOpen} />
 
         {sidebarOpen && (
           <>
@@ -278,7 +250,7 @@ export function Sidebar({ studyDueCount = 0, goalCurrent = 0, goalTotal = 40 }: 
             >
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-[12px] font-medium" style={{ color: "#848281" }}>
-                  Daily goal
+                  {t('nav.dailyGoal')}
                 </span>
                 <span className="text-[12px] font-semibold" style={{ color: "#343433" }}>
                   {goalCurrent}/{goalTotal}
@@ -333,7 +305,7 @@ export function Sidebar({ studyDueCount = 0, goalCurrent = 0, goalTotal = 40 }: 
       {!sidebarOpen && (
         <button
           type="button"
-          aria-label="Expand sidebar"
+          aria-label={t('nav.expandAria')}
           data-testid="sidebar-expand-btn"
           onClick={toggleSidebar}
           className="sd-pop flex items-center justify-center"

@@ -1,25 +1,27 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router";
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useTranslation } from "react-i18next";
 import { useCreateDeck } from "./hooks/use-decks";
 import { ProblemBanner } from "@shared/ui/ProblemBanner";
+import { Breadcrumb } from "@shared/ui/Breadcrumb";
+import { PillButton } from "@shared/ui/PillButton";
 import { normalizeApiProblem } from "@shared/api/problem";
 import { cn } from "@shared/lib/cn";
+import { fieldClass } from "@shared/ui/field";
 
-// ---- Zod schema (Zod 4) -----------------------------------------------------
-const createDeckSchema = z.object({
-  title: z
-    .string()
-    .min(1, { error: "Deck name is required." })
-    .max(120, { error: "Name must be 120 characters or fewer." }),
-  description: z.string().max(1000, { error: "Description must be 1000 characters or fewer." }).optional(),
+// Static schema used only to derive the raw (pre-transform) form type for
+// useForm; the runtime schema (with translated messages) is built per-render.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const createDeckSchemaShape = z.object({
+  title: z.string().min(1).max(120),
+  description: z.string().max(1000).optional(),
   visibility: z.enum(["private", "public"]),
 });
 
-// Use the input type so useForm gets the raw (pre-transform) shape
-type CreateDeckForm = z.input<typeof createDeckSchema>;
+type CreateDeckForm = z.input<typeof createDeckSchemaShape>;
 
 // ---- Component --------------------------------------------------------------
 
@@ -29,9 +31,26 @@ type CreateDeckForm = z.input<typeof createDeckSchema>;
  * RHF + Zod form. On success: invalidates decks list, navigates to the new deck.
  */
 export function CreateDeckPage() {
+  const { t } = useTranslation("decks");
   const navigate = useNavigate();
   const createDeck = useCreateDeck();
   const [apiProblem, setApiProblem] = useState<ReturnType<typeof normalizeApiProblem>>(null);
+
+  const createDeckSchema = useMemo(
+    () =>
+      z.object({
+        title: z
+          .string()
+          .min(1, { error: t("create.validation.nameRequired") })
+          .max(120, { error: t("create.validation.nameTooLong") }),
+        description: z
+          .string()
+          .max(1000, { error: t("create.validation.descriptionTooLong") })
+          .optional(),
+        visibility: z.enum(["private", "public"]),
+      }),
+    [t],
+  );
 
   const {
     register,
@@ -67,9 +86,9 @@ export function CreateDeckPage() {
       setApiProblem(
         problem ?? {
           type: "about:blank",
-          title: "Something went wrong",
+          title: t("create.error.title"),
           status: 500,
-          detail: "Could not create the deck. Please try again.",
+          detail: t("create.error.description"),
         },
       );
     }
@@ -80,18 +99,10 @@ export function CreateDeckPage() {
       data-testid="create-deck-page"
       className="mx-auto max-w-[600px] px-6 py-12"
     >
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="mb-8 flex items-center gap-2 text-[13px]">
-        <Link
-          to="/decks"
-          className="no-underline transition-opacity hover:opacity-70"
-          style={{ color: "var(--color-ash)" }}
-        >
-          My Decks
-        </Link>
-        <span style={{ color: "var(--color-fog)" }} aria-hidden="true">/</span>
-        <span style={{ color: "var(--color-charcoal-primary)" }}>New deck</span>
-      </nav>
+      <Breadcrumb
+        className="mb-8"
+        items={[{ label: t("create.breadcrumbMyDecks"), href: "/decks" }, { label: t("create.breadcrumbNew") }]}
+      />
 
       <h1
         className="mb-8 text-[23px] font-semibold"
@@ -100,7 +111,7 @@ export function CreateDeckPage() {
           letterSpacing: "-0.44px",
         }}
       >
-        Create a deck
+        {t("create.heading")}
       </h1>
 
       {/* API error banner */}
@@ -124,7 +135,7 @@ export function CreateDeckPage() {
             className="mb-1.5 block text-[13px] font-medium"
             style={{ color: "var(--color-charcoal-primary)" }}
           >
-            Deck name <span aria-hidden="true" style={{ color: "var(--color-ember-orange)" }}>*</span>
+            {t("create.nameLabel")} <span aria-hidden="true" style={{ color: "var(--color-ember-orange)" }}>*</span>
           </label>
           <input
             id="deck-title"
@@ -133,16 +144,10 @@ export function CreateDeckPage() {
             aria-required="true"
             aria-invalid={Boolean(errors.title)}
             aria-describedby={errors.title ? "deck-title-error" : undefined}
-            placeholder="e.g. Biology 101"
+            placeholder={t("create.namePlaceholder")}
             {...register("title")}
-            className={cn(
-              "w-full rounded-[10px] border px-4 py-2.5 text-[15px] outline-none transition-colors focus:ring-2",
-              errors.title ? "border-red-400" : "border-transparent",
-            )}
-            style={{
-              backgroundColor: "var(--color-stone-surface)",
-              color: "var(--color-charcoal-primary)",
-            }}
+            className={cn(fieldClass({ error: Boolean(errors.title) }), "w-full text-[15px]")}
+            style={{ color: "var(--color-charcoal-primary)" }}
           />
           {errors.title && (
             <p
@@ -164,23 +169,20 @@ export function CreateDeckPage() {
             className="mb-1.5 block text-[13px] font-medium"
             style={{ color: "var(--color-charcoal-primary)" }}
           >
-            Description{" "}
+            {t("create.descriptionLabel")}{" "}
             <span className="text-[12px] font-normal" style={{ color: "var(--color-ash)" }}>
-              (optional)
+              {t("create.descriptionOptional")}
             </span>
           </label>
           <textarea
             id="deck-description"
             rows={3}
-            placeholder="What is this deck about?"
+            placeholder={t("create.descriptionPlaceholder")}
             aria-invalid={Boolean(errors.description)}
             aria-describedby={errors.description ? "deck-description-error" : undefined}
             {...register("description")}
-            className="w-full resize-none rounded-[10px] border-0 px-4 py-2.5 text-[15px] outline-none transition-colors focus:ring-2"
-            style={{
-              backgroundColor: "var(--color-stone-surface)",
-              color: "var(--color-charcoal-primary)",
-            }}
+            className={cn(fieldClass({ error: Boolean(errors.description) }), "w-full text-[15px]")}
+            style={{ color: "var(--color-charcoal-primary)" }}
           />
           {errors.description && (
             <p
@@ -201,7 +203,7 @@ export function CreateDeckPage() {
             className="mb-1.5 block text-[13px] font-medium"
             style={{ color: "var(--color-charcoal-primary)" }}
           >
-            Visibility
+            {t("create.visibilityLegend")}
           </legend>
           <div className="flex gap-3">
             {(["private", "public"] as const).map((v) => (
@@ -224,26 +226,13 @@ export function CreateDeckPage() {
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            data-testid="create-deck-submit"
-            disabled={isSubmitting}
-            className="rounded-[32px] px-6 py-2.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ backgroundColor: "var(--color-midnight)" }}
-          >
-            {isSubmitting ? "Creating…" : "Create deck"}
-          </button>
+          <PillButton type="submit" data-testid="create-deck-submit" disabled={isSubmitting}>
+            {isSubmitting ? t("actions.creating") : t("actions.create")}
+          </PillButton>
 
-          <Link
-            to="/decks"
-            className="rounded-[32px] px-5 py-2.5 text-[14px] font-medium no-underline transition-opacity hover:opacity-70"
-            style={{
-              backgroundColor: "var(--color-stone-surface)",
-              color: "var(--color-graphite)",
-            }}
-          >
-            Cancel
-          </Link>
+          <PillButton href="/decks" variant="secondary">
+            {t("actions.cancel")}
+          </PillButton>
         </div>
       </form>
     </main>
