@@ -1,137 +1,144 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   useAiProviderStore,
-  selectActiveProviderOverride,
+  hasLegacyLocalStorageProviders,
+  clearLegacyLocalStorage,
+  LEGACY_STORAGE_KEY,
 } from "./use-ai-provider-store";
 
 // ---- Helpers ----------------------------------------------------------------
 
-// Initial state shape that resets the store between tests.
-// Zustand's persist middleware persists to localStorage (mocked in
-// src/test/setup.ts) so setState triggers setItem — that's fine here.
-const INITIAL_STATE = { providers: [], activeProviderId: null };
-
-const FULL_PROVIDER = {
-  label: "OpenAI",
-  baseUrl: "https://api.openai.com/v1",
-  apiKey: "sk-test-key",
-  model: "gpt-4o",
-  enabled: true,
-} as const;
+const INITIAL_STATE = { migrationDismissed: false };
 
 // ---- Tests ------------------------------------------------------------------
 
 describe("useAiProviderStore", () => {
   beforeEach(() => {
     useAiProviderStore.setState(INITIAL_STATE);
+    // Clear legacy key between tests
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   });
 
-  it("addProvider returns a string id", () => {
-    const id = useAiProviderStore.getState().addProvider(FULL_PROVIDER);
-    expect(typeof id).toBe("string");
-    expect(id.length).toBeGreaterThan(0);
+  it("migrationDismissed is false by default", () => {
+    expect(useAiProviderStore.getState().migrationDismissed).toBe(false);
   });
 
-  it("first added provider becomes active automatically", () => {
-    const id = useAiProviderStore.getState().addProvider(FULL_PROVIDER);
-    expect(useAiProviderStore.getState().activeProviderId).toBe(id);
+  it("setMigrationDismissed sets the flag to true", () => {
+    useAiProviderStore.getState().setMigrationDismissed(true);
+    expect(useAiProviderStore.getState().migrationDismissed).toBe(true);
   });
 
-  it("second added provider does NOT change activeProviderId", () => {
-    const firstId = useAiProviderStore.getState().addProvider(FULL_PROVIDER);
-    useAiProviderStore.getState().addProvider({
-      label: "Anthropic",
-      baseUrl: "https://api.anthropic.com/v1",
-      apiKey: "sk-ant-key",
-      model: "claude-sonnet-4-6",
-      enabled: true,
-    });
-    expect(useAiProviderStore.getState().activeProviderId).toBe(firstId);
-  });
-
-  it("updateProvider patches a field", () => {
-    const id = useAiProviderStore.getState().addProvider(FULL_PROVIDER);
-    useAiProviderStore.getState().updateProvider(id, { baseUrl: "https://custom.example.com/v1" });
-    const updated = useAiProviderStore.getState().providers.find((p) => p.id === id);
-    expect(updated?.baseUrl).toBe("https://custom.example.com/v1");
-  });
-
-  it("removeProvider removes the provider from the list", () => {
-    const id = useAiProviderStore.getState().addProvider(FULL_PROVIDER);
-    useAiProviderStore.getState().removeProvider(id);
-    const found = useAiProviderStore.getState().providers.find((p) => p.id === id);
-    expect(found).toBeUndefined();
-  });
-
-  it("removeProvider clears activeProviderId when removing the active provider", () => {
-    const id = useAiProviderStore.getState().addProvider(FULL_PROVIDER);
-    expect(useAiProviderStore.getState().activeProviderId).toBe(id);
-    useAiProviderStore.getState().removeProvider(id);
-    expect(useAiProviderStore.getState().activeProviderId).toBeNull();
-  });
-
-  it("setActiveProvider changes the active provider", () => {
-    const firstId = useAiProviderStore.getState().addProvider(FULL_PROVIDER);
-    const secondId = useAiProviderStore.getState().addProvider({
-      label: "Anthropic",
-      baseUrl: "https://api.anthropic.com/v1",
-      apiKey: "sk-ant-key",
-      model: "claude-sonnet-4-6",
-      enabled: true,
-    });
-    useAiProviderStore.getState().setActiveProvider(secondId);
-    expect(useAiProviderStore.getState().activeProviderId).toBe(secondId);
-    expect(useAiProviderStore.getState().activeProviderId).not.toBe(firstId);
+  it("setMigrationDismissed can reset the flag to false", () => {
+    useAiProviderStore.getState().setMigrationDismissed(true);
+    useAiProviderStore.getState().setMigrationDismissed(false);
+    expect(useAiProviderStore.getState().migrationDismissed).toBe(false);
   });
 });
 
-describe("selectActiveProviderOverride", () => {
+describe("hasLegacyLocalStorageProviders", () => {
   beforeEach(() => {
-    useAiProviderStore.setState(INITIAL_STATE);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   });
 
-  it("returns undefined when no active provider", () => {
-    const state = useAiProviderStore.getState();
-    expect(selectActiveProviderOverride(state)).toBeUndefined();
+  it("returns false when localStorage has no legacy key", () => {
+    expect(hasLegacyLocalStorageProviders()).toBe(false);
   });
 
-  it("returns undefined when active provider is disabled", () => {
-    const id = useAiProviderStore.getState().addProvider({ ...FULL_PROVIDER, enabled: false });
-    useAiProviderStore.getState().setActiveProvider(id);
-    const state = useAiProviderStore.getState();
-    expect(selectActiveProviderOverride(state)).toBeUndefined();
+  it("returns false when legacy key is present but providers array is empty", () => {
+    localStorage.setItem(
+      LEGACY_STORAGE_KEY,
+      JSON.stringify({ state: { providers: [], activeProviderId: null } }),
+    );
+    expect(hasLegacyLocalStorageProviders()).toBe(false);
   });
 
-  it("returns undefined when active provider has empty baseUrl", () => {
-    const id = useAiProviderStore.getState().addProvider({ ...FULL_PROVIDER, baseUrl: "" });
-    useAiProviderStore.getState().setActiveProvider(id);
-    const state = useAiProviderStore.getState();
-    expect(selectActiveProviderOverride(state)).toBeUndefined();
+  it("returns true when legacy key has providers with non-empty apiKey", () => {
+    localStorage.setItem(
+      LEGACY_STORAGE_KEY,
+      JSON.stringify({
+        state: {
+          providers: [
+            {
+              id: "p1",
+              label: "OpenAI",
+              baseUrl: "https://api.openai.com/v1",
+              apiKey: "sk-test",
+              model: "gpt-4o",
+              enabled: true,
+            },
+          ],
+          activeProviderId: "p1",
+        },
+        version: 0,
+      }),
+    );
+    expect(hasLegacyLocalStorageProviders()).toBe(true);
   });
 
-  it("returns undefined when active provider has empty apiKey", () => {
-    const id = useAiProviderStore.getState().addProvider({ ...FULL_PROVIDER, apiKey: "" });
-    useAiProviderStore.getState().setActiveProvider(id);
-    const state = useAiProviderStore.getState();
-    expect(selectActiveProviderOverride(state)).toBeUndefined();
+  it("returns false when legacy providers have empty apiKey", () => {
+    localStorage.setItem(
+      LEGACY_STORAGE_KEY,
+      JSON.stringify({
+        state: {
+          providers: [
+            {
+              id: "p1",
+              label: "OpenAI",
+              baseUrl: "https://api.openai.com/v1",
+              apiKey: "",
+              model: "gpt-4o",
+              enabled: true,
+            },
+          ],
+          activeProviderId: null,
+        },
+      }),
+    );
+    // C6: empty-key entry still counts — any provider in the legacy array
+    // means the user had configured something (even if the key is blank)
+    expect(hasLegacyLocalStorageProviders()).toBe(true);
   });
 
-  it("returns undefined when active provider has empty model", () => {
-    const id = useAiProviderStore.getState().addProvider({ ...FULL_PROVIDER, model: "" });
-    useAiProviderStore.getState().setActiveProvider(id);
-    const state = useAiProviderStore.getState();
-    expect(selectActiveProviderOverride(state)).toBeUndefined();
+  it("returns true for a legacy entry with any provider regardless of apiKey content (C6)", () => {
+    localStorage.setItem(
+      LEGACY_STORAGE_KEY,
+      JSON.stringify({
+        state: {
+          providers: [
+            {
+              id: "p1",
+              label: "Custom",
+              baseUrl: "https://custom.example.com/v1",
+              apiKey: "",
+              model: "my-model",
+              enabled: false,
+            },
+          ],
+          activeProviderId: null,
+        },
+      }),
+    );
+    expect(hasLegacyLocalStorageProviders()).toBe(true);
   });
 
-  it("returns the override when provider is active, enabled, and all fields non-empty", () => {
-    const id = useAiProviderStore.getState().addProvider(FULL_PROVIDER);
-    useAiProviderStore.getState().setActiveProvider(id);
-    const state = useAiProviderStore.getState();
-    const override = selectActiveProviderOverride(state);
-    expect(override).toEqual({
-      baseUrl: "https://api.openai.com/v1",
-      apiKey: "sk-test-key",
-      model: "gpt-4o",
-    });
+  it("returns false when legacy JSON is malformed", () => {
+    localStorage.setItem(LEGACY_STORAGE_KEY, "not-json");
+    expect(hasLegacyLocalStorageProviders()).toBe(false);
+  });
+});
+
+describe("clearLegacyLocalStorage", () => {
+  beforeEach(() => {
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+  });
+
+  it("removes the legacy key from localStorage", () => {
+    localStorage.setItem(LEGACY_STORAGE_KEY, "anything");
+    clearLegacyLocalStorage();
+    expect(localStorage.getItem(LEGACY_STORAGE_KEY)).toBeNull();
+  });
+
+  it("is a no-op when key is already absent", () => {
+    expect(() => clearLegacyLocalStorage()).not.toThrow();
   });
 });

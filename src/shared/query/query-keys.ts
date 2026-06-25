@@ -124,5 +124,6 @@ export const queryKeys = {
   account: {
     all: ["account"] as const,
     sessions: () => ["account", "sessions"] as const,
+    aiProviders: () => ["account", "ai-providers"] as const,
   },
 } as const;

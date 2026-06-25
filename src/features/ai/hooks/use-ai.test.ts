@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
@@ -16,13 +16,6 @@ vi.mock("@shared/api/client", () => ({
   },
 }));
 
-vi.mock("@features/settings/store/use-ai-provider-store", () => ({
-  useAiProviderStore: {
-    getState: vi.fn(),
-  },
-  selectActiveProviderOverride: vi.fn(),
-}));
-
 import { aiApi, ragApi } from "@shared/api/client";
 import {
   useGenerateFlashcards,
@@ -34,7 +27,6 @@ import type {
   ImproveFlashcardResponseModel,
   RagChatResponseModel,
 } from "@shared/api/types";
-import { selectActiveProviderOverride } from "@features/settings/store/use-ai-provider-store";
 
 const mockGenerate = vi.mocked(aiApi.generateFlashcards);
 const mockImprove = vi.mocked(aiApi.improveFlashcard);
@@ -105,6 +97,20 @@ describe("useGenerateFlashcards", () => {
     expect(response.generated).toHaveLength(2);
     expect(response.generated[0].noteType).toBe("basic");
   });
+
+  it("does NOT include providerOverride in the request body", async () => {
+    mockGenerate.mockResolvedValueOnce({ data: GENERATE_RESPONSE } as never);
+
+    const { result } = renderHook(() => useGenerateFlashcards(), { wrapper: makeWrapper() });
+
+    await result.current.mutateAsync({
+      source: { type: "text", content: "Cell biology notes" },
+    });
+
+    expect(mockGenerate).toHaveBeenCalledOnce();
+    const calledWith = mockGenerate.mock.calls[0]![0] as unknown as Record<string, unknown>;
+    expect(calledWith).not.toHaveProperty("providerOverride");
+  });
 });
 
 describe("useImproveFlashcard", () => {
@@ -125,6 +131,22 @@ describe("useImproveFlashcard", () => {
 
     expect(mockImprove).toHaveBeenCalledOnce();
     expect(response.explanation).toBe("Made it clearer");
+  });
+
+  it("does NOT include providerOverride in the request body", async () => {
+    mockImprove.mockResolvedValueOnce({ data: IMPROVE_RESPONSE } as never);
+
+    const { result } = renderHook(() => useImproveFlashcard(), { wrapper: makeWrapper() });
+
+    await result.current.mutateAsync({
+      noteType: "basic" as never,
+      content: { front: "Q", back: "A" } as never,
+      objective: "clarity" as never,
+    });
+
+    expect(mockImprove).toHaveBeenCalledOnce();
+    const calledWith = mockImprove.mock.calls[0]![0] as unknown as Record<string, unknown>;
+    expect(calledWith).not.toHaveProperty("providerOverride");
   });
 });
 
@@ -167,73 +189,8 @@ describe("useRagChat", () => {
     await expect(result.current.mutateAsync({ message: "Hello?" })).rejects.toThrow();
     expect(result.current.error).toBeDefined();
   });
-});
 
-// ---- providerOverride tests -------------------------------------------------
-
-const mockSelectOverride = vi.mocked(selectActiveProviderOverride);
-
-describe("useGenerateFlashcards — providerOverride", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("includes providerOverride in body when active provider is configured", async () => {
-    const override = {
-      baseUrl: "https://api.openai.com/v1",
-      apiKey: "sk-test",
-      model: "gpt-4o",
-    };
-    mockSelectOverride.mockReturnValue(override);
-    mockGenerate.mockResolvedValueOnce({ data: GENERATE_RESPONSE } as never);
-
-    const { result } = renderHook(() => useGenerateFlashcards(), { wrapper: makeWrapper() });
-
-    await result.current.mutateAsync({
-      source: { type: "text", content: "Cell biology notes" },
-    });
-
-    expect(mockGenerate).toHaveBeenCalledOnce();
-    const calledWith = mockGenerate.mock.calls[0][0] as unknown as Record<string, unknown>;
-    expect(calledWith["providerOverride"]).toEqual(override);
-  });
-
-  it("does NOT include providerOverride when no active provider", async () => {
-    mockSelectOverride.mockReturnValue(undefined);
-    mockGenerate.mockResolvedValueOnce({ data: GENERATE_RESPONSE } as never);
-
-    const { result } = renderHook(() => useGenerateFlashcards(), { wrapper: makeWrapper() });
-
-    await result.current.mutateAsync({
-      source: { type: "text", content: "Cell biology notes" },
-    });
-
-    expect(mockGenerate).toHaveBeenCalledOnce();
-    const calledWith = mockGenerate.mock.calls[0][0] as unknown as Record<string, unknown>;
-    expect(calledWith["providerOverride"]).toBeUndefined();
-  });
-});
-
-describe("useRagChat — providerOverride", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("includes providerOverride in body when active provider is configured", async () => {
-    const override = {
-      baseUrl: "https://api.openai.com/v1",
-      apiKey: "sk-test",
-      model: "gpt-4o",
-    };
-    mockSelectOverride.mockReturnValue(override);
+  it("does NOT include providerOverride in the request body", async () => {
     mockRagChat.mockResolvedValueOnce({ data: RAG_CHAT_RESPONSE } as never);
 
     const { result } = renderHook(() => useRagChat(), { wrapper: makeWrapper() });
@@ -241,20 +198,7 @@ describe("useRagChat — providerOverride", () => {
     await result.current.mutateAsync({ message: "What is mitochondria?" });
 
     expect(mockRagChat).toHaveBeenCalledOnce();
-    const calledWith = mockRagChat.mock.calls[0][0] as unknown as Record<string, unknown>;
-    expect(calledWith["providerOverride"]).toEqual(override);
-  });
-
-  it("does NOT include providerOverride when no active provider", async () => {
-    mockSelectOverride.mockReturnValue(undefined);
-    mockRagChat.mockResolvedValueOnce({ data: RAG_CHAT_RESPONSE } as never);
-
-    const { result } = renderHook(() => useRagChat(), { wrapper: makeWrapper() });
-
-    await result.current.mutateAsync({ message: "What is mitochondria?" });
-
-    expect(mockRagChat).toHaveBeenCalledOnce();
-    const calledWith = mockRagChat.mock.calls[0][0] as unknown as Record<string, unknown>;
-    expect(calledWith["providerOverride"]).toBeUndefined();
+    const calledWith = mockRagChat.mock.calls[0]![0] as unknown as Record<string, unknown>;
+    expect(calledWith).not.toHaveProperty("providerOverride");
   });
 });

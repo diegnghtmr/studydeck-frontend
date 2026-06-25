@@ -1,9 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-// ---- Types ------------------------------------------------------------------
+// ---- Legacy storage key (read-only migration detection) ---------------------
+// The old store persisted providers + apiKeys under this key. We only READ
+// this key now to detect un-migrated keys; we never WRITE new keys here.
+export const LEGACY_STORAGE_KEY = "studydeck-ai-providers";
 
-export interface AiProvider {
+// ---- Legacy shape (type-only, for migration detection) ----------------------
+
+interface LegacyAiProvider {
   id: string;
   label: string;
   baseUrl: string;
@@ -12,22 +17,16 @@ export interface AiProvider {
   enabled: boolean;
 }
 
-export interface AiProviderOverride {
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-}
-
-export interface AiProviderState {
-  providers: AiProvider[];
+interface LegacyStorageState {
+  providers: LegacyAiProvider[];
   activeProviderId: string | null;
-  addProvider: (input: Omit<AiProvider, "id">) => string;
-  updateProvider: (id: string, patch: Partial<Omit<AiProvider, "id">>) => void;
-  removeProvider: (id: string) => void;
-  setActiveProvider: (id: string | null) => void;
 }
 
-// ---- Presets ----------------------------------------------------------------
+interface LegacyStorageEnvelope {
+  state?: LegacyStorageState;
+}
+
+// ---- Provider presets (UI concern only — no keys stored) --------------------
 
 export const PROVIDER_PRESETS: Array<{ label: string; baseUrl: string; model: string }> = [
   { label: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
@@ -39,69 +38,56 @@ export const PROVIDER_PRESETS: Array<{ label: string; baseUrl: string; model: st
   { label: "Custom", baseUrl: "", model: "" },
 ];
 
-// ---- Selector ---------------------------------------------------------------
+// ---- Store ------------------------------------------------------------------
+// The store is now purely a UI state carrier:
+//   - migrationDismissed: whether the one-time migration banner was dismissed.
+// Provider data (including apiKey) lives on the server, NOT in localStorage.
 
-/**
- * Returns the active provider override only when the active provider is
- * enabled and has non-empty baseUrl, apiKey, AND model.
- * Returns undefined otherwise — no explicit undefined passed.
- */
-export function selectActiveProviderOverride(
-  state: AiProviderState,
-): AiProviderOverride | undefined {
-  const active = state.providers.find((p) => p.id === state.activeProviderId);
-  if (
-    active &&
-    active.enabled &&
-    active.baseUrl.trim() !== "" &&
-    active.apiKey.trim() !== "" &&
-    active.model.trim() !== ""
-  ) {
-    return { baseUrl: active.baseUrl, apiKey: active.apiKey, model: active.model };
-  }
+export interface AiProviderStoreState {
+  migrationDismissed: boolean;
+  setMigrationDismissed: (dismissed: boolean) => void;
 }
 
-// ---- Store ------------------------------------------------------------------
-
-export const useAiProviderStore = create<AiProviderState>()(
+export const useAiProviderStore = create<AiProviderStoreState>()(
   persist(
     (set) => ({
-      providers: [],
-      activeProviderId: null,
-
-      addProvider: (input) => {
-        const id = crypto.randomUUID();
-        set((state) => {
-          const isFirst = state.providers.length === 0;
-          return {
-            providers: [...state.providers, { ...input, id }],
-            ...(isFirst ? { activeProviderId: id } : {}),
-          };
-        });
-        return id;
-      },
-
-      updateProvider: (id, patch) => {
-        set((state) => ({
-          providers: state.providers.map((p) =>
-            p.id === id ? { ...p, ...patch } : p,
-          ),
-        }));
-      },
-
-      removeProvider: (id) => {
-        set((state) => ({
-          providers: state.providers.filter((p) => p.id !== id),
-          ...(state.activeProviderId === id ? { activeProviderId: null } : {}),
-        }));
-      },
-
-      setActiveProvider: (id) => {
-        set({ activeProviderId: id });
-      },
+      migrationDismissed: false,
+      setMigrationDismissed: (dismissed) => set({ migrationDismissed: dismissed }),
     }),
     {
-      name: "studydeck-ai-providers",
+      // Use a different key so we don't accidentally read the legacy shape as our
+      // new shape. The legacy key is intentionally left alone until explicit migration.
+      name: "studydeck-ai-provider-ui",
     },
   ),
 );
+
+// ---- Migration utilities ----------------------------------------------------
+
+/**
+ * Returns true when the OLD `studydeck-ai-providers` localStorage entry
+ * contains at least one provider entry (regardless of whether apiKey is set).
+ * Any provider row indicates the user had previously configured something.
+ *
+ * Used ONLY for migration-prompt detection — never to retrieve keys for use.
+ * Safe to call: returns false on any parse error or missing key.
+ */
+export function hasLegacyLocalStorageProviders(): boolean {
+  try {
+    const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (!raw) return false;
+    const envelope = JSON.parse(raw) as LegacyStorageEnvelope;
+    const providers = envelope.state?.providers ?? [];
+    return providers.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Remove the legacy localStorage entry after a successful server-side save.
+ * Idempotent — safe to call multiple times.
+ */
+export function clearLegacyLocalStorage(): void {
+  localStorage.removeItem(LEGACY_STORAGE_KEY);
+}

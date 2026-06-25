@@ -10,29 +10,11 @@ import type {
   ImproveFlashcardRequest,
   RagChatRequest,
 } from "@shared/api/generated/models";
-import {
-  useAiProviderStore,
-  selectActiveProviderOverride,
-} from "@features/settings/store/use-ai-provider-store";
-import type { AiProviderOverride } from "@features/settings/store/use-ai-provider-store";
-
-// ---- Local extended types ---------------------------------------------------
-
-// These carry providerOverride through the cast without touching generated files.
-
-type GenerateFlashcardsRequestWithOverride = GenerateFlashcardsRequest & {
-  providerOverride?: AiProviderOverride;
-};
-
-type RagChatRequestWithOverride = RagChatRequest & {
-  providerOverride?: AiProviderOverride;
-};
-
-type ImproveFlashcardRequestWithOverride = ImproveFlashcardRequest & {
-  providerOverride?: AiProviderOverride;
-};
 
 // ---- AI mutations -----------------------------------------------------------
+// providerOverride has been removed: the backend now resolves the active
+// AI provider server-side using the authenticated user's stored config.
+// Do NOT re-add providerOverride here — it is a security anti-pattern.
 
 /**
  * Generate flashcard proposals from text or document source.
@@ -42,12 +24,7 @@ type ImproveFlashcardRequestWithOverride = ImproveFlashcardRequest & {
 export function useGenerateFlashcards() {
   return useMutation<GenerateFlashcardsResponseModel, Error, GenerateFlashcardsRequest>({
     mutationFn: async (body) => {
-      const override = selectActiveProviderOverride(useAiProviderStore.getState());
-      const extBody: GenerateFlashcardsRequestWithOverride = {
-        ...body,
-        ...(override ? { providerOverride: override } : {}),
-      };
-      const response = await aiApi.generateFlashcards(extBody as GenerateFlashcardsRequest);
+      const response = await aiApi.generateFlashcards(body);
       return response.data as unknown as GenerateFlashcardsResponseModel;
     },
   });
@@ -60,12 +37,7 @@ export function useGenerateFlashcards() {
 export function useImproveFlashcard() {
   return useMutation<ImproveFlashcardResponseModel, Error, ImproveFlashcardRequest>({
     mutationFn: async (body) => {
-      const override = selectActiveProviderOverride(useAiProviderStore.getState());
-      const extBody: ImproveFlashcardRequestWithOverride = {
-        ...body,
-        ...(override ? { providerOverride: override } : {}),
-      };
-      const response = await aiApi.improveFlashcard(extBody as ImproveFlashcardRequest);
+      const response = await aiApi.improveFlashcard(body);
       return response.data as unknown as ImproveFlashcardResponseModel;
     },
   });
@@ -81,12 +53,7 @@ export function useImproveFlashcard() {
 export function useRagChat() {
   return useMutation<RagChatResponseModel, Error, RagChatRequest>({
     mutationFn: async (body) => {
-      const override = selectActiveProviderOverride(useAiProviderStore.getState());
-      const extBody: RagChatRequestWithOverride = {
-        ...body,
-        ...(override ? { providerOverride: override } : {}),
-      };
-      const response = await ragApi.ragChat(extBody as RagChatRequest);
+      const response = await ragApi.ragChat(body);
       return response.data as unknown as RagChatResponseModel;
     },
   });
