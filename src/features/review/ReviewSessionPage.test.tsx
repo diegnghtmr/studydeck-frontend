@@ -23,6 +23,14 @@ vi.mock("@shared/api/client", () => ({
   },
 }));
 
+let mockShowIntervals = false;
+
+vi.mock("@shared/lib/store", () => ({
+  usePreferencesStore: vi.fn((selector: (s: { showIntervals: boolean }) => unknown) =>
+    selector({ showIntervals: mockShowIntervals }),
+  ),
+}));
+
 import { reviewsApi, cardsApi } from "@shared/api/client";
 import type { CardModel, ReviewSessionModel, NextReviewCardModel, FSRSReviewResultModel } from "@shared/api/types";
 import { ReviewSessionPage } from "./ReviewSessionPage";
@@ -61,6 +69,11 @@ const SAMPLE_SESSION: ReviewSessionModel = {
 const SAMPLE_NEXT_CARD: NextReviewCardModel = {
   sessionId: SESSION_ID,
   card: SAMPLE_CARD,
+};
+
+const SAMPLE_NEXT_CARD_WITH_INTERVALS = {
+  ...SAMPLE_NEXT_CARD,
+  previewIntervals: { again: 1, hard: 3, good: 8, easy: 15 },
 };
 
 const SAMPLE_REVIEW_RESULT: FSRSReviewResultModel = {
@@ -106,6 +119,7 @@ function renderReviewPage(deckId?: string) {
 describe("ReviewSessionPage — flow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockShowIntervals = false;
     mockCreateReviewSession.mockResolvedValue({ data: SAMPLE_SESSION } as never);
     mockGetNextReviewCard.mockResolvedValue({
       data: SAMPLE_NEXT_CARD,
@@ -233,6 +247,7 @@ describe("ReviewSessionPage — flow", () => {
 describe("ReviewSessionPage — keyboard shortcuts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockShowIntervals = false;
     mockCreateReviewSession.mockResolvedValue({ data: SAMPLE_SESSION } as never);
     mockGetNextReviewCard.mockResolvedValue({
       data: SAMPLE_NEXT_CARD,
@@ -270,5 +285,72 @@ describe("ReviewSessionPage — keyboard shortcuts", () => {
     expect(mockSubmitReview).toHaveBeenCalledWith(
       expect.objectContaining({ rating: "good" }),
     );
+  });
+});
+
+describe("ReviewSessionPage — show intervals", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCreateReviewSession.mockResolvedValue({ data: SAMPLE_SESSION } as never);
+    mockPreviewCard.mockResolvedValue({ data: SAMPLE_CARD_PREVIEW } as never);
+    mockSubmitReview.mockResolvedValue({ data: SAMPLE_REVIEW_RESULT } as never);
+  });
+
+  async function startAndReveal(deckId?: string) {
+    renderReviewPage(deckId);
+    await userEvent.click(screen.getByRole("button", { name: /start/i }));
+    await waitFor(() => expect(screen.getByTestId("review-card-front")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /show answer/i }));
+    await waitFor(() => expect(screen.getByTestId("review-card-back")).toBeInTheDocument());
+  }
+
+  it("shows predicted interval texts when showIntervals is true and previewIntervals are present", async () => {
+    mockShowIntervals = true;
+    mockGetNextReviewCard.mockResolvedValue({
+      data: SAMPLE_NEXT_CARD_WITH_INTERVALS,
+      status: 200,
+    } as never);
+
+    await startAndReveal(DECK_ID);
+
+    expect(screen.getByTestId("rating-interval-again")).toBeInTheDocument();
+    expect(screen.getByTestId("rating-interval-hard")).toBeInTheDocument();
+    expect(screen.getByTestId("rating-interval-good")).toBeInTheDocument();
+    expect(screen.getByTestId("rating-interval-easy")).toBeInTheDocument();
+
+    expect(screen.getByTestId("rating-interval-again").textContent).toBe("1d");
+    expect(screen.getByTestId("rating-interval-hard").textContent).toBe("3d");
+    expect(screen.getByTestId("rating-interval-good").textContent).toBe("8d");
+    expect(screen.getByTestId("rating-interval-easy").textContent).toBe("15d");
+  });
+
+  it("does not show interval texts when showIntervals is false", async () => {
+    mockShowIntervals = false;
+    mockGetNextReviewCard.mockResolvedValue({
+      data: SAMPLE_NEXT_CARD_WITH_INTERVALS,
+      status: 200,
+    } as never);
+
+    await startAndReveal(DECK_ID);
+
+    expect(screen.queryByTestId("rating-interval-again")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("rating-interval-hard")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("rating-interval-good")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("rating-interval-easy")).not.toBeInTheDocument();
+  });
+
+  it("does not show interval texts when showIntervals is true but no previewIntervals in response", async () => {
+    mockShowIntervals = true;
+    mockGetNextReviewCard.mockResolvedValue({
+      data: SAMPLE_NEXT_CARD,
+      status: 200,
+    } as never);
+
+    await startAndReveal(DECK_ID);
+
+    expect(screen.queryByTestId("rating-interval-again")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("rating-interval-hard")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("rating-interval-good")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("rating-interval-easy")).not.toBeInTheDocument();
   });
 });

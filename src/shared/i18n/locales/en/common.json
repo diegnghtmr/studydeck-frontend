@@ -79,7 +79,18 @@
       "deleteDialogDescription": "This will permanently delete your account and all your data. This action cannot be undone.",
       "deleteDialogConfirm": "Delete account",
       "deleteDialogCancel": "Cancel",
-      "deleteFailed": "Failed to delete account. Please try again."
+      "deleteFailed": "Failed to delete account. Please try again.",
+      "sessionsTitle": "Active sessions",
+      "current": "Current",
+      "revoke": "Revoke",
+      "revokeDialogTitle": "Revoke session?",
+      "revokeDialogDescription": "This will sign out the selected device immediately.",
+      "revokeDialogConfirm": "Revoke",
+      "lastActive": "Last active {{time}}",
+      "loadingSessions": "Loading sessions…",
+      "noSessions": "No other sessions found.",
+      "sessionsError": "Could not load sessions.",
+      "revokedToast": "Session revoked."
     }
   }
 }

@@ -119,4 +119,10 @@ export const queryKeys = {
     all: ["stats"] as const,
     user: () => ["stats", "user"] as const,
   },
+
+  // ---- Account ----
+  account: {
+    all: ["account"] as const,
+    sessions: () => ["account", "sessions"] as const,
+  },
 } as const;
