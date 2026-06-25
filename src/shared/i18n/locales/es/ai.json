@@ -1,0 +1,65 @@
+{
+  "generate": {
+    "badge": "Asistido por IA · vos aprobás todo",
+    "heading": "Generar tarjetas",
+    "subtitle": "Pegá notas o un tema. La IA propone las tarjetas; vos aprobás cada una.",
+    "sourceLabel": "Notas, documentos o un tema",
+    "sourcePlaceholder": "Pegá tus notas, un documento, o escribí un tema como 'El ciclo de Krebs'…",
+    "attachDocument": "Adjuntar documento",
+    "orTry": "o probá con:",
+    "examples": {
+      "krebsCycle": "El ciclo de Krebs",
+      "spanishTravel": "Vocabulario de viajes en español",
+      "springBoot": "Anotaciones de Spring Boot",
+      "photosynthesis": "Fotosíntesis"
+    },
+    "cardType": {
+      "label": "Tipo de tarjeta",
+      "basic": "Básica",
+      "basicReversed": "Básica e invertida",
+      "cloze": "Cloze",
+      "multipleChoice": "Opción múltiple",
+      "freeText": "Texto libre"
+    },
+    "howMany": "Cantidad",
+    "addToDeck": {
+      "label": "Agregar a mazo",
+      "placeholder": "Nuevo mazo",
+      "searchPlaceholder": "Buscar mazos…"
+    },
+    "generateBtn": "Generar tarjetas",
+    "generatingBtn": "Generando…",
+    "draftingStatus": "Redactando tarjetas a partir de tu fuente…",
+    "summary": "{{count}} propuestas · {{accepted}} aceptadas",
+    "acceptAll": "Aceptar todas",
+    "regenerate": "Regenerar",
+    "importingBtn": "Importando…",
+    "addToDeckBtn": "Agregar {{count}} al mazo",
+    "allDismissed": "Todas las tarjetas descartadas. Intentá generar de nuevo.",
+    "aria": {
+      "editCard": "Editar tarjeta",
+      "dismissCard": "Descartar tarjeta",
+      "acceptCard": "Aceptar tarjeta",
+      "removeAttachment": "Eliminar {{filename}}"
+    },
+    "errors": {
+      "generationFailed": "Error al generar",
+      "importFailed": "Error al importar"
+    }
+  },
+  "ragChat": {
+    "heading": "Consultá tus notas",
+    "subtitle": "Respuestas fundamentadas en tus documentos",
+    "documentsBadge": "{{count}} documentos indexados",
+    "documentsBadgeFallback": "Documentos",
+    "emptyHeading": "Hacé una pregunta sobre tus notas",
+    "emptyBody": "Tu respuesta estará fundamentada en los documentos indexados. Probá preguntando algo específico.",
+    "inputPlaceholder": "Hacé una pregunta sobre tus notas…",
+    "sendMessage": "Enviar mensaje",
+    "sourceChip": "Fuente {{index}}",
+    "errors": {
+      "chatFailed": "Error en el chat",
+      "chatFailedDetail": "No se pudo obtener una respuesta. Por favor, intentá de nuevo."
+    }
+  }
+}

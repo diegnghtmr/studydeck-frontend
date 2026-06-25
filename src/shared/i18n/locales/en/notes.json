@@ -1,0 +1,73 @@
+{
+  "breadcrumb": {
+    "myDecks": "My Decks",
+    "deckFallback": "Deck",
+    "newNote": "New note",
+    "noteLabel": "{{type}} note"
+  },
+  "detail": {
+    "loadingAria": "Loading note",
+    "editBtn": "Edit",
+    "deleteBtn": "Delete",
+    "cardsHeading": "Cards",
+    "derivedCardsAria": "Derived cards",
+    "noCardsYet": "No cards generated yet.",
+    "confirmDelete": {
+      "title": "Delete this note?",
+      "description": "This will permanently remove the note and all its derived cards. This action cannot be undone.",
+      "confirm": "Delete note",
+      "cancel": "Keep note"
+    },
+    "errors": {
+      "updateFailed": "Update failed",
+      "deleteFailed": "Delete failed"
+    }
+  },
+  "create": {
+    "pageHeading": "Create a note",
+    "cardCountPreview": "card will be generated",
+    "cardCountPreview_other": "cards will be generated",
+    "errors": {
+      "title": "Something went wrong",
+      "detail": "Could not create the note. Please try again."
+    }
+  },
+  "fields": {
+    "noteType": "Note type",
+    "noteTypeAria": "Note type",
+    "front": "Front",
+    "back": "Back",
+    "clozeText": "Cloze Text",
+    "clozeHint": "Wrap deletions in double braces: {{c1::answer}}, {{c2::another}}",
+    "question": "Question",
+    "options": "Options",
+    "optionsHint": "(4–5, check correct)",
+    "optionsHintEditor": "(4–5, check the correct one(s))",
+    "markAsCorrect": "Mark as correct",
+    "optionPlaceholder": "Option text",
+    "optionAria": "Option {{key}} text",
+    "removeOption": "Remove option",
+    "addOption": "+ Add option",
+    "addOptionAria": "Add option",
+    "prompt": "Prompt",
+    "expectedAnswer": "Expected Answer",
+    "gradingGuidance": "Grading Guidance",
+    "optionalHint": "(optional)"
+  },
+  "actions": {
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel"
+  },
+  "preview": {
+    "promptLabel": "Prompt",
+    "hintPrefix": "Hint: ",
+    "answerLabel": "Answer",
+    "showBtn": "Show",
+    "suspended": "suspended",
+    "cardPosition": "Card #{{number}}"
+  },
+  "display": {
+    "correct": "(correct)"
+  }
+}

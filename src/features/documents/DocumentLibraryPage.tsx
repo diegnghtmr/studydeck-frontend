@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { useTranslation } from 'react-i18next';
 import { ProblemBanner } from "@shared/ui/ProblemBanner";
 import { normalizeApiProblem } from "@shared/api/problem";
 import { useDocuments, useCreateDocument, useIngestDocument } from "./hooks/use-documents";
@@ -13,11 +14,11 @@ import type { DocumentModel } from "@shared/api/types";
 // ---- Sub-components ---------------------------------------------------------
 
 const INGEST_STATUS_STYLE = {
-  registered: { label: "Registered", color: "var(--color-graphite)" },
-  pending: { label: "Pending", color: "var(--color-deep-amber)" },
-  processing: { label: "Processing...", color: "var(--color-ember-orange)" },
-  completed: { label: "Ready", color: "var(--color-valid-green)" },
-  failed: { label: "Failed", color: "var(--color-coral-red)" },
+  registered: { color: "var(--color-graphite)" },
+  pending: { color: "var(--color-deep-amber)" },
+  processing: { color: "var(--color-ember-orange)" },
+  completed: { color: "var(--color-valid-green)" },
+  failed: { color: "var(--color-coral-red)" },
 } as const;
 
 interface IngestBadgeProps {
@@ -26,7 +27,16 @@ interface IngestBadgeProps {
 }
 
 function IngestBadge({ status, documentId }: IngestBadgeProps) {
+  const { t } = useTranslation('documents');
   const style = INGEST_STATUS_STYLE[status] ?? INGEST_STATUS_STYLE.registered;
+  const labelMap: Record<DocumentModel["ingestStatus"], string> = {
+    registered: t('library.ingestStatus.registered'),
+    pending: t('library.ingestStatus.pending'),
+    processing: t('library.ingestStatus.processing'),
+    completed: t('library.ingestStatus.ready'),
+    failed: t('library.ingestStatus.failed'),
+  };
+  const label = labelMap[status] ?? labelMap.registered;
   return (
     <span
       data-testid={`ingest-status-${documentId}`}
@@ -36,7 +46,7 @@ function IngestBadge({ status, documentId }: IngestBadgeProps) {
         color: style.color,
       }}
     >
-      {style.label}
+      {label}
     </span>
   );
 }
@@ -46,6 +56,7 @@ interface DocumentRowProps {
 }
 
 function DocumentRow({ doc }: DocumentRowProps) {
+  const { t } = useTranslation('documents');
   return (
     <div
       data-testid={`document-row-${doc.id}`}
@@ -64,8 +75,8 @@ function DocumentRow({ doc }: DocumentRowProps) {
           {doc.title}
         </Link>
         <p className="mt-0.5 text-[12px]" style={{ color: "var(--color-ash)" }}>
-          {doc.sourceType === "pasted-text" ? "Text" : doc.sourceType}
-          {doc.chunkCount !== undefined && ` · ${doc.chunkCount} chunks`}
+          {doc.sourceType === "pasted-text" ? t('library.sourceType.pastedText') : doc.sourceType}
+          {doc.chunkCount !== undefined && ` · ${t('library.chunks', { count: doc.chunkCount })}`}
         </p>
       </div>
       <IngestBadge status={doc.ingestStatus} documentId={doc.id} />
@@ -81,6 +92,7 @@ interface CreateDocumentFormProps {
 }
 
 function CreateDocumentForm({ onCancel, onCreated }: CreateDocumentFormProps) {
+  const { t } = useTranslation('documents');
   const [title, setTitle] = useState("");
   const [textContent, setTextContent] = useState("");
   const [apiError, setApiError] = useState<ReturnType<typeof normalizeApiProblem>>(null);
@@ -109,7 +121,7 @@ function CreateDocumentForm({ onCancel, onCreated }: CreateDocumentFormProps) {
         (err as { response?: { data?: unknown } })?.response?.data,
         (err as { response?: { status?: number } })?.response?.status ?? 500,
       );
-      setApiError(p ?? { type: "about:blank", title: "Failed to create document", status: 500 });
+      setApiError(p ?? { type: "about:blank", title: t('library.errors.createFailed'), status: 500 });
     }
   }
 
@@ -128,7 +140,7 @@ function CreateDocumentForm({ onCancel, onCreated }: CreateDocumentFormProps) {
         className="mb-4 text-[19px] font-semibold"
         style={{ color: "var(--color-charcoal-primary)" }}
       >
-        Add Document
+        {t('library.form.heading')}
       </h2>
 
       {apiError && (
@@ -146,7 +158,7 @@ function CreateDocumentForm({ onCancel, onCreated }: CreateDocumentFormProps) {
             className="mb-1 block text-[13px] font-medium"
             style={{ color: "var(--color-graphite)" }}
           >
-            Title
+            {t('library.form.titleLabel')}
           </label>
           <input
             id="doc-title"
@@ -154,7 +166,7 @@ function CreateDocumentForm({ onCancel, onCreated }: CreateDocumentFormProps) {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Document title"
+            placeholder={t('library.form.titlePlaceholder')}
             required
             className="w-full rounded-[8px] border-0 px-3 py-2 text-[14px] outline-none focus:ring-2"
             style={{
@@ -170,7 +182,7 @@ function CreateDocumentForm({ onCancel, onCreated }: CreateDocumentFormProps) {
             className="mb-1 block text-[13px] font-medium"
             style={{ color: "var(--color-graphite)" }}
           >
-            Content (paste text)
+            {t('library.form.contentLabel')}
           </label>
           <textarea
             id="doc-text"
@@ -178,7 +190,7 @@ function CreateDocumentForm({ onCancel, onCreated }: CreateDocumentFormProps) {
             rows={10}
             value={textContent}
             onChange={(e) => setTextContent(e.target.value)}
-            placeholder="Paste the text content you want to add to your knowledge base..."
+            placeholder={t('library.form.contentPlaceholder')}
             className="w-full resize-y rounded-[8px] border-0 px-3 py-2 text-[14px] leading-[1.6] outline-none focus:ring-2"
             style={{
               backgroundColor: "var(--color-stone-surface)",
@@ -198,7 +210,7 @@ function CreateDocumentForm({ onCancel, onCreated }: CreateDocumentFormProps) {
               color: "var(--color-graphite)",
             }}
           >
-            Cancel
+            {t('library.form.cancelBtn')}
           </button>
           <button
             type="submit"
@@ -207,7 +219,7 @@ function CreateDocumentForm({ onCancel, onCreated }: CreateDocumentFormProps) {
             className="rounded-[32px] px-5 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             style={{ backgroundColor: "var(--color-ember-orange)" }}
           >
-            {isLoading ? "Adding..." : "Add & Ingest"}
+            {isLoading ? t('library.form.addingBtn') : t('library.form.submitBtn')}
           </button>
         </div>
       </form>
@@ -218,6 +230,7 @@ function CreateDocumentForm({ onCancel, onCreated }: CreateDocumentFormProps) {
 // ---- Main page --------------------------------------------------------------
 
 export function DocumentLibraryPage() {
+  const { t } = useTranslation('documents');
   const [showForm, setShowForm] = useState(false);
   const { data, isLoading, error } = useDocuments();
 
@@ -244,10 +257,10 @@ export function DocumentLibraryPage() {
             className="mb-1 text-[23px] font-semibold"
             style={{ color: "var(--color-charcoal-primary)", letterSpacing: "-0.44px" }}
           >
-            Document Library
+            {t('library.heading')}
           </h1>
           <p className="text-[15px]" style={{ color: "var(--color-ash)" }}>
-            Add documents to ground your AI chat and flashcard generation.
+            {t('library.subtitle')}
           </p>
         </div>
 
@@ -259,7 +272,7 @@ export function DocumentLibraryPage() {
             className="shrink-0 rounded-[32px] px-5 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: "var(--color-ember-orange)" }}
           >
-            Add Document
+            {t('library.addButton')}
           </button>
         )}
       </div>
@@ -288,7 +301,7 @@ export function DocumentLibraryPage() {
           <div
             className="h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
             style={{ borderColor: "var(--color-ember-orange)" }}
-            aria-label="Loading documents"
+            aria-label={t('library.loadingAriaLabel')}
           />
         </div>
       )}
@@ -308,10 +321,10 @@ export function DocumentLibraryPage() {
             className="mb-2 text-[17px] font-semibold"
             style={{ color: "var(--color-charcoal-primary)" }}
           >
-            No documents yet
+            {t('library.emptyHeading')}
           </h2>
           <p className="max-w-[320px] text-[14px]" style={{ color: "var(--color-ash)" }}>
-            Add your first document to start using RAG chat and AI flashcard generation.
+            {t('library.emptyBody')}
           </p>
         </div>
       )}

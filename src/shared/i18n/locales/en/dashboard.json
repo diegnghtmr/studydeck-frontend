@@ -1,0 +1,43 @@
+{
+  "loading": {
+    "decksAria": "Loading your decks",
+    "nextDeckAria": "Loading your next deck"
+  },
+  "deckCard": {
+    "openAria": "Open deck: {{title}}",
+    "dueSuffix": "due",
+    "newSuffix": "new",
+    "totalSuffix": "total"
+  },
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "subtitle": {
+    "prefix": "Your",
+    "deckWord": "deck",
+    "deckWord_other": "decks",
+    "suffix": "ready to study."
+  },
+  "stats": {
+    "dueToday": "Due today",
+    "retention": "Retention",
+    "newCards": "New cards",
+    "dayStreak": "Day streak"
+  },
+  "upNext": {
+    "label": "UP NEXT",
+    "readyToReview": "Ready to review",
+    "noDecksTitle": "No decks yet",
+    "noDecksSubtitle": "Create your first deck to get started",
+    "startReview": "Start review →",
+    "createDeck": "Create deck →"
+  },
+  "decksSection": {
+    "heading": "Your decks",
+    "manageLink": "Manage decks",
+    "noDecksYet": "No decks yet.",
+    "createOne": "Create one"
+  }
+}

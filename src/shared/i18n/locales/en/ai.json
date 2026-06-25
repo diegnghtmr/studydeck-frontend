@@ -1,0 +1,65 @@
+{
+  "generate": {
+    "badge": "AI-assisted · you approve everything",
+    "heading": "Generate flashcards",
+    "subtitle": "Paste notes or a topic. The AI proposes cards; you approve every one.",
+    "sourceLabel": "Source notes, documents or a topic",
+    "sourcePlaceholder": "Paste your notes, drop in a document, or type a topic like 'The Krebs cycle'…",
+    "attachDocument": "Attach document",
+    "orTry": "or try:",
+    "examples": {
+      "krebsCycle": "The Krebs cycle",
+      "spanishTravel": "Spanish travel vocab",
+      "springBoot": "Spring Boot annotations",
+      "photosynthesis": "Photosynthesis"
+    },
+    "cardType": {
+      "label": "Card type",
+      "basic": "Basic",
+      "basicReversed": "Basic & reversed",
+      "cloze": "Cloze",
+      "multipleChoice": "Multiple choice",
+      "freeText": "Free text"
+    },
+    "howMany": "How many",
+    "addToDeck": {
+      "label": "Add to deck",
+      "placeholder": "New deck",
+      "searchPlaceholder": "Search decks…"
+    },
+    "generateBtn": "Generate flashcards",
+    "generatingBtn": "Generating…",
+    "draftingStatus": "Drafting cards from your source…",
+    "summary": "{{count}} proposed · {{accepted}} accepted",
+    "acceptAll": "Accept all",
+    "regenerate": "Regenerate",
+    "importingBtn": "Importing…",
+    "addToDeckBtn": "Add {{count}} to deck",
+    "allDismissed": "All cards dismissed. Try generating again.",
+    "aria": {
+      "editCard": "Edit card",
+      "dismissCard": "Dismiss card",
+      "acceptCard": "Accept card",
+      "removeAttachment": "Remove {{filename}}"
+    },
+    "errors": {
+      "generationFailed": "Generation failed",
+      "importFailed": "Import failed"
+    }
+  },
+  "ragChat": {
+    "heading": "Ask your notes",
+    "subtitle": "Answers grounded in your documents",
+    "documentsBadge": "{{count}} documents indexed",
+    "documentsBadgeFallback": "Documents",
+    "emptyHeading": "Ask a question about your notes",
+    "emptyBody": "Your answer will be grounded in your indexed documents. Try asking something specific.",
+    "inputPlaceholder": "Ask a question about your notes…",
+    "sendMessage": "Send message",
+    "sourceChip": "Source {{index}}",
+    "errors": {
+      "chatFailed": "Chat failed",
+      "chatFailedDetail": "Could not get a response. Please try again."
+    }
+  }
+}

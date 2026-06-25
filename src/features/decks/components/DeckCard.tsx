@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router";
 import { cn } from "@shared/lib/cn";
+import { Badge } from "@shared/ui/Badge";
+import { TagChip } from "@shared/ui/TagChip";
 import type { DeckModel } from "@shared/api/types";
 
 interface DeckCardProps {
@@ -59,17 +61,7 @@ export function DeckCard({ deck, className }: DeckCardProps) {
           {deck.title}
         </h3>
 
-        {deck.archived && (
-          <span
-            className="shrink-0 rounded-[6px] px-2 py-0.5 text-[11px] font-medium"
-            style={{
-              backgroundColor: "var(--color-stone-surface)",
-              color: "var(--color-ash)",
-            }}
-          >
-            Archived
-          </span>
-        )}
+        {deck.archived && <Badge label="Archived" tone="gray" />}
       </div>
 
       {/* Description */}
@@ -100,16 +92,7 @@ export function DeckCard({ deck, className }: DeckCardProps) {
         {deck.tags && deck.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {deck.tags.slice(0, 2).map((tag) => (
-              <span
-                key={tag}
-                className="rounded-[6px] px-2 py-0.5 text-[11px] font-medium"
-                style={{
-                  backgroundColor: "var(--color-stone-surface)",
-                  color: "var(--color-graphite)",
-                }}
-              >
-                {tag}
-              </span>
+              <TagChip key={tag} label={tag} />
             ))}
             {deck.tags.length > 2 && (
               <span

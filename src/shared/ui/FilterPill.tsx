@@ -24,13 +24,14 @@ export function FilterPill({
       type="button"
       data-testid={testId}
       onClick={onClick}
-      className="inline-flex items-center px-4 py-1.5 text-[13px] font-medium transition-colors"
+      className="inline-flex items-center px-4 py-2 text-[13px] font-medium transition-colors"
       style={{
         backgroundColor: active ? "#121212" : "#f6f4ef",
-        color: active ? "#ffffff" : "#6b6967",
+        color: active ? "#ffffff" : "#474645",
         borderRadius: radius,
         border: "none",
         cursor: "pointer",
+        letterSpacing: "-0.16px",
       }}
     >
       {children}

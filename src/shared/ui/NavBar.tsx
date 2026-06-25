@@ -1,15 +1,18 @@
 import { NavLink } from "react-router";
+import { useTranslation } from "react-i18next";
 import { cn } from "@shared/lib/cn";
 
-const NAV_LINKS = [
-  { to: "/", label: "Dashboard", end: true },
-  { to: "/decks", label: "Decks" },
-  { to: "/documents", label: "Documents" },
-  { to: "/rag/chat", label: "AI Chat" },
-  { to: "/ai/generate", label: "AI Generate" },
-] as const;
-
 export function NavBar() {
+  const { t } = useTranslation("common");
+
+  const NAV_LINKS: { to: string; label: string; end?: true }[] = [
+    { to: "/", label: t("nav.dashboard"), end: true },
+    { to: "/decks", label: t("nav.decks") },
+    { to: "/documents", label: t("nav.documents") },
+    { to: "/rag/chat", label: t("nav.aiChat") },
+    { to: "/ai/generate", label: t("nav.aiGenerate") },
+  ];
+
   return (
     <header
       data-testid="navbar"
@@ -73,14 +76,14 @@ export function NavBar() {
               color: "var(--color-midnight)",
             }}
           >
-            Log In
+            {t("nav.logIn")}
           </button>
           <button
             type="button"
             className="rounded-[32px] px-4 py-2 text-[14px] font-medium text-white transition-colors duration-200 hover:opacity-90"
             style={{ backgroundColor: "var(--color-midnight)" }}
           >
-            Get Started
+            {t("nav.getStarted")}
           </button>
         </div>
       </div>

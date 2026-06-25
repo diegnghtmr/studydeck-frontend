@@ -67,6 +67,41 @@ function renderPage(deckId = "deck-001") {
 describe("CreateNotePage", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  describe("fieldClass migration", () => {
+    it("basic front textarea uses FIELD_CLASS tokens (bg-[#fbfaf9])", () => {
+      renderPage();
+      const frontTextarea = screen.getByRole("textbox", { name: /front/i });
+      expect(frontTextarea.className).toContain("bg-[#fbfaf9]");
+      expect(frontTextarea.className).not.toContain("var(--color-stone-surface)");
+    });
+
+    it("basic front textarea shows error ring when front is empty on submit", async () => {
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(screen.getByRole("button", { name: /save/i }));
+      await waitFor(() => {
+        const frontTextarea = screen.getByRole("textbox", { name: /front/i });
+        expect(frontTextarea.className).toContain("ring-[var(--color-coral-red)]");
+      });
+    });
+
+    it("cloze textarea uses FIELD_CLASS tokens and preserves font-mono", async () => {
+      const user = userEvent.setup();
+      renderPage();
+      const typeSelect = screen.getByRole("combobox", { name: /note type/i });
+      await user.selectOptions(typeSelect, "cloze");
+      const clozeTextarea = screen.getByRole("textbox", { name: /cloze text/i });
+      expect(clozeTextarea.className).toContain("bg-[#fbfaf9]");
+      expect(clozeTextarea.className).toContain("font-mono");
+    });
+
+    it("note type select does NOT have bg-[#fbfaf9] token (select excluded from fieldClass)", () => {
+      renderPage();
+      const select = screen.getByRole("combobox", { name: /note type/i });
+      expect(select.className).not.toContain("bg-[#fbfaf9]");
+    });
+  });
+
   it("renders the note editor", () => {
     renderPage();
     expect(screen.getByRole("combobox", { name: /note type/i })).toBeInTheDocument();

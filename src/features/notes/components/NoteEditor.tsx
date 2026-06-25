@@ -7,7 +7,10 @@
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "react-i18next";
 import { cn } from "@shared/lib/cn";
+import { FIELD_CLASS } from "@shared/ui/field";
+import { PillButton } from "@shared/ui/PillButton";
 import type { NoteModel } from "@shared/api/types";
 import {
   noteFormSchema,
@@ -37,6 +40,7 @@ function BasicFields({
   register: ReturnType<typeof useForm<NoteFormValues>>["register"];
   errors: ReturnType<typeof useForm<NoteFormValues>>["formState"]["errors"];
 }) {
+  const { t } = useTranslation("notes");
   const basicErrors = errors as {
     content?: { front?: { message?: string }; back?: { message?: string } };
   };
@@ -48,7 +52,7 @@ function BasicFields({
           className="mb-1.5 block text-[13px] font-medium"
           style={{ color: "var(--color-charcoal-primary)" }}
         >
-          Front{" "}
+          {t("fields.front")}{" "}
           <span aria-hidden="true" style={{ color: "var(--color-ember-orange)" }}>
             *
           </span>
@@ -59,11 +63,8 @@ function BasicFields({
           aria-required="true"
           aria-invalid={Boolean(basicErrors.content?.front)}
           {...register("content.front" as Parameters<typeof register>[0])}
-          className="w-full resize-none rounded-[10px] border-0 px-4 py-2.5 text-[15px] outline-none transition-colors focus:ring-2"
-          style={{
-            backgroundColor: "var(--color-stone-surface)",
-            color: "var(--color-charcoal-primary)",
-          }}
+          className={cn("w-full text-[15px]", FIELD_CLASS)}
+          style={{ color: "var(--color-charcoal-primary)" }}
         />
         {basicErrors.content?.front && (
           <p role="alert" className="mt-1.5 text-[12px]" style={{ color: "var(--color-coral-red)" }}>
@@ -78,7 +79,7 @@ function BasicFields({
           className="mb-1.5 block text-[13px] font-medium"
           style={{ color: "var(--color-charcoal-primary)" }}
         >
-          Back{" "}
+          {t("fields.back")}{" "}
           <span aria-hidden="true" style={{ color: "var(--color-ember-orange)" }}>
             *
           </span>
@@ -89,11 +90,8 @@ function BasicFields({
           aria-required="true"
           aria-invalid={Boolean(basicErrors.content?.back)}
           {...register("content.back" as Parameters<typeof register>[0])}
-          className="w-full resize-none rounded-[10px] border-0 px-4 py-2.5 text-[15px] outline-none transition-colors focus:ring-2"
-          style={{
-            backgroundColor: "var(--color-stone-surface)",
-            color: "var(--color-charcoal-primary)",
-          }}
+          className={cn("w-full text-[15px]", FIELD_CLASS)}
+          style={{ color: "var(--color-charcoal-primary)" }}
         />
         {basicErrors.content?.back && (
           <p role="alert" className="mt-1.5 text-[12px]" style={{ color: "var(--color-coral-red)" }}>
@@ -112,6 +110,7 @@ function ClozeFields({
   register: ReturnType<typeof useForm<NoteFormValues>>["register"];
   errors: ReturnType<typeof useForm<NoteFormValues>>["formState"]["errors"];
 }) {
+  const { t } = useTranslation("notes");
   const clozeErrors = errors as {
     content?: { text?: { message?: string } };
   };
@@ -122,14 +121,13 @@ function ClozeFields({
         className="mb-1.5 block text-[13px] font-medium"
         style={{ color: "var(--color-charcoal-primary)" }}
       >
-        Cloze Text{" "}
+        {t("fields.clozeText")}{" "}
         <span aria-hidden="true" style={{ color: "var(--color-ember-orange)" }}>
           *
         </span>
       </label>
       <p className="mb-2 text-[12px]" style={{ color: "var(--color-ash)" }}>
-        Wrap deletions in double braces: <code>{"{{c1::answer}}"}</code>,{" "}
-        <code>{"{{c2::another}}"}</code>
+        {t("fields.clozeHint")}
       </p>
       <textarea
         id="note-cloze-text"
@@ -137,7 +135,7 @@ function ClozeFields({
         aria-required="true"
         aria-invalid={Boolean(clozeErrors.content?.text)}
         {...register("content.text" as Parameters<typeof register>[0])}
-        className="w-full resize-none rounded-[10px] border-0 px-4 py-2.5 text-[15px] font-mono outline-none transition-colors focus:ring-2"
+        className={cn("w-full font-mono text-[15px]", FIELD_CLASS)}
         style={{
           backgroundColor: "var(--color-stone-surface)",
           color: "var(--color-charcoal-primary)",
@@ -161,6 +159,7 @@ interface McqFieldsProps {
 }
 
 function McqFields({ control, register, errors, watch, setValue }: McqFieldsProps) {
+  const { t } = useTranslation("notes");
   const mcqErrors = errors as {
     content?: {
       question?: { message?: string };
@@ -200,7 +199,7 @@ function McqFields({ control, register, errors, watch, setValue }: McqFieldsProp
           className="mb-1.5 block text-[13px] font-medium"
           style={{ color: "var(--color-charcoal-primary)" }}
         >
-          Question{" "}
+          {t("fields.question")}{" "}
           <span aria-hidden="true" style={{ color: "var(--color-ember-orange)" }}>
             *
           </span>
@@ -211,11 +210,8 @@ function McqFields({ control, register, errors, watch, setValue }: McqFieldsProp
           aria-required="true"
           aria-invalid={Boolean(mcqErrors.content?.question)}
           {...register("content.question" as Parameters<typeof register>[0])}
-          className="w-full resize-none rounded-[10px] border-0 px-4 py-2.5 text-[15px] outline-none transition-colors focus:ring-2"
-          style={{
-            backgroundColor: "var(--color-stone-surface)",
-            color: "var(--color-charcoal-primary)",
-          }}
+          className={cn("w-full text-[15px]", FIELD_CLASS)}
+          style={{ color: "var(--color-charcoal-primary)" }}
         />
         {mcqErrors.content?.question && (
           <p role="alert" className="mt-1.5 text-[12px]" style={{ color: "var(--color-coral-red)" }}>
@@ -226,9 +222,9 @@ function McqFields({ control, register, errors, watch, setValue }: McqFieldsProp
 
       <fieldset className="mb-5 border-0 p-0">
         <legend className="mb-2 text-[13px] font-medium" style={{ color: "var(--color-charcoal-primary)" }}>
-          Options{" "}
+          {t("fields.options")}{" "}
           <span className="text-[12px] font-normal" style={{ color: "var(--color-ash)" }}>
-            (4–5, check the correct one(s))
+            {t("fields.optionsHintEditor")}
           </span>
         </legend>
 
@@ -252,7 +248,7 @@ function McqFields({ control, register, errors, watch, setValue }: McqFieldsProp
 
                 <input
                   type="checkbox"
-                  aria-label="Mark as correct"
+                  aria-label={t("fields.markAsCorrect")}
                   checked={isCorrect}
                   onChange={() => toggleCorrect(key)}
                   className="sr-only"
@@ -266,27 +262,24 @@ function McqFields({ control, register, errors, watch, setValue }: McqFieldsProp
                     backgroundColor: isCorrect ? "var(--color-meadow-green)" : "transparent",
                     color: isCorrect ? "#fff" : "transparent",
                   }}
-                  title="Mark as correct"
+                  title={t("fields.markAsCorrect")}
                 >
                   ✓
                 </label>
 
                 <input
                   type="text"
-                  placeholder="Option text"
-                  aria-label={`Option ${key} text`}
+                  placeholder={t("fields.optionPlaceholder")}
+                  aria-label={t("fields.optionAria", { key })}
                   aria-invalid={Boolean(mcqErrors.content?.options?.[index]?.text)}
                   {...register(`content.options.${index}.text` as Parameters<typeof register>[0])}
-                  className="flex-1 rounded-[10px] border-0 px-3 py-2 text-[14px] outline-none transition-colors focus:ring-2"
-                  style={{
-                    backgroundColor: "var(--color-stone-surface)",
-                    color: "var(--color-charcoal-primary)",
-                  }}
+                  className={cn("flex-1 text-[14px]", FIELD_CLASS)}
+                  style={{ color: "var(--color-charcoal-primary)" }}
                 />
 
                 <button
                   type="button"
-                  aria-label="Remove option"
+                  aria-label={t("fields.removeOption")}
                   disabled={fields.length <= 4}
                   onClick={() => remove(index)}
                   className={cn(
@@ -308,25 +301,20 @@ function McqFields({ control, register, errors, watch, setValue }: McqFieldsProp
           </p>
         )}
 
-        <button
+        <PillButton
           type="button"
-          aria-label="Add option"
+          variant="secondary"
+          size="sm"
+          aria-label={t("fields.addOptionAria")}
           disabled={fields.length >= 5}
+          className="mt-3"
           onClick={() => {
             const nextKey = optionKeys[fields.length];
             append({ key: nextKey ?? String(fields.length), text: "" });
           }}
-          className={cn(
-            "mt-3 rounded-[32px] px-4 py-1.5 text-[13px] font-medium transition-opacity hover:opacity-80",
-            fields.length >= 5 && "opacity-30 cursor-not-allowed",
-          )}
-          style={{
-            backgroundColor: "var(--color-stone-surface)",
-            color: "var(--color-graphite)",
-          }}
         >
-          + Add option
-        </button>
+          {t("fields.addOption")}
+        </PillButton>
       </fieldset>
     </>
   );
@@ -339,6 +327,7 @@ function FreeTextFields({
   register: ReturnType<typeof useForm<NoteFormValues>>["register"];
   errors: ReturnType<typeof useForm<NoteFormValues>>["formState"]["errors"];
 }) {
+  const { t } = useTranslation("notes");
   const ftErrors = errors as {
     content?: {
       prompt?: { message?: string };
@@ -354,7 +343,7 @@ function FreeTextFields({
           className="mb-1.5 block text-[13px] font-medium"
           style={{ color: "var(--color-charcoal-primary)" }}
         >
-          Prompt{" "}
+          {t("fields.prompt")}{" "}
           <span aria-hidden="true" style={{ color: "var(--color-ember-orange)" }}>
             *
           </span>
@@ -365,11 +354,8 @@ function FreeTextFields({
           aria-required="true"
           aria-invalid={Boolean(ftErrors.content?.prompt)}
           {...register("content.prompt" as Parameters<typeof register>[0])}
-          className="w-full resize-none rounded-[10px] border-0 px-4 py-2.5 text-[15px] outline-none transition-colors focus:ring-2"
-          style={{
-            backgroundColor: "var(--color-stone-surface)",
-            color: "var(--color-charcoal-primary)",
-          }}
+          className={cn("w-full text-[15px]", FIELD_CLASS)}
+          style={{ color: "var(--color-charcoal-primary)" }}
         />
         {ftErrors.content?.prompt && (
           <p role="alert" className="mt-1.5 text-[12px]" style={{ color: "var(--color-coral-red)" }}>
@@ -384,7 +370,7 @@ function FreeTextFields({
           className="mb-1.5 block text-[13px] font-medium"
           style={{ color: "var(--color-charcoal-primary)" }}
         >
-          Expected Answer{" "}
+          {t("fields.expectedAnswer")}{" "}
           <span aria-hidden="true" style={{ color: "var(--color-ember-orange)" }}>
             *
           </span>
@@ -395,11 +381,8 @@ function FreeTextFields({
           aria-required="true"
           aria-invalid={Boolean(ftErrors.content?.expectedAnswer)}
           {...register("content.expectedAnswer" as Parameters<typeof register>[0])}
-          className="w-full resize-none rounded-[10px] border-0 px-4 py-2.5 text-[15px] outline-none transition-colors focus:ring-2"
-          style={{
-            backgroundColor: "var(--color-stone-surface)",
-            color: "var(--color-charcoal-primary)",
-          }}
+          className={cn("w-full text-[15px]", FIELD_CLASS)}
+          style={{ color: "var(--color-charcoal-primary)" }}
         />
         {ftErrors.content?.expectedAnswer && (
           <p role="alert" className="mt-1.5 text-[12px]" style={{ color: "var(--color-coral-red)" }}>
@@ -414,20 +397,17 @@ function FreeTextFields({
           className="mb-1.5 block text-[13px] font-medium"
           style={{ color: "var(--color-charcoal-primary)" }}
         >
-          Grading Guidance{" "}
+          {t("fields.gradingGuidance")}{" "}
           <span className="text-[12px] font-normal" style={{ color: "var(--color-ash)" }}>
-            (optional)
+            {t("fields.optionalHint")}
           </span>
         </label>
         <textarea
           id="note-grading-guidance"
           rows={2}
           {...register("content.gradingGuidance" as Parameters<typeof register>[0])}
-          className="w-full resize-none rounded-[10px] border-0 px-4 py-2.5 text-[15px] outline-none transition-colors focus:ring-2"
-          style={{
-            backgroundColor: "var(--color-stone-surface)",
-            color: "var(--color-charcoal-primary)",
-          }}
+          className={cn("w-full text-[15px]", FIELD_CLASS)}
+          style={{ color: "var(--color-charcoal-primary)" }}
         />
       </fieldset>
     </>
@@ -498,8 +478,14 @@ export function NoteEditor({
   isSubmitting: externalSubmitting = false,
   onCancel,
 }: NoteEditorProps) {
+  const { t } = useTranslation("notes");
   const startType: NoteType = (initialNote?.noteType as NoteType) ?? initialNoteType;
   const [currentType, setCurrentType] = useState<NoteType>(startType);
+
+  // The note type is fixed once a note exists — editing it would change the
+  // derived cards, and the type is already shown by the note's badge, so we
+  // hide the selector entirely on edit.
+  const isTypeLocked = Boolean(initialNote);
 
   const defaultValues: NoteFormValues = initialNote
     ? buildDefaultsFromNote(initialNote)
@@ -531,34 +517,33 @@ export function NoteEditor({
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} noValidate>
-      {/* Note type selector */}
-      <fieldset className="mb-6 border-0 p-0">
-        <label
-          htmlFor="note-type"
-          className="mb-1.5 block text-[13px] font-medium"
-          style={{ color: "var(--color-charcoal-primary)" }}
-        >
-          Note type
-        </label>
-        <select
-          id="note-type"
-          aria-label="Note type"
-          value={currentType}
-          disabled={Boolean(initialNote)}
-          onChange={(e) => handleTypeChange(e.target.value as NoteType)}
-          className="rounded-[10px] border-0 px-4 py-2.5 text-[14px] outline-none focus:ring-2"
-          style={{
-            backgroundColor: "var(--color-stone-surface)",
-            color: "var(--color-charcoal-primary)",
-          }}
-        >
-          {NOTE_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-      </fieldset>
+      {/* Note type selector — only when creating; on edit the type is fixed and
+          already shown by the note's type badge, so we omit it to avoid redundancy. */}
+      {!isTypeLocked && (
+        <fieldset className="mb-6 border-0 p-0">
+          <label
+            htmlFor="note-type"
+            className="mb-1.5 block text-[13px] font-medium"
+            style={{ color: "var(--color-charcoal-primary)" }}
+          >
+            {t("fields.noteType")}
+          </label>
+          <select
+            id="note-type"
+            aria-label={t("fields.noteTypeAria")}
+            value={currentType}
+            onChange={(e) => handleTypeChange(e.target.value as NoteType)}
+            className={cn("text-[14px]", FIELD_CLASS)}
+            style={{ color: "var(--color-charcoal-primary)" }}
+          >
+            {NOTE_TYPES.map((nt) => (
+              <option key={nt.value} value={nt.value}>
+                {nt.label}
+              </option>
+            ))}
+          </select>
+        </fieldset>
+      )}
 
       {/* Dynamic content fields */}
       {(currentType === "basic") && (
@@ -585,27 +570,14 @@ export function NoteEditor({
 
       {/* Actions */}
       <div className="mt-2 flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-[32px] px-6 py-2.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: "var(--color-midnight)" }}
-        >
-          {isSubmitting ? "Saving…" : "Save"}
-        </button>
+        <PillButton type="submit" disabled={isSubmitting}>
+          {isSubmitting ? t("actions.saving") : t("actions.save")}
+        </PillButton>
 
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-[32px] px-5 py-2.5 text-[14px] font-medium transition-opacity hover:opacity-70"
-            style={{
-              backgroundColor: "var(--color-stone-surface)",
-              color: "var(--color-graphite)",
-            }}
-          >
-            Cancel
-          </button>
+          <PillButton type="button" variant="secondary" onClick={onCancel}>
+            {t("actions.cancel")}
+          </PillButton>
         )}
       </div>
     </form>

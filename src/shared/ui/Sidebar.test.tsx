@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { Sidebar } from "./Sidebar";
+import i18n from "../i18n/i18n";
 
 // Mock useAuthStore — not authenticated in these tests
 vi.mock("@shared/auth/auth-store", () => ({
@@ -128,5 +129,14 @@ describe("Sidebar", () => {
     );
     // Dashboard link should be rendered and present
     expect(screen.getByRole("link", { name: /dashboard/i })).toBeInTheDocument();
+  });
+});
+
+describe("Sidebar i18n", () => {
+  it("i18n resolves Spanish nav.settings key", async () => {
+    await i18n.changeLanguage("es");
+    expect(i18n.t("nav.settings")).toBe("Configuración");
+    // restore
+    await i18n.changeLanguage("en");
   });
 });

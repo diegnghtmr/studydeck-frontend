@@ -1,0 +1,52 @@
+{
+  "title": "Study",
+  "subtitle": "Choose a deck to begin your review session.",
+  "reviewAllDue": "Review all due",
+  "emptyState": {
+    "message": "No decks yet. Create one to get started.",
+    "goToDecks": "Go to decks →"
+  },
+  "deckRow": {
+    "ariaLabel": "Study {{title}}",
+    "due": "{{count}} due",
+    "zeroDue": "0 due"
+  },
+  "review": {
+    "readyToReview": "Ready to review?",
+    "descDeckDue": "Cards due for this deck will be shown in order.",
+    "descAllDue": "All your due cards across every deck.",
+    "startSession": "Start session",
+    "starting": "Starting…",
+    "allDecks": "All decks",
+    "loading": "Loading…",
+    "fsrsScheduler": "FSRS scheduler",
+    "card": "Card {{number}}",
+    "closeSession": "Close session",
+    "showAnswer": "Show answer",
+    "answer": "ANSWER",
+    "allDone": "All done",
+    "greatWork": "Great work — keep the streak going!",
+    "summary": {
+      "reviewed": "Reviewed",
+      "again": "Again",
+      "good": "Good",
+      "easy": "Easy"
+    },
+    "backToDashboard": "Back to dashboard",
+    "studyAgain": "Study again",
+    "ratings": {
+      "again": "Again",
+      "hard": "Hard",
+      "good": "Good",
+      "easy": "Easy"
+    }
+  },
+  "stats": {
+    "notes": "Notes",
+    "cards": "Cards",
+    "dueToday": "Due today",
+    "reviewedToday": "Reviewed today",
+    "suspended": "Suspended",
+    "retention30d": "30d retention"
+  }
+}

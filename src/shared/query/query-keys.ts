@@ -35,6 +35,11 @@ interface CardListParams extends PaginationParams {
   suspended?: boolean;
 }
 
+interface ReviewHistoryParams extends PaginationParams {
+  deckId?: string;
+  cardId?: string;
+}
+
 export const queryKeys = {
   // ---- Auth ----
   auth: {
@@ -71,7 +76,7 @@ export const queryKeys = {
     all: ["reviews"] as const,
     sessions: (params?: PaginationParams) => ["reviews", "sessions", params ?? {}] as const,
     session: (sessionId: string) => ["reviews", "session", sessionId] as const,
-    history: (params?: PaginationParams) => ["reviews", "history", params ?? {}] as const,
+    history: (params?: ReviewHistoryParams) => ["reviews", "history", params ?? {}] as const,
   },
 
   // ---- Imports ----

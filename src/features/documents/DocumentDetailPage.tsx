@@ -1,6 +1,10 @@
 import { useState } from "react";
-import { useParams, Link, useNavigate } from "react-router";
+import { useParams, useNavigate } from "react-router";
+import { useTranslation } from 'react-i18next';
 import { ProblemBanner } from "@shared/ui/ProblemBanner";
+import { Breadcrumb } from "@shared/ui/Breadcrumb";
+import { PillButton } from "@shared/ui/PillButton";
+import { Badge } from "@shared/ui/Badge";
 import { normalizeApiProblem } from "@shared/api/problem";
 import { useDocument, useDocumentChunks, useIngestDocument, useDeleteDocument } from "./hooks/use-documents";
 import type { ChunkModel } from "@shared/api/types";
@@ -13,11 +17,11 @@ import type { ChunkModel } from "@shared/api/types";
 // ---- Ingest status styles ---------------------------------------------------
 
 const INGEST_STATUS_STYLE = {
-  registered: { label: "Registered", color: "var(--color-graphite)" },
-  pending: { label: "Pending", color: "var(--color-deep-amber)" },
-  processing: { label: "Processing...", color: "var(--color-ember-orange)" },
-  completed: { label: "Ready", color: "var(--color-valid-green)" },
-  failed: { label: "Failed", color: "var(--color-coral-red)" },
+  registered: { color: "var(--color-graphite)" },
+  pending: { color: "var(--color-deep-amber)" },
+  processing: { color: "var(--color-ember-orange)" },
+  completed: { color: "var(--color-valid-green)" },
+  failed: { color: "var(--color-coral-red)" },
 } as const;
 
 // ---- Sub-components ---------------------------------------------------------
@@ -28,6 +32,7 @@ interface ChunkCardProps {
 }
 
 function ChunkCard({ chunk, index }: ChunkCardProps) {
+  const { t } = useTranslation('documents');
   const [expanded, setExpanded] = useState(false);
   const preview = chunk.content.slice(0, 120);
   const isLong = chunk.content.length > 120;
@@ -47,7 +52,7 @@ function ChunkCard({ chunk, index }: ChunkCardProps) {
         </span>
         {chunk.tokenCount !== undefined && (
           <span className="text-[11px]" style={{ color: "var(--color-ash)" }}>
-            {chunk.tokenCount} tokens
+            {t('detail.tokens', { count: chunk.tokenCount })}
           </span>
         )}
       </div>
@@ -65,7 +70,7 @@ function ChunkCard({ chunk, index }: ChunkCardProps) {
           className="mt-1 text-[12px] font-medium"
           style={{ color: "var(--color-ember-orange)" }}
         >
-          {expanded ? "Show less" : "Show more"}
+          {expanded ? t('detail.showLess') : t('detail.showMore')}
         </button>
       )}
     </div>
@@ -75,6 +80,7 @@ function ChunkCard({ chunk, index }: ChunkCardProps) {
 // ---- Main page --------------------------------------------------------------
 
 export function DocumentDetailPage() {
+  const { t } = useTranslation('documents');
   const { documentId = "" } = useParams<{ documentId: string }>();
   const navigate = useNavigate();
 
@@ -97,7 +103,7 @@ export function DocumentDetailPage() {
         (err as { response?: { data?: unknown } })?.response?.data,
         (err as { response?: { status?: number } })?.response?.status ?? 500,
       );
-      setApiError(p ?? { type: "about:blank", title: "Ingest failed", status: 500 });
+      setApiError(p ?? { type: "about:blank", title: t('detail.errors.ingestFailed'), status: 500 });
     }
   }
 
@@ -111,7 +117,7 @@ export function DocumentDetailPage() {
         (err as { response?: { data?: unknown } })?.response?.data,
         (err as { response?: { status?: number } })?.response?.status ?? 500,
       );
-      setApiError(p ?? { type: "about:blank", title: "Delete failed", status: 500 });
+      setApiError(p ?? { type: "about:blank", title: t('detail.errors.deleteFailed'), status: 500 });
       setShowDeleteConfirm(false);
     }
   }
@@ -138,29 +144,26 @@ export function DocumentDetailPage() {
   if (!document) return null;
 
   const statusStyle = INGEST_STATUS_STYLE[document.ingestStatus] ?? INGEST_STATUS_STYLE.registered;
+  const ingestStatusLabelMap: Record<typeof document.ingestStatus, string> = {
+    registered: t('detail.ingestStatus.registered'),
+    pending: t('detail.ingestStatus.pending'),
+    processing: t('detail.ingestStatus.processing'),
+    completed: t('detail.ingestStatus.ready'),
+    failed: t('detail.ingestStatus.failed'),
+  };
+  const ingestStatusLabel = ingestStatusLabelMap[document.ingestStatus] ?? ingestStatusLabelMap.registered;
 
   return (
     <main
       data-testid="document-detail"
       className="mx-auto max-w-[800px] px-6 py-12"
     >
-      {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center gap-2 text-[13px]" aria-label="Breadcrumb">
-        <Link
-          to="/documents"
-          className="no-underline transition-colors"
-          style={{ color: "var(--color-graphite)" }}
-        >
-          Document Library
-        </Link>
-        <span style={{ color: "var(--color-ash)" }}>/</span>
-        <span
-          className="truncate font-medium"
-          style={{ color: "var(--color-charcoal-primary)" }}
-        >
-          {document.title}
-        </span>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: t('detail.breadcrumb'), href: "/documents" },
+          { label: document.title },
+        ]}
+      />
 
       {/* API error */}
       {apiError && (
@@ -188,22 +191,19 @@ export function DocumentDetailPage() {
               {document.title}
             </h1>
             <div className="flex flex-wrap items-center gap-3">
-              <span
+              <Badge
                 data-testid="detail-ingest-status"
-                className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-                style={{
-                  backgroundColor: `${statusStyle.color}1a`,
-                  color: statusStyle.color,
-                }}
-              >
-                {statusStyle.label}
-              </span>
+                label={ingestStatusLabel}
+                shape="pill"
+                bg={`${statusStyle.color}1a`}
+                color={statusStyle.color}
+              />
               <span className="text-[13px]" style={{ color: "var(--color-ash)" }}>
-                {document.sourceType === "pasted-text" ? "Pasted text" : document.sourceType}
+                {document.sourceType === "pasted-text" ? t('detail.sourceType.pastedText') : document.sourceType}
               </span>
               {document.chunkCount !== undefined && (
                 <span className="text-[13px]" style={{ color: "var(--color-ash)" }}>
-                  {document.chunkCount} chunks
+                  {t('detail.chunks', { count: document.chunkCount })}
                 </span>
               )}
             </div>
@@ -211,31 +211,25 @@ export function DocumentDetailPage() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <button
+            <PillButton
               type="button"
+              variant="secondary"
+              size="sm"
               data-testid="reingest-btn"
               onClick={handleReingest}
               disabled={ingestMutation.isPending}
-              className="rounded-[32px] px-4 py-2 text-[13px] font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
-              style={{
-                backgroundColor: "var(--color-stone-surface)",
-                color: "var(--color-graphite)",
-              }}
             >
-              {ingestMutation.isPending ? "Ingesting…" : "Re-ingest"}
-            </button>
-            <button
+              {ingestMutation.isPending ? t('detail.reingestingBtn') : t('detail.reingestBtn')}
+            </PillButton>
+            <PillButton
               type="button"
+              variant="ghost-danger"
+              size="sm"
               data-testid="delete-doc-btn"
               onClick={() => setShowDeleteConfirm(true)}
-              className="rounded-[32px] px-4 py-2 text-[13px] font-medium transition-opacity hover:opacity-80"
-              style={{
-                backgroundColor: "var(--color-stone-surface)",
-                color: "var(--color-coral-red)",
-              }}
             >
-              Delete
-            </button>
+              {t('detail.deleteBtn')}
+            </PillButton>
           </div>
         </div>
 
@@ -249,30 +243,27 @@ export function DocumentDetailPage() {
               className="mb-3 text-[14px]"
               style={{ color: "var(--color-charcoal-primary)" }}
             >
-              Delete this document permanently? This cannot be undone.
+              {t('detail.deleteConfirm')}
             </p>
             <div className="flex gap-2">
-              <button
+              <PillButton
                 type="button"
+                variant="danger"
+                size="sm"
+                data-testid="confirm-delete-btn"
                 onClick={handleDelete}
                 disabled={deleteMutation.isPending}
-                data-testid="confirm-delete-btn"
-                className="rounded-[32px] px-4 py-1.5 text-[13px] font-medium text-white disabled:opacity-50"
-                style={{ backgroundColor: "var(--color-coral-red)" }}
               >
-                {deleteMutation.isPending ? "Deleting…" : "Delete"}
-              </button>
-              <button
+                {deleteMutation.isPending ? t('detail.deletingBtn') : t('detail.confirmDeleteBtn')}
+              </PillButton>
+              <PillButton
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="rounded-[32px] px-4 py-1.5 text-[13px] font-medium"
-                style={{
-                  backgroundColor: "transparent",
-                  color: "var(--color-graphite)",
-                }}
               >
-                Cancel
-              </button>
+                {t('detail.cancelBtn')}
+              </PillButton>
             </div>
           </div>
         )}
@@ -284,12 +275,12 @@ export function DocumentDetailPage() {
           className="mb-4 text-[17px] font-semibold"
           style={{ color: "var(--color-charcoal-primary)" }}
         >
-          Chunks
+          {t('detail.chunksHeading')}
         </h2>
 
         {chunksLoading && (
           <p className="text-[14px]" style={{ color: "var(--color-ash)" }}>
-            Loading chunks…
+            {t('detail.chunksLoading')}
           </p>
         )}
 
@@ -298,7 +289,7 @@ export function DocumentDetailPage() {
             className="text-[14px]"
             style={{ color: "var(--color-ash)" }}
           >
-            No chunks yet. Trigger ingest to generate embeddings.
+            {t('detail.chunksEmpty')}
           </p>
         )}
 

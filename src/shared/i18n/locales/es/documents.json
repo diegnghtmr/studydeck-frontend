@@ -1,0 +1,65 @@
+{
+  "library": {
+    "heading": "Biblioteca de Documentos",
+    "subtitle": "Agregá documentos para fundamentar tu chat de IA y la generación de tarjetas.",
+    "addButton": "Agregar Documento",
+    "sourceType": {
+      "pastedText": "Texto"
+    },
+    "chunks": "{{count}} fragmentos",
+    "ingestStatus": {
+      "registered": "Registrado",
+      "pending": "Pendiente",
+      "processing": "Procesando...",
+      "ready": "Listo",
+      "failed": "Fallido"
+    },
+    "form": {
+      "heading": "Agregar Documento",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Título del documento",
+      "contentLabel": "Contenido (pegá el texto)",
+      "contentPlaceholder": "Pegá el contenido de texto que querés agregar a tu base de conocimiento...",
+      "cancelBtn": "Cancelar",
+      "addingBtn": "Agregando...",
+      "submitBtn": "Agregar e Ingestar"
+    },
+    "loadingAriaLabel": "Cargando documentos",
+    "emptyHeading": "Sin documentos aún",
+    "emptyBody": "Agregá tu primer documento para empezar a usar el chat RAG y la generación de tarjetas con IA.",
+    "errors": {
+      "createFailed": "Error al crear el documento"
+    }
+  },
+  "detail": {
+    "breadcrumb": "Biblioteca de Documentos",
+    "sourceType": {
+      "pastedText": "Texto pegado"
+    },
+    "chunks": "{{count}} fragmentos",
+    "tokens": "{{count}} tokens",
+    "ingestStatus": {
+      "registered": "Registrado",
+      "pending": "Pendiente",
+      "processing": "Procesando...",
+      "ready": "Listo",
+      "failed": "Fallido"
+    },
+    "reingestingBtn": "Ingiriendo…",
+    "reingestBtn": "Reingestar",
+    "deleteBtn": "Eliminar",
+    "deleteConfirm": "¿Eliminar este documento permanentemente? Esta acción no se puede deshacer.",
+    "deletingBtn": "Eliminando…",
+    "confirmDeleteBtn": "Eliminar",
+    "cancelBtn": "Cancelar",
+    "chunksHeading": "Fragmentos",
+    "showLess": "Ver menos",
+    "showMore": "Ver más",
+    "chunksLoading": "Cargando fragmentos…",
+    "chunksEmpty": "Sin fragmentos aún. Activá la ingestión para generar embeddings.",
+    "errors": {
+      "ingestFailed": "Error al ingestar",
+      "deleteFailed": "Error al eliminar"
+    }
+  }
+}

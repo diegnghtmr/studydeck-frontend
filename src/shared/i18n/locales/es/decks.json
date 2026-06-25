@@ -1,0 +1,172 @@
+{
+  "page": {
+    "title": "Tarjetas y mazos",
+    "subtitle": "Explora y gestiona tus mazos y tarjetas de estudio."
+  },
+  "actions": {
+    "newDeck": "Nuevo mazo",
+    "newCard": "Nueva tarjeta",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "create": "Crear mazo",
+    "creating": "Creando…",
+    "delete": "Eliminar",
+    "rename": "Renombrar",
+    "archive": "Archivar",
+    "archived": "Archivado",
+    "importJson": "Importar JSON",
+    "startReview": "Iniciar repaso",
+    "open": "Abrir mazo"
+  },
+  "sidebar": {
+    "decksLabel": "MAZOS",
+    "allDecks": "Todos los mazos",
+    "showAllDecks": "Mostrar todos los mazos"
+  },
+  "search": {
+    "cardsPlaceholder": "Buscar tarjetas…",
+    "decksPlaceholder": "Buscar mazos…",
+    "noCardsMatch": "No hay tarjetas que coincidan con tu búsqueda."
+  },
+  "toast": {
+    "deckDeleted": "Mazo eliminado.",
+    "deckCreated": "Mazo creado.",
+    "deckRenamed": "Mazo renombrado.",
+    "cardDeleted": "Tarjeta eliminada.",
+    "cardAdded": "Tarjeta añadida."
+  },
+  "deckRow": {
+    "selectDeck": "Seleccionar mazo: {{title}}",
+    "openDeck": "Abrir mazo",
+    "openDeckAria": "Abrir {{title}}",
+    "renameDeck": "Renombrar {{title}}",
+    "deleteDeck": "Eliminar {{title}}"
+  },
+  "deckDelete": {
+    "title": "¿Eliminar mazo?",
+    "description": "Esto eliminará permanentemente el mazo y todas sus tarjetas. Esta acción no se puede deshacer.",
+    "confirm": "Eliminar mazo"
+  },
+  "cardItem": {
+    "openCard": "Abrir tarjeta: {{front}}",
+    "deleteCard": "Eliminar tarjeta",
+    "unknownDeck": "Mazo desconocido"
+  },
+  "cardDelete": {
+    "title": "¿Eliminar tarjeta?",
+    "description": "Esta tarjeta se eliminará permanentemente.",
+    "confirm": "Eliminar tarjeta"
+  },
+  "deckModal": {
+    "titleNew": "Nuevo mazo",
+    "titleRename": "Renombrar mazo",
+    "nameLabel": "Nombre del mazo",
+    "namePlaceholder": "Dale a tu mazo un nombre claro y memorable.",
+    "nameHint": "Dale a tu mazo un nombre claro y memorable.",
+    "iconLegend": "Ícono",
+    "iconAuto": "Ícono automático",
+    "iconItem": "Ícono {{name}}",
+    "iconAutoLabel": "Auto",
+    "colorLegend": "Color",
+    "colorAuto": "Color automático",
+    "colorItem": "Color {{color}}",
+    "colorAutoLabel": "Auto",
+    "preview": "Vista previa",
+    "submitCreate": "Crear mazo",
+    "submitSave": "Guardar nombre"
+  },
+  "cardModal": {
+    "title": "Nueva tarjeta",
+    "closeAria": "Cerrar",
+    "deckLabel": "Mazo",
+    "deckSelectPlaceholder": "Seleccionar un mazo",
+    "cardTypeLabel": "Tipo de tarjeta",
+    "addCloze": "+ Eliminación de pista",
+    "clozeHint": "{{count}} eliminación(es) de pista · envuelve el texto como \\{{c1::palabra}}",
+    "mcqOptionsLabel": "Opciones — toca una letra para marcar la correcta",
+    "mcqOptionAria": "Respuesta correcta: opción {{key}}",
+    "mcqOptionPlaceholder": "Opción {{key}}",
+    "submitAdd": "Agregar tarjeta"
+  },
+  "cardTypes": {
+    "basic": "Básica",
+    "reversed": "Invertida",
+    "cloze": "Cloze",
+    "multipleChoice": "Opción múltiple",
+    "freeText": "Texto libre"
+  },
+  "typeFilter": {
+    "allTypes": "Todos los tipos"
+  },
+  "preview": {
+    "clozeDeletion": "(eliminación de pista)",
+    "optionsCount": "{{count}} opciones"
+  },
+  "frontLabel": {
+    "cloze": "Texto cloze",
+    "question": "Pregunta",
+    "prompt": "Indicación",
+    "front": "Frente"
+  },
+  "frontPlaceholder": {
+    "cloze": "La \\{{c1::mitocondria}} produce ATP.",
+    "question": "¿Qué orgánulo produce ATP?",
+    "freeText": "Explica el proceso con tus propias palabras…",
+    "front": "Frente de la tarjeta…"
+  },
+  "backLabel": {
+    "expectedAnswer": "Respuesta esperada",
+    "back": "Reverso"
+  },
+  "backPlaceholder": {
+    "modelAnswer": "Respuesta modelo para autoevaluación…",
+    "back": "Reverso de la tarjeta…"
+  },
+  "detail": {
+    "loadingAria": "Cargando mazo",
+    "myDecks": "Mis mazos",
+    "nameLabel": "Nombre del mazo",
+    "descriptionLabel": "Descripción",
+    "notesHeading": "Notas",
+    "newNote": "+ Nueva nota",
+    "noNotes": "Aún no hay notas.",
+    "createFirstNote": "Crear la primera nota",
+    "validation": {
+      "nameRequired": "El nombre del mazo es obligatorio.",
+      "nameTooLong": "El nombre debe tener 120 caracteres o menos."
+    },
+    "archiveDialog": {
+      "title": "¿Archivar este mazo?",
+      "description": "Los mazos archivados se ocultan de la lista principal. Puedes desarchivarlos más tarde.",
+      "confirm": "Archivar",
+      "cancel": "Mantener"
+    },
+    "deleteDialog": {
+      "title": "¿Eliminar este mazo?",
+      "description": "Esto eliminará permanentemente el mazo y todas sus notas y tarjetas. Esta acción no se puede deshacer.",
+      "confirm": "Eliminar para siempre",
+      "cancel": "Mantener mazo"
+    }
+  },
+  "create": {
+    "breadcrumbMyDecks": "Mis mazos",
+    "breadcrumbNew": "Nuevo mazo",
+    "heading": "Crear un mazo",
+    "nameLabel": "Nombre del mazo",
+    "namePlaceholder": "ej. Biología 101",
+    "descriptionLabel": "Descripción",
+    "descriptionOptional": "(opcional)",
+    "descriptionPlaceholder": "¿De qué trata este mazo?",
+    "visibilityLegend": "Visibilidad",
+    "validation": {
+      "nameRequired": "El nombre del mazo es obligatorio.",
+      "nameTooLong": "El nombre debe tener 120 caracteres o menos.",
+      "descriptionTooLong": "La descripción debe tener 1000 caracteres o menos."
+    },
+    "error": {
+      "title": "Algo salió mal",
+      "description": "No se pudo crear el mazo. Por favor, inténtalo de nuevo."
+    }
+  }
+}

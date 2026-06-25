@@ -15,10 +15,12 @@ interface BadgeProps {
   bg?: string;
   /** Override text color (overrides tone) */
   color?: string;
+  /** Border radius variant. "pill" = 9999px, "rounded" (default) = 6px. */
+  shape?: "rounded" | "pill";
   "data-testid"?: string;
 }
 
-export function Badge({ label, tone = "blue", bg, color, "data-testid": testId }: BadgeProps) {
+export function Badge({ label, tone = "blue", bg, color, shape, "data-testid": testId }: BadgeProps) {
   const resolved = TONE_STYLES[tone];
   return (
     <span
@@ -27,8 +29,9 @@ export function Badge({ label, tone = "blue", bg, color, "data-testid": testId }
       style={{
         backgroundColor: bg ?? resolved.bg,
         color: color ?? resolved.color,
-        borderRadius: "6px",
-        padding: "2px 8px",
+        borderRadius: shape === "pill" ? "9999px" : "6px",
+        padding: "3px 9px",
+        letterSpacing: "0.3px",
       }}
     >
       {label}

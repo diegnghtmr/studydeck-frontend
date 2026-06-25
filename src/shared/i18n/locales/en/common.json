@@ -1,0 +1,85 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "study": "Study",
+    "cardsDecks": "Cards & Decks",
+    "importJson": "Import JSON",
+    "aiGenerate": "AI Generate",
+    "askYourNotes": "Ask your notes",
+    "settings": "Settings",
+    "dailyGoal": "Daily goal",
+    "collapseAria": "Collapse sidebar",
+    "expandAria": "Expand sidebar",
+    "mainNavAria": "Main navigation",
+    "decks": "Decks",
+    "documents": "Documents",
+    "aiChat": "AI Chat",
+    "logIn": "Log In",
+    "getStarted": "Get Started"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Some preferences are stored locally in your browser only and not synced to the server.",
+    "sections": {
+      "profile": "Profile",
+      "aiProviders": "AI Providers",
+      "studyScheduler": "Study & Scheduler",
+      "account": "Account"
+    },
+    "profile": {
+      "displayName": "Display name",
+      "email": "Email",
+      "language": "Language",
+      "timezone": "Timezone",
+      "syncedFromHint": "Synced from your account — not editable here.",
+      "syncedHint": "Synced to your account."
+    },
+    "aiProviders": {
+      "infoBanner": "Your API keys are stored in your browser only. They are sent to our backend to reach your provider — never to any third party directly.",
+      "addLabel": "Add provider:",
+      "choosePlaceholder": "Choose a preset…",
+      "noProviders": "No providers configured. Add one above.",
+      "baseUrlLabel": "Base URL",
+      "modelLabel": "Model",
+      "apiKeyLabel": "API Key",
+      "badgeActive": "Active",
+      "badgeConfigured": "Configured",
+      "badgeNotSet": "Not set",
+      "useButton": "Use",
+      "removeButton": "Remove",
+      "enabledLabel": "Enabled",
+      "providerSavedToast": "Provider saved",
+      "providerRemovedToast": "Provider removed",
+      "providerAddedToast": "{{label}} provider added",
+      "removeDialogTitle": "Remove provider?",
+      "removeDialogDescription": "This will remove the provider and its API key from your browser.",
+      "removeDialogConfirm": "Remove",
+      "removeDialogCancel": "Cancel"
+    },
+    "study": {
+      "schedulerAlgorithm": "Scheduler algorithm",
+      "savedLocallyHint": "Saved locally in your browser.",
+      "dailyGoal": "Daily goal",
+      "cardsPerDayOption": "{{count}} cards / day",
+      "cardsOption": "{{count}} cards",
+      "dailyGoalHint": "Synced to your account — drives the sidebar goal and progress.",
+      "targetRetention": "Target retention",
+      "syncedHint": "Synced to your account.",
+      "newCardsDay": "New cards / day",
+      "showIntervals": "Show intervals"
+    },
+    "account": {
+      "title": "Account",
+      "thisDevice": "This device",
+      "activeSession": "Active",
+      "sessionHint": "Only your current session is shown. Multi-session management is not yet available.",
+      "signOutEverywhere": "Sign out everywhere",
+      "deleteAccount": "Delete account",
+      "deleteDialogTitle": "Delete account?",
+      "deleteDialogDescription": "This will permanently delete your account and all your data. This action cannot be undone.",
+      "deleteDialogConfirm": "Delete account",
+      "deleteDialogCancel": "Cancel",
+      "deleteFailed": "Failed to delete account. Please try again."
+    }
+  }
+}

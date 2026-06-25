@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 
@@ -122,7 +122,7 @@ describe("ImportWizardPage — Step 1: Input", () => {
     renderWizard(qc);
     expect(screen.getByTestId("import-wizard")).toBeInTheDocument();
     expect(screen.getByTestId("json-input")).toBeInTheDocument();
-    expect(screen.getByText(/paste json/i)).toBeInTheDocument();
+    expect(screen.getByText(/paste a versioned payload/i)).toBeInTheDocument();
   });
 
   it("shows a client-side error for invalid JSON without calling the API", async () => {
@@ -180,8 +180,9 @@ describe("ImportWizardPage — Step 2: Validate", () => {
     vi.clearAllMocks();
   });
 
-  it("calls validate API and shows success when valid", async () => {
+  it("goes straight to the preview when valid (combined validate & preview)", async () => {
     mockValidate.mockResolvedValue({ data: VALIDATION_VALID, status: 200 } as never);
+    mockPreview.mockResolvedValue({ data: PREVIEW_RESULT, status: 200 } as never);
 
     const user = userEvent.setup();
     renderWizard(qc);
@@ -190,12 +191,11 @@ describe("ImportWizardPage — Step 2: Validate", () => {
 
     await user.click(screen.getByTestId("wizard-next-btn"));
 
+    // No bare "Valid" screen — the rich preview is shown directly, like the prototype.
     await waitFor(() => {
-      expect(screen.getByTestId("validation-result")).toBeInTheDocument();
+      expect(screen.getByTestId("preview-result")).toBeInTheDocument();
     });
-
-    // Should show the status heading (Valid or Validation Failed)
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(/valid/i);
+    expect(mockPreview).toHaveBeenCalled();
   });
 
   it("shows validation errors returned by the API and blocks progress", async () => {
@@ -236,11 +236,7 @@ describe("ImportWizardPage — Step 3: Preview", () => {
 
     setJsonInput(VALID_JSON);
 
-    // Step 1 → Step 2 (validate)
-    await user.click(screen.getByTestId("wizard-next-btn"));
-    await waitFor(() => expect(screen.getByTestId("validation-result")).toBeInTheDocument());
-
-    // Step 2 → Step 3 (preview)
+    // One action: "Validate & preview" runs both and shows the preview.
     await user.click(screen.getByTestId("wizard-next-btn"));
     await waitFor(() => expect(screen.getByTestId("preview-result")).toBeInTheDocument());
   }
@@ -279,15 +275,11 @@ describe("ImportWizardPage — Step 4: Confirm", () => {
 
     setJsonInput(VALID_JSON);
 
-    // Step 1 → 2
-    await user.click(screen.getByTestId("wizard-next-btn"));
-    await waitFor(() => expect(screen.getByTestId("validation-result")).toBeInTheDocument());
-
-    // Step 2 → 3
+    // Validate & preview (combined)
     await user.click(screen.getByTestId("wizard-next-btn"));
     await waitFor(() => expect(screen.getByTestId("preview-result")).toBeInTheDocument());
 
-    // Step 3 → 4 (execute import)
+    // Approve & import
     await user.click(screen.getByTestId("wizard-next-btn"));
     await waitFor(() => expect(screen.getByTestId("import-result")).toBeInTheDocument());
   }
@@ -386,9 +378,6 @@ describe("ImportWizardPage — New UI features", () => {
     setJsonInput(VALID_JSON);
 
     await user.click(screen.getByTestId("wizard-next-btn"));
-    await waitFor(() => expect(screen.getByTestId("validation-result")).toBeInTheDocument());
-
-    await user.click(screen.getByTestId("wizard-next-btn"));
     await waitFor(() => expect(screen.getByTestId("preview-result")).toBeInTheDocument());
 
     await user.click(screen.getByTestId("wizard-next-btn"));
@@ -429,11 +418,7 @@ describe("ImportWizardPage — New UI features", () => {
 
     setJsonInput(VALID_JSON);
 
-    // Step 1
-    await user.click(screen.getByTestId("wizard-next-btn"));
-    await waitFor(() => expect(screen.getByTestId("validation-result")).toBeInTheDocument());
-
-    // Step 2
+    // Validate & preview (combined) → preview shown directly
     await user.click(screen.getByTestId("wizard-next-btn"));
     await waitFor(() => expect(screen.getByTestId("preview-result")).toBeInTheDocument());
 
@@ -445,5 +430,67 @@ describe("ImportWizardPage — New UI features", () => {
       expect(screen.getByText("Biology Deck")).toBeInTheDocument();
       expect(screen.getByText("Math Deck")).toBeInTheDocument();
     });
+  });
+});
+
+describe("ImportWizardPage — deck-scoped (/decks/:deckId/import)", () => {
+  let qc: QueryClient;
+
+  function renderScopedWizard(deckId = "deck-123") {
+    return render(
+      createElement(
+        QueryClientProvider,
+        { client: qc },
+        createElement(
+          MemoryRouter,
+          { initialEntries: [`/decks/${deckId}/import`] },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: "/decks/:deckId/import",
+              element: createElement(ImportWizardPage),
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+
+  beforeEach(() => {
+    qc = makeQC();
+    vi.clearAllMocks();
+    vi.mocked(decksApi.getDeck).mockResolvedValue({
+      data: { id: "deck-123", title: "Spanish Vocabulary", archived: false },
+      status: 200,
+    } as never);
+    vi.mocked(decksApi.listDecks).mockResolvedValue({
+      data: { items: [], page: { page: 0, size: 20, totalElements: 0, totalPages: 0 } },
+      status: 200,
+    } as never);
+  });
+
+  it("shows the deck breadcrumb and a contextual title", async () => {
+    renderScopedWizard();
+
+    await waitFor(() => {
+      expect(screen.getByText("Import into Spanish Vocabulary")).toBeInTheDocument();
+    });
+    expect(screen.getByText("My Decks")).toBeInTheDocument();
+  });
+
+  it("locks the target deck (no editable dropdown) in the preview step", async () => {
+    mockValidate.mockResolvedValue({ data: VALIDATION_VALID, status: 200 } as never);
+    mockPreview.mockResolvedValue({ data: PREVIEW_RESULT, status: 200 } as never);
+
+    const user = userEvent.setup();
+    renderScopedWizard();
+
+    setJsonInput(VALID_JSON);
+    await user.click(screen.getByTestId("wizard-next-btn"));
+    await waitFor(() => expect(screen.getByTestId("preview-result")).toBeInTheDocument());
+
+    expect(screen.getByTestId("deck-locked")).toHaveTextContent("Spanish Vocabulary");
+    expect(screen.queryByTestId("deck-dropdown")).not.toBeInTheDocument();
   });
 });

@@ -23,6 +23,8 @@ import { cardsApi, reviewsApi } from "@shared/api/client";
 import { useDeck } from "@features/decks/hooks/use-decks";
 import { DeckIcon } from "@features/decks/DeckIcon";
 import { Badge, PillButton, ProgressBar } from "@shared/ui";
+import { parseCloze } from "./lib/render-cloze";
+import { useTranslation } from "react-i18next";
 
 // ---- Review state machine ---------------------------------------------------
 
@@ -40,12 +42,19 @@ type ReviewState = (typeof REVIEW_STATE)[keyof typeof REVIEW_STATE];
 
 // ---- Rating config ----------------------------------------------------------
 
-const RATINGS: Array<{ rating: ReviewRating; label: string; key: string; color: string }> = [
-  { rating: REVIEW_RATING.AGAIN, label: "Again", key: "1", color: "#ff3e00" },
-  { rating: REVIEW_RATING.HARD,  label: "Hard",  key: "2", color: "#d48f00" },
-  { rating: REVIEW_RATING.GOOD,  label: "Good",  key: "3", color: "#343433" },
-  { rating: REVIEW_RATING.EASY,  label: "Easy",  key: "4", color: "#00ca48" },
+const RATINGS: Array<{ rating: ReviewRating; key: string; color: string }> = [
+  { rating: REVIEW_RATING.AGAIN, key: "1", color: "#ff3e00" },
+  { rating: REVIEW_RATING.HARD,  key: "2", color: "#d48f00" },
+  { rating: REVIEW_RATING.GOOD,  key: "3", color: "#343433" },
+  { rating: REVIEW_RATING.EASY,  key: "4", color: "#00ca48" },
 ];
+
+const RATING_STYLE: Record<string, { ringColor: string; ringHover: string; labelColor: string }> = {
+  again: { ringColor: "#f3dcd6", ringHover: "#ff3e00", labelColor: "#ff3e00" },
+  hard:  { ringColor: "#f2f0ed", ringHover: "#d48f00", labelColor: "#d48f00" },
+  good:  { ringColor: "#f2f0ed", ringHover: "#0090ff", labelColor: "#343433" },
+  easy:  { ringColor: "#cfeede", ringHover: "#00ca48", labelColor: "#00ca48" },
+};
 
 // ---- Sub-components ---------------------------------------------------------
 
@@ -56,6 +65,7 @@ interface StartScreenProps {
 }
 
 function StartScreen({ deckId, onStart, isStarting }: StartScreenProps) {
+  const { t } = useTranslation("study");
   return (
     <div
       data-testid="review-start-screen"
@@ -80,12 +90,12 @@ function StartScreen({ deckId, onStart, isStarting }: StartScreenProps) {
           marginBottom: 12,
         }}
       >
-        Ready to review?
+        {t("review.readyToReview")}
       </h1>
       <p style={{ fontSize: 15, color: "#848281", margin: 0, marginBottom: 36 }}>
         {deckId
-          ? "Cards due for this deck will be shown in order."
-          : "All your due cards across every deck."}
+          ? t("review.descDeckDue")
+          : t("review.descAllDue")}
       </p>
       <button
         type="button"
@@ -104,7 +114,7 @@ function StartScreen({ deckId, onStart, isStarting }: StartScreenProps) {
           transition: "opacity 0.15s",
         }}
       >
-        {isStarting ? "Starting…" : "Start session"}
+        {isStarting ? t("review.starting") : t("review.startSession")}
       </button>
     </div>
   );
@@ -119,9 +129,10 @@ interface DeckTopBarProps {
 }
 
 function DeckTopBar({ deckId, reviewedCount, onClose }: DeckTopBarProps) {
+  const { t } = useTranslation("study");
   const { data: deckData } = useDeck(deckId ?? "");
 
-  const deckTitle = deckData?.title ?? (deckId ? "Loading…" : "All decks");
+  const deckTitle = deckData?.title ?? (deckId ? t("review.loading") : t("review.allDecks"));
 
   return (
     <header
@@ -172,18 +183,18 @@ function DeckTopBar({ deckId, reviewedCount, onClose }: DeckTopBarProps) {
         <span style={{ fontSize: 15, fontWeight: 600, color: "#343433" }}>
           {deckTitle}
         </span>
-        <Badge label="FSRS scheduler" tone="gray" />
+        <Badge label={t("review.fsrsScheduler")} tone="gray" />
       </div>
 
       {/* Right: card counter + close */}
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <span style={{ fontSize: 13, color: "#a7a7a7" }}>
-          Card {reviewedCount + 1}
+          {t("review.card", { number: reviewedCount + 1 })}
         </span>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close session"
+          aria-label={t("review.closeSession")}
           style={{
             width: 32,
             height: 32,
@@ -194,11 +205,21 @@ function DeckTopBar({ deckId, reviewedCount, onClose }: DeckTopBarProps) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 16,
             color: "#343433",
           }}
         >
-          ×
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
         </button>
       </div>
     </header>
@@ -215,6 +236,7 @@ interface CardFrontPanelProps {
 }
 
 function CardFrontPanel({ card, front, hint, onReveal }: CardFrontPanelProps) {
+  const { t } = useTranslation("study");
   return (
     <div data-testid="review-card-front">
       {/* Flash card */}
@@ -266,7 +288,7 @@ function CardFrontPanel({ card, front, hint, onReveal }: CardFrontPanelProps) {
             gap: 8,
           }}
         >
-          Show answer
+          {t("review.showAnswer")}
           <span
             style={{
               fontSize: 11,
@@ -295,8 +317,18 @@ interface CardRevealedPanelProps {
 }
 
 function CardRevealedPanel({ card, front, back, hint, onRate, isSubmitting }: CardRevealedPanelProps) {
+  const { t } = useTranslation("study");
+  const isClozeCard = card.noteType === "cloze";
+  const clozeSegments = isClozeCard ? parseCloze(back) : null;
+  // For cloze cards, only the group being tested on this card variant
+  // (e.g. "CLOZE-1" → ordinal 1) is the answer; other groups stay plain text,
+  // just as they appear unhidden on the front. 0 = highlight every group (fallback).
+  const activeOrdinal = isClozeCard
+    ? Number.parseInt(card.cardVariant.match(/(\d+)\s*$/)?.[1] ?? "0", 10) || 0
+    : 0;
+
   return (
-    <div className="sd-fade">
+    <div>
       {/* Card */}
       <div
         style={{
@@ -348,10 +380,29 @@ function CardRevealedPanel({ card, front, back, hint, onRate, isSubmitting }: Ca
               textTransform: "uppercase",
             }}
           >
-            ANSWER
+            {t("review.answer")}
           </p>
           <p style={{ fontSize: 20, color: "#474645", margin: 0, lineHeight: 1.5 }}>
-            {back}
+            {isClozeCard && clozeSegments
+              ? clozeSegments.map((seg, i) =>
+                  seg.isCloze && (activeOrdinal === 0 || seg.ordinal === activeOrdinal) ? (
+                    <span
+                      key={i}
+                      style={{
+                        color: "#0090ff",
+                        fontWeight: 600,
+                        backgroundColor: "#eaf4ff",
+                        borderRadius: "4px",
+                        padding: "0 4px",
+                      }}
+                    >
+                      {seg.text}
+                    </span>
+                  ) : (
+                    <span key={i}>{seg.text}</span>
+                  )
+                )
+              : back}
           </p>
         </div>
       </div>
@@ -361,17 +412,19 @@ function CardRevealedPanel({ card, front, back, hint, onRate, isSubmitting }: Ca
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 10,
-          marginTop: 28,
+          gap: "12px",
+          width: "100%",
+          maxWidth: "560px",
+          margin: "28px auto 0",
+          animation: "sdFade 0.25s ease both",
         }}
       >
-        {RATINGS.map(({ rating, label, key, color }) => (
+        {RATINGS.map(({ rating, key }) => (
           <RatingButton
             key={rating}
             rating={rating}
-            label={label}
+            label={t(`review.ratings.${rating}`)}
             keyHint={key}
-            color={color}
             onRate={onRate}
             isSubmitting={isSubmitting}
           />
@@ -387,13 +440,17 @@ interface RatingButtonProps {
   rating: ReviewRating;
   label: string;
   keyHint: string;
-  color: string;
   onRate: (rating: ReviewRating) => void;
   isSubmitting: boolean;
 }
 
-function RatingButton({ rating, label, keyHint, color, onRate, isSubmitting }: RatingButtonProps) {
+function RatingButton({ rating, label, keyHint, onRate, isSubmitting }: RatingButtonProps) {
   const [hovered, setHovered] = useState(false);
+  const { ringColor, ringHover, labelColor } = RATING_STYLE[rating] ?? {
+    ringColor: "#f2f0ed",
+    ringHover: "#343433",
+    labelColor: "#343433",
+  };
 
   return (
     <button
@@ -404,22 +461,25 @@ function RatingButton({ rating, label, keyHint, color, onRate, isSubmitting }: R
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        borderRadius: 14,
-        border: `1px solid ${hovered ? color : "#e8e4df"}`,
-        backgroundColor: "#ffffff",
-        padding: "14px 12px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 6,
+        gap: "5px",
+        background: "#fff",
+        border: "none",
+        borderRadius: "14px",
+        padding: "14px 8px",
         cursor: isSubmitting ? "not-allowed" : "pointer",
-        transition: "all 0.12s",
+        transition: "transform 0.12s ease, box-shadow 0.12s ease",
         opacity: isSubmitting ? 0.4 : 1,
-        boxShadow: hovered ? "0 4px 12px rgba(0,0,0,0.08)" : "none",
+        boxShadow: hovered
+          ? `${ringHover} 0 0 0 1.5px inset`
+          : `${ringColor} 0 0 0 1px inset`,
+        transform: hovered ? "translateY(-2px)" : "translateY(0)",
       }}
     >
-      <span style={{ fontSize: 14, fontWeight: 600, color }}>{label}</span>
-      <span style={{ fontSize: 11, color: "#a7a7a7" }}>{keyHint}</span>
+      <span style={{ fontSize: "14px", fontWeight: 600, color: labelColor }}>{label}</span>
+      <span style={{ fontSize: "12px", color: "#a7a7a7" }}>{keyHint}</span>
     </button>
   );
 }
@@ -435,6 +495,7 @@ interface ReviewSummaryProps {
 
 function ReviewSummary({ reviewedCount, ratings, onStudyAgain }: ReviewSummaryProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation("study");
 
   return (
     <div
@@ -482,10 +543,10 @@ function ReviewSummary({ reviewedCount, ratings, onStudyAgain }: ReviewSummaryPr
           textAlign: "center",
         }}
       >
-        All done
+        {t("review.allDone")}
       </h2>
       <p style={{ fontSize: 15, color: "#848281", marginTop: 8, textAlign: "center" }}>
-        Great work — keep the streak going!
+        {t("review.greatWork")}
       </p>
 
       {/* Stat tiles */}
@@ -499,10 +560,10 @@ function ReviewSummary({ reviewedCount, ratings, onStudyAgain }: ReviewSummaryPr
         }}
       >
         {[
-          { label: "Reviewed", value: reviewedCount },
-          { label: "Again", value: ratings["again"] ?? 0 },
-          { label: "Good", value: ratings["good"] ?? 0 },
-          { label: "Easy", value: ratings["easy"] ?? 0 },
+          { label: t("review.summary.reviewed"), value: reviewedCount },
+          { label: t("review.summary.again"),    value: ratings["again"] ?? 0 },
+          { label: t("review.summary.good"),     value: ratings["good"] ?? 0 },
+          { label: t("review.summary.easy"),     value: ratings["easy"] ?? 0 },
         ].map(({ label, value }) => (
           <div
             key={label}
@@ -535,10 +596,10 @@ function ReviewSummary({ reviewedCount, ratings, onStudyAgain }: ReviewSummaryPr
       {/* Buttons */}
       <div style={{ marginTop: 32, display: "flex", gap: 12 }}>
         <PillButton variant="secondary" onClick={() => navigate("/")}>
-          Back to dashboard
+          {t("review.backToDashboard")}
         </PillButton>
         <PillButton variant="primary" onClick={onStudyAgain}>
-          Study again
+          {t("review.studyAgain")}
         </PillButton>
       </div>
     </div>
@@ -580,16 +641,23 @@ export function ReviewSessionPage() {
   useEffect(() => {
     if (!currentCard) return;
     const cardId = currentCard.id;
+    let cancelled = false;
     setCardPreview(null);
 
     cardsApi.previewCard(cardId).then((res) => {
+      if (cancelled) return;
       const data = res.data as unknown as { front: string; back: string; hint?: string };
       setCardPreview({ front: data.front, back: data.back, hint: data.hint });
       setReviewState(REVIEW_STATE.FRONT);
     }).catch(() => {
+      if (cancelled) return;
       setCardPreview({ front: "", back: "" });
       setReviewState(REVIEW_STATE.FRONT);
     });
+
+    return () => {
+      cancelled = true;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCard?.id]);
 
@@ -729,9 +797,13 @@ export function ReviewSessionPage() {
         />
       )}
 
-      {/* Progress bar — only during active session */}
+      {/* Progress bar — monotonic indicator: grows as reviewedCount increases (no known total) */}
       {isActiveSession && (
-        <ProgressBar value={0} color="#00ca48" height={3} />
+        <ProgressBar
+          value={reviewedCount / (reviewedCount + 1)}
+          color="#00ca48"
+          height={3}
+        />
       )}
 
       {/* Main content area */}
@@ -760,24 +832,52 @@ export function ReviewSessionPage() {
             }}
           >
             <div style={{ width: "100%", maxWidth: 680 }}>
-              {(isFront || reviewState === REVIEW_STATE.LOADING_CARD) && currentCard && cardPreview && (
-                <CardFrontPanel
-                  card={currentCard}
-                  front={cardPreview.front}
-                  hint={cardPreview.hint}
-                  onReveal={handleReveal}
-                />
+              {reviewState === REVIEW_STATE.LOADING_CARD && !cardPreview && (
+                <div
+                  data-testid="card-loading-skeleton"
+                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
+                >
+                  <div
+                    style={{
+                      height: 160,
+                      borderRadius: 16,
+                      backgroundColor: "var(--color-fog, #f2f0ed)",
+                      animation: "sdPulse 1.4s ease-in-out infinite",
+                    }}
+                  />
+                  <div
+                    style={{
+                      height: 44,
+                      borderRadius: 12,
+                      backgroundColor: "var(--color-fog, #f2f0ed)",
+                      animation: "sdPulse 1.4s ease-in-out infinite",
+                    }}
+                  />
+                </div>
               )}
 
-              {(isRevealed || isSubmitting) && currentCard && cardPreview && (
-                <CardRevealedPanel
-                  card={currentCard}
-                  front={cardPreview.front}
-                  back={cardPreview.back}
-                  hint={cardPreview.hint}
-                  onRate={handleRate}
-                  isSubmitting={isSubmitting}
-                />
+              {currentCard && cardPreview && (
+                <div key={currentCard.id} className="sd-fade">
+                  {(isFront || reviewState === REVIEW_STATE.LOADING_CARD) && (
+                    <CardFrontPanel
+                      card={currentCard}
+                      front={cardPreview.front}
+                      hint={cardPreview.hint}
+                      onReveal={handleReveal}
+                    />
+                  )}
+
+                  {(isRevealed || isSubmitting) && (
+                    <CardRevealedPanel
+                      card={currentCard}
+                      front={cardPreview.front}
+                      back={cardPreview.back}
+                      hint={cardPreview.hint}
+                      onRate={handleRate}
+                      isSubmitting={isSubmitting}
+                    />
+                  )}
+                </div>
               )}
             </div>
           </div>

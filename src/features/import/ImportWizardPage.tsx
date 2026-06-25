@@ -1,15 +1,18 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Link, useParams } from "react-router";
+import { useTranslation } from "react-i18next";
 import { ProblemBanner } from "@shared/ui/ProblemBanner";
 import { Card } from "@shared/ui/Card";
 import { PillButton } from "@shared/ui/PillButton";
 import { Badge } from "@shared/ui/Badge";
 import { Dropdown } from "@shared/ui/Dropdown";
 import { Toast } from "@shared/ui/Toast";
+import { Breadcrumb } from "@shared/ui/Breadcrumb";
 import { normalizeApiProblem } from "@shared/api/problem";
 import { flashcardImportV1Schema } from "./schemas/import-schemas";
 import { useValidateImport, usePreviewImport, useExecuteImport } from "./hooks/use-import";
-import { useDecks } from "@features/decks/hooks/use-decks";
+import { useDecks, useDeck } from "@features/decks/hooks/use-decks";
 import type {
   FlashcardImportV1Model,
   ImportValidationResponseModel,
@@ -48,10 +51,50 @@ const SAMPLE_JSON = JSON.stringify(
 // Task: Import it as a new (or supplemented) deck without losing control.
 // Feel: Deliberate, clear, warm — not a scary upload form.
 
+// ---- Small inline outline button (matches prototype row actions) ------------
+
+function GhostButton({
+  onClick,
+  children,
+  "data-testid": testId,
+}: {
+  onClick: () => void;
+  children: ReactNode;
+  "data-testid"?: string;
+}) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      data-testid={testId}
+      style={{
+        background: "#fff",
+        color: hover ? "var(--color-charcoal-primary)" : "#474645",
+        border: "none",
+        boxShadow: `${hover ? "#dcd9d4" : "#e7e4df"} 0 0 0 1px inset`,
+        borderRadius: "9px",
+        padding: "7px 14px",
+        fontSize: "13px",
+        fontWeight: 500,
+        letterSpacing: "-0.16px",
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        transition: "box-shadow 0.15s ease, color 0.15s ease",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
 // ---- Component --------------------------------------------------------------
 
 export function ImportWizardPage() {
   const { deckId: paramDeckId } = useParams();
+  const { t } = useTranslation("import");
 
   // existing state
   const [step, setStep] = useState<WizardStep>(WIZARD_STEP.INPUT);
@@ -69,11 +112,20 @@ export function ImportWizardPage() {
   const [selectedDeckId, setSelectedDeckId] = useState(paramDeckId ?? "");
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [showToast, setShowToast] = useState(false);
+  const [sampleBtnHover, setSampleBtnHover] = useState(false);
+  const [browseHover, setBrowseHover] = useState(false);
+  const [nextBtnHover, setNextBtnHover] = useState(false);
 
   const validateMutation = useValidateImport();
   const previewMutation = usePreviewImport();
   const executeMutation = useExecuteImport();
   const { data: decks } = useDecks();
+  const { data: scopedDeck } = useDeck(paramDeckId ?? "");
+
+  // When reached via /decks/:deckId/import the target deck is fixed to that
+  // deck; the global /import route lets the user pick any deck.
+  const isDeckScoped = Boolean(paramDeckId);
+  const scopedDeckTitle = scopedDeck?.title ?? "this deck";
 
   const isLoading =
     validateMutation.isPending || previewMutation.isPending || executeMutation.isPending;
@@ -142,7 +194,7 @@ export function ImportWizardPage() {
     try {
       parsed = JSON.parse(rawJson);
     } catch {
-      setParseError("Invalid JSON — please check your input.");
+      setParseError(t("errors.invalidJson"));
       return;
     }
 
@@ -158,11 +210,16 @@ export function ImportWizardPage() {
 
     setParsedPayload(zodResult.data as FlashcardImportV1Model);
 
-    // 3. Server-side validate
+    // 3. Server-side validate, then immediately preview when valid — this matches
+    //    the prototype's single "Validate & preview" action (no bare "Valid" screen).
     try {
       const result = await validateMutation.mutateAsync(zodResult.data as FlashcardImportV1Model);
       setValidationResult(result);
-      setStep(WIZARD_STEP.VALIDATE);
+      if (result.valid) {
+        await runPreview(zodResult.data as FlashcardImportV1Model);
+      } else {
+        setStep(WIZARD_STEP.VALIDATE);
+      }
     } catch (err) {
       const p = normalizeApiProblem(
         (err as { response?: { data?: unknown } })?.response?.data,
@@ -175,17 +232,19 @@ export function ImportWizardPage() {
   /**
    * Step 1 → 2: Run :preview
    */
+  /** Runs :preview and shows the rich preview step (rows + selection). */
+  async function runPreview(payload: FlashcardImportV1Model) {
+    const result = await previewMutation.mutateAsync(payload);
+    setPreviewResult(result);
+    setSelectedRows(new Set(Array.from({ length: payload.notes.length }, (_, i) => i)));
+    setStep(WIZARD_STEP.PREVIEW);
+  }
+
   async function handleValidateNext() {
     if (!parsedPayload) return;
     setApiError(null);
-
     try {
-      const result = await previewMutation.mutateAsync(parsedPayload);
-      setPreviewResult(result);
-      setStep(WIZARD_STEP.PREVIEW);
-      setSelectedRows(
-        new Set(Array.from({ length: parsedPayload.notes.length }, (_, i) => i)),
-      );
+      await runPreview(parsedPayload);
     } catch (err) {
       const p = normalizeApiProblem(
         (err as { response?: { data?: unknown } })?.response?.data,
@@ -241,26 +300,37 @@ export function ImportWizardPage() {
 
   return (
     <>
-      <Toast visible={showToast} message="Import complete!" data-testid="toast" />
+      <Toast visible={showToast} message={t("toast.importComplete")} data-testid="toast" />
       <main
         data-testid="import-wizard"
         className="sd-fade mx-auto"
         style={{ maxWidth: "1120px", padding: "48px 56px 80px" }}
       >
         {/* Header */}
+        {isDeckScoped && (
+          <Breadcrumb
+            className="mb-4"
+            items={[
+              { label: t("breadcrumb.myDecks"), href: "/decks" },
+              { label: scopedDeckTitle, href: `/decks/${paramDeckId}` },
+              { label: t("breadcrumb.import") },
+            ]}
+          />
+        )}
         <h1
           style={{
             fontFamily: "var(--font-family)",
             fontSize: "40px",
-            color: "var(--color-charcoal-primary)",
+            color: "#343433",
             marginBottom: "8px",
-            fontWeight: 700,
+            fontWeight: 500,
+            letterSpacing: "-1.2px",
           }}
         >
-          Import JSON
+          {isDeckScoped ? t("titleScoped", { deckTitle: scopedDeckTitle }) : t("titleGlobal")}
         </h1>
         <p style={{ fontSize: "15px", color: "#848281", marginBottom: "32px" }}>
-          Paste or drop a deck.json file to import flashcards.
+          {isDeckScoped ? t("subtitleScoped") : t("subtitleGlobal")}
         </p>
 
         {/* API error */}
@@ -282,7 +352,7 @@ export function ImportWizardPage() {
           }}
         >
           {/* LEFT — Input panel */}
-          <Card radius={16} className="overflow-hidden">
+          <div style={{ background: "#fff", boxShadow: "#f2f0ed 0 0 0 1px inset", borderRadius: "16px", overflow: "hidden" }}>
             {/* Header bar */}
             <div
               style={{
@@ -302,9 +372,9 @@ export function ImportWizardPage() {
                 </svg>
                 <span
                   style={{
-                    fontFamily: "monospace",
-                    fontSize: "11px",
-                    color: "var(--color-ash)",
+                    fontFamily: "'SF Mono', ui-monospace, Menlo, monospace",
+                    fontSize: "12.5px",
+                    color: "#474645",
                   }}
                 >
                   deck.json
@@ -326,10 +396,10 @@ export function ImportWizardPage() {
                 />
                 <span style={{ fontSize: "12px", color: "var(--color-ash)" }}>
                   {validationResult?.valid === true
-                    ? "Validated"
+                    ? t("status.validated")
                     : validationResult?.valid === false
-                      ? "Errors found"
-                      : "Ready"}
+                      ? t("status.errorsFound")
+                      : t("status.ready")}
                 </span>
               </div>
             </div>
@@ -386,32 +456,43 @@ export function ImportWizardPage() {
                 <button
                   type="button"
                   onClick={handleLoadSample}
+                  onMouseEnter={() => setSampleBtnHover(true)}
+                  onMouseLeave={() => setSampleBtnHover(false)}
                   style={{
-                    background: "#ffffff",
-                    border: "1px solid #e5e2dd",
-                    borderRadius: "10px",
-                    padding: "7px 14px",
+                    flex: 1,
+                    background: "#fff",
+                    color: sampleBtnHover ? "#121212" : "#474645",
+                    border: "none",
+                    boxShadow: sampleBtnHover ? "#dcd9d4 0 0 0 1px inset" : "#e7e4df 0 0 0 1px inset",
+                    borderRadius: "9px",
+                    padding: "9px 14px",
                     fontSize: "13px",
                     fontWeight: 500,
-                    color: "var(--color-graphite)",
                     cursor: "pointer",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {sampleLoaded ? "Clear" : "Load sample"}
+                  {sampleLoaded ? t("actions.clear") : t("actions.loadSample")}
                 </button>
                 <label
+                  onMouseEnter={() => setBrowseHover(true)}
+                  onMouseLeave={() => setBrowseHover(false)}
                   style={{
+                    flex: 1,
                     display: "inline-flex",
                     alignItems: "center",
+                    justifyContent: "center",
                     gap: "6px",
-                    background: "#ffffff",
-                    border: "1px solid #e5e2dd",
-                    borderRadius: "10px",
-                    padding: "7px 14px",
+                    background: "#fff",
+                    color: browseHover ? "#121212" : "#474645",
+                    border: "none",
+                    boxShadow: browseHover ? "#dcd9d4 0 0 0 1px inset" : "#e7e4df 0 0 0 1px inset",
+                    borderRadius: "9px",
+                    padding: "9px 14px",
                     fontSize: "13px",
                     fontWeight: 500,
-                    color: "var(--color-graphite)",
                     cursor: "pointer",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   <input
@@ -421,24 +502,39 @@ export function ImportWizardPage() {
                     style={{ display: "none" }}
                     onChange={handleFileChange}
                   />
-                  Browse…
+                  {t("actions.browse")}
                 </label>
               </div>
               {/* Row 2 — primary action */}
               {step !== WIZARD_STEP.CONFIRM && (
-                <PillButton
+                <button
+                  type="button"
                   data-testid="wizard-next-btn"
                   disabled={isNextDisabled || isLoading}
                   onClick={handleNext}
+                  onMouseEnter={() => setNextBtnHover(true)}
+                  onMouseLeave={() => setNextBtnHover(false)}
+                  style={{
+                    width: "100%",
+                    background: nextBtnHover && !(isNextDisabled || isLoading) ? "#343433" : "#121212",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "32px",
+                    padding: "12px",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    opacity: isNextDisabled || isLoading ? 0.6 : 1,
+                  }}
                 >
                   {isLoading && step === WIZARD_STEP.INPUT
-                    ? "Working…"
+                    ? t("actions.working")
                     : step === WIZARD_STEP.VALIDATE
-                      ? "Preview"
+                      ? t("actions.preview")
                       : step === WIZARD_STEP.PREVIEW
-                        ? "Approve & import"
-                        : "Validate & preview"}
-                </PillButton>
+                        ? t("actions.approveAndImport")
+                        : t("actions.validateAndPreview")}
+                </button>
               )}
             </div>
 
@@ -452,93 +548,102 @@ export function ImportWizardPage() {
                 {parseError}
               </p>
             )}
-          </Card>
+          </div>
 
           {/* RIGHT — Preview/Result panel */}
           <div>
             {/* Step 3 — Done state */}
             {step === WIZARD_STEP.CONFIRM && importResult !== null ? (
-              <Card radius={16} data-testid="import-result">
-                <div style={{ padding: "32px", textAlign: "center" }}>
-                  <div
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "50%",
-                      backgroundColor: "#e6f9ed",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto 16px",
-                    }}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                      <path
-                        d="M4 10l4.5 4.5L16 6"
-                        stroke="#00ca48"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                  <p
-                    style={{
-                      fontFamily: "var(--font-family)",
-                      fontSize: "24px",
-                      color: "var(--color-charcoal-primary)",
-                      fontWeight: 700,
-                      marginBottom: "8px",
-                    }}
-                  >
-                    {importResult.importedNotes} cards imported
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "14px",
-                      color: "var(--color-ash)",
-                      marginBottom: "24px",
-                    }}
-                  >
-                    Your deck is ready to study.
-                  </p>
-                  <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-                    <Link
-                      to={`/decks/${importResult.deckId}`}
-                      data-testid="view-deck-link"
-                      style={{
-                        display: "inline-block",
-                        padding: "8px 20px",
-                        backgroundColor: "var(--color-midnight)",
-                        color: "#ffffff",
-                        borderRadius: "32px",
-                        textDecoration: "none",
-                        fontSize: "14px",
-                        fontWeight: 500,
-                      }}
-                    >
-                      View deck
-                    </Link>
-                    <PillButton
-                      variant="secondary"
-                      onClick={() => {
-                        setRawJson("");
-                        setStep(WIZARD_STEP.INPUT);
-                        setPreviewResult(null);
-                        setImportResult(null);
-                        setValidationResult(null);
-                        setParsedPayload(null);
-                        setParseError(null);
-                        setApiError(null);
-                        setSampleLoaded(false);
-                        setSelectedRows(new Set());
-                      }}
-                    >
-                      Import another
-                    </PillButton>
-                  </div>
+              <div
+                data-testid="import-result"
+                style={{
+                  background: "#fff",
+                  boxShadow: "#f2f0ed 0 0 0 1px inset",
+                  borderRadius: "16px",
+                  padding: "48px 24px",
+                  textAlign: "center",
+                  animation: "sdPop 0.35s ease both",
+                }}
+              >
+                <div
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "50%",
+                    background: "#e6f9ed",
+                    margin: "0 auto 18px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <svg width="28" height="28" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 10l4.5 4.5L16 6"
+                      stroke="#00ca48"
+                      strokeWidth="2.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </div>
-              </Card>
+                <p
+                  style={{
+                    fontFamily: "var(--font-family)",
+                    fontSize: "24px",
+                    fontWeight: 500,
+                    color: "#343433",
+                    letterSpacing: "-0.6px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  {t("result.cardsImported", { count: importResult.importedNotes })}
+                </p>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    color: "#848281",
+                    marginBottom: "22px",
+                  }}
+                >
+                  {t("result.deckReady")}
+                </p>
+                <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+                  <Link
+                    to={`/decks/${importResult.deckId}`}
+                    data-testid="view-deck-link"
+                    style={{
+                      display: "inline-block",
+                      padding: "8px 20px",
+                      backgroundColor: "var(--color-midnight)",
+                      color: "#ffffff",
+                      borderRadius: "32px",
+                      textDecoration: "none",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {t("actions.viewDeck")}
+                  </Link>
+                  <PillButton
+                    variant="secondary"
+                    onClick={() => {
+                      setRawJson("");
+                      setStep(WIZARD_STEP.INPUT);
+                      setPreviewResult(null);
+                      setImportResult(null);
+                      setValidationResult(null);
+                      setParsedPayload(null);
+                      setParseError(null);
+                      setApiError(null);
+                      setSampleLoaded(false);
+                      setSelectedRows(new Set());
+                    }}
+                  >
+                    {t("actions.importAnother")}
+                  </PillButton>
+                </div>
+              </div>
             ) : step === WIZARD_STEP.VALIDATE && validationResult !== null ? (
               /* Step 1 — Validation result */
               <Card radius={16} data-testid="validation-result">
@@ -575,7 +680,7 @@ export function ImportWizardPage() {
                         color: "var(--color-charcoal-primary)",
                       }}
                     >
-                      {validationResult.valid ? "Valid" : "Validation Failed"}
+                      {validationResult.valid ? t("validation.valid") : t("validation.failed")}
                     </h2>
                   </div>
                   {validationResult.errors.length > 0 && (
@@ -620,7 +725,7 @@ export function ImportWizardPage() {
               </Card>
             ) : step === WIZARD_STEP.PREVIEW && previewResult !== null ? (
               /* Step 2 — Preview */
-              <div data-testid="preview-result">
+              <div data-testid="preview-result" style={{ animation: "sdFade 0.3s ease both" }}>
                 {/* Stats row */}
                 <div
                   style={{
@@ -648,7 +753,7 @@ export function ImportWizardPage() {
                     >
                       {previewResult.summary.totalNotes}
                     </div>
-                    <div style={{ fontSize: "11.5px", color: "var(--color-ash)" }}>Notes</div>
+                    <div style={{ fontSize: "11.5px", color: "var(--color-ash)" }}>{t("preview.notes")}</div>
                   </div>
                   {/* Duplicate stat */}
                   <div
@@ -669,7 +774,7 @@ export function ImportWizardPage() {
                       {previewResult.summary.duplicateCandidates ?? "—"}
                     </div>
                     <div style={{ fontSize: "11.5px", color: "var(--color-ash)" }}>
-                      Duplicate
+                      {t("preview.duplicate")}
                     </div>
                   </div>
                   {/* Error stat */}
@@ -690,7 +795,7 @@ export function ImportWizardPage() {
                     >
                       {validationResult?.errors.length ?? 0}
                     </div>
-                    <div style={{ fontSize: "11.5px", color: "var(--color-ash)" }}>Error</div>
+                    <div style={{ fontSize: "11.5px", color: "var(--color-ash)" }}>{t("preview.error")}</div>
                   </div>
                 </div>
 
@@ -703,20 +808,81 @@ export function ImportWizardPage() {
                       marginBottom: "8px",
                     }}
                   >
-                    Import into
+                    {t("preview.importInto")}
                   </p>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <Dropdown
-                      items={
-                        decks?.items.map((d) => ({ value: d.id, label: d.title })) ?? []
-                      }
-                      {...(selectedDeckId ? { value: selectedDeckId } : {})}
-                      placeholder="Select a deck…"
-                      onSelect={setSelectedDeckId}
-                      data-testid="deck-dropdown"
-                    />
-                    <button
-                      type="button"
+                    {isDeckScoped ? (
+                      <div
+                        data-testid="deck-locked"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          background: "#fff",
+                          boxShadow: "#e7e4df 0 0 0 1px inset",
+                          borderRadius: "10px",
+                          padding: "8px 12px",
+                        }}
+                      >
+                        <span
+                          className="flex shrink-0 items-center justify-center"
+                          style={{
+                            width: "22px",
+                            height: "22px",
+                            backgroundColor: "#121212",
+                            borderRadius: "6px",
+                            color: "#ff3e00",
+                          }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                              d="M12 3l8.5 4.7L12 12.4 3.5 7.7 12 3ZM4 12l8 4.5 8-4.5M4 16.3l8 4.5 8-4.5"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: 500,
+                            color: "var(--color-charcoal-primary)",
+                          }}
+                        >
+                          {scopedDeckTitle}
+                        </span>
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="var(--color-smoke)"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <rect x="3" y="11" width="18" height="11" rx="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <Dropdown
+                        items={
+                          decks?.items.map((d) => ({ value: d.id, label: d.title })) ?? []
+                        }
+                        {...(selectedDeckId ? { value: selectedDeckId } : {})}
+                        placeholder={t("preview.selectDeckPlaceholder")}
+                        onSelect={setSelectedDeckId}
+                        searchable
+                        searchPlaceholder={t("preview.searchDecksPlaceholder")}
+                        data-testid="deck-dropdown"
+                      />
+                    )}
+                    <GhostButton
+                      data-testid="select-all-rows"
                       onClick={() => {
                         if (parsedPayload) {
                           setSelectedRows(
@@ -729,31 +895,15 @@ export function ImportWizardPage() {
                           );
                         }
                       }}
-                      style={{
-                        fontSize: "12px",
-                        color: "#0090ff",
-                        cursor: "pointer",
-                        background: "none",
-                        border: "none",
-                        padding: 0,
-                      }}
                     >
-                      Select all
-                    </button>
-                    <button
-                      type="button"
+                      {t("actions.selectAll")}
+                    </GhostButton>
+                    <GhostButton
+                      data-testid="clear-rows"
                       onClick={() => setSelectedRows(new Set())}
-                      style={{
-                        fontSize: "12px",
-                        color: "#0090ff",
-                        cursor: "pointer",
-                        background: "none",
-                        border: "none",
-                        padding: 0,
-                      }}
                     >
-                      Clear
-                    </button>
+                      {t("actions.clear")}
+                    </GhostButton>
                   </div>
                 </div>
 
@@ -766,7 +916,7 @@ export function ImportWizardPage() {
                       const totalNotes = previewResult.summary.totalNotes;
                       const isDupe = dupes > 0 && i >= totalNotes - dupes;
                       const badgeTone = isDupe ? "amber" : "green";
-                      const badgeLabel = isDupe ? "Duplicate" : "New";
+                      const badgeLabel = isDupe ? t("preview.badgeDuplicate") : t("preview.badgeNew");
                       const frontText =
                         "front" in note
                           ? note.front
@@ -853,7 +1003,7 @@ export function ImportWizardPage() {
                     }}
                   >
                     <span style={{ fontSize: "12px", color: "var(--color-ash)" }}>
-                      {selectedRows.size} of {parsedPayload?.notes.length ?? 0} selected
+                      {t("preview.selectedOf", { selected: selectedRows.size, total: parsedPayload?.notes.length ?? 0 })}
                     </span>
                   </div>
                 </Card>
@@ -878,42 +1028,39 @@ export function ImportWizardPage() {
               </div>
             ) : (
               /* Empty state */
-              <Card recessed radius={16}>
-                <div style={{ padding: "32px", textAlign: "center" }}>
-                  <p
-                    style={{
-                      fontSize: "14px",
-                      color: "var(--color-ash)",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    Preview appears here
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "13px",
-                      color: "var(--color-ash)",
-                      marginBottom: "16px",
-                    }}
-                  >
-                    Paste JSON to see a preview of what will be imported.
-                  </p>
-                  <pre
-                    style={{
-                      backgroundColor: "var(--color-stone-surface)",
-                      padding: "12px",
-                      borderRadius: "8px",
-                      fontSize: "11px",
-                      fontFamily: "monospace",
-                      textAlign: "left",
-                      margin: 0,
-                      color: "var(--color-charcoal-primary)",
-                    }}
-                  >
-                    {`{\n  "schemaVersion": "1.0",\n  "deck": { "title": "..." },\n  "notes": [{ "noteType": "basic", ... }]\n}`}
-                  </pre>
-                </div>
-              </Card>
+              <div style={{ background: "#f8f7f4", borderRadius: "16px", padding: "28px" }}>
+                <p style={{ fontSize: 15, fontWeight: 600, color: "#343433", marginBottom: "5px" }}>
+                  {t("emptyState.title")}
+                </p>
+                <p style={{ fontSize: 13, color: "#848281", lineHeight: 1.55, marginBottom: "20px" }}>
+                  {t("emptyState.description")}
+                </p>
+                <p style={{ fontSize: 11, fontWeight: 600, color: "#a7a7a7", letterSpacing: "0.3px", textTransform: "uppercase" as const, marginBottom: "9px" }}>
+                  {t("emptyState.expectedShape")}
+                </p>
+                <pre
+                  style={{
+                    background: "#fff",
+                    boxShadow: "#f2f0ed 0 0 0 1px inset",
+                    borderRadius: "10px",
+                    padding: "15px",
+                    fontFamily: "'SF Mono', ui-monospace, Menlo, monospace",
+                    fontSize: 12,
+                    lineHeight: 1.65,
+                    color: "#474645",
+                    whiteSpace: "pre-wrap" as const,
+                    wordBreak: "break-word" as const,
+                    margin: 0,
+                  }}
+                >{`{
+  "schemaVersion": "1.0",
+  "deck": "Spanish Vocabulary",
+  "noteType": "Basic",
+  "notes": [
+    { "front": "…", "back": "…" }
+  ]
+}`}</pre>
+              </div>
             )}
           </div>
         </div>

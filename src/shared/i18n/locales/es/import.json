@@ -1,0 +1,60 @@
+{
+  "titleGlobal": "Importar desde JSON",
+  "titleScoped": "Importar en {{deckTitle}}",
+  "subtitleGlobal": "Pegá un payload versionado. Nada se guarda hasta que revisés y apruebes.",
+  "subtitleScoped": "Pegá un payload versionado. Las tarjetas nuevas se agregan a este mazo — nada se guarda hasta que revisés y apruebes.",
+  "breadcrumb": {
+    "myDecks": "Mis Mazos",
+    "import": "Importar"
+  },
+  "status": {
+    "validated": "Validado",
+    "errorsFound": "Errores encontrados",
+    "ready": "Listo"
+  },
+  "actions": {
+    "loadSample": "Cargar ejemplo",
+    "clear": "Limpiar",
+    "browse": "Examinar…",
+    "validateAndPreview": "Validar y previsualizar",
+    "preview": "Previsualizar",
+    "approveAndImport": "Aprobar e importar",
+    "working": "Procesando…",
+    "selectAll": "Seleccionar todo",
+    "viewDeck": "Ver mazo",
+    "importAnother": "Importar otro"
+  },
+  "validation": {
+    "valid": "Válido",
+    "failed": "Validación fallida"
+  },
+  "preview": {
+    "notes": "Notas",
+    "duplicate": "Duplicado",
+    "error": "Error",
+    "importInto": "Importar en",
+    "selectDeckPlaceholder": "Seleccioná un mazo…",
+    "searchDecksPlaceholder": "Buscar mazos…",
+    "selectedOf": "{{selected}} de {{total}} seleccionados",
+    "badgeNew": "Nuevo",
+    "badgeDuplicate": "Duplicado"
+  },
+  "result": {
+    "cardsImported": "{{count}} tarjetas importadas",
+    "deckReady": "Tu mazo está listo para estudiar."
+  },
+  "emptyState": {
+    "title": "La previsualización aparece aquí",
+    "description": "Validá un payload y cada tarjeta se muestra con verificaciones de duplicados y errores. Nada se escribe hasta que apruebes.",
+    "expectedShape": "ESTRUCTURA ESPERADA"
+  },
+  "errors": {
+    "invalidJson": "JSON no válido — revisá tu entrada.",
+    "validationFailed": "Validación fallida",
+    "previewFailed": "Previsualización fallida",
+    "importFailed": "Importación fallida"
+  },
+  "toast": {
+    "importComplete": "¡Importación completa!"
+  }
+}

@@ -157,14 +157,14 @@ describe("DashboardPage", () => {
     renderDashboard();
     const heading = screen.getByTestId("dashboard-heading");
     expect(heading).toBeInTheDocument();
-    expect(heading).toHaveTextContent(/Good morning, Alice/);
+    expect(heading).toHaveTextContent(/Good (morning|afternoon|evening), Alice/);
   });
 
   it("falls back to 'there' when no user", () => {
     mockAuthAsGuest();
     renderDashboard();
     const heading = screen.getByTestId("dashboard-heading");
-    expect(heading).toHaveTextContent(/Good morning, there/);
+    expect(heading).toHaveTextContent(/Good (morning|afternoon|evening), there/);
   });
 
   it("renders a dashboard-deck-card for each non-archived deck", async () => {
@@ -201,8 +201,22 @@ describe("DashboardPage", () => {
 
     await waitFor(() => {
       expect(screen.queryByTestId("dashboard-deck-card")).not.toBeInTheDocument();
-      expect(screen.getByText(/No decks yet/)).toBeInTheDocument();
+      // Empty grid state is uniquely identified by its "Create one" link
+      // (the "No decks yet" string also appears in the Up next banner).
+      expect(screen.getByRole("link", { name: /Create one/i })).toBeInTheDocument();
     });
+  });
+
+  it("shows loading skeletons instead of default/empty text while data loads", () => {
+    // Default beforeEach: decks query is pending and stats are pending.
+    renderDashboard();
+
+    // Regression: the Up next banner must NOT leak the empty-state text during load.
+    expect(screen.queryByText(/No decks yet/)).not.toBeInTheDocument();
+    // And it must not show a real deck either — only loading placeholders.
+    expect(screen.queryByTestId("dashboard-deck-card")).not.toBeInTheDocument();
+    // Loading placeholders expose role="status" (greeting + up-next banner).
+    expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
   });
 
   it("shows deck due count from stats when available", async () => {

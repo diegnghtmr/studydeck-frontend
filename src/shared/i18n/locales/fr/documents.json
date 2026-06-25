@@ -1,0 +1,65 @@
+{
+  "library": {
+    "heading": "Bibliothèque de Documents",
+    "subtitle": "Ajoutez des documents pour ancrer votre chat IA et la génération de cartes.",
+    "addButton": "Ajouter un Document",
+    "sourceType": {
+      "pastedText": "Texte"
+    },
+    "chunks": "{{count}} fragments",
+    "ingestStatus": {
+      "registered": "Enregistré",
+      "pending": "En attente",
+      "processing": "Traitement...",
+      "ready": "Prêt",
+      "failed": "Échoué"
+    },
+    "form": {
+      "heading": "Ajouter un Document",
+      "titleLabel": "Titre",
+      "titlePlaceholder": "Titre du document",
+      "contentLabel": "Contenu (collez le texte)",
+      "contentPlaceholder": "Collez le contenu texte que vous souhaitez ajouter à votre base de connaissances...",
+      "cancelBtn": "Annuler",
+      "addingBtn": "Ajout en cours...",
+      "submitBtn": "Ajouter et Ingérer"
+    },
+    "loadingAriaLabel": "Chargement des documents",
+    "emptyHeading": "Aucun document",
+    "emptyBody": "Ajoutez votre premier document pour commencer à utiliser le chat RAG et la génération de cartes IA.",
+    "errors": {
+      "createFailed": "Échec de la création du document"
+    }
+  },
+  "detail": {
+    "breadcrumb": "Bibliothèque de Documents",
+    "sourceType": {
+      "pastedText": "Texte collé"
+    },
+    "chunks": "{{count}} fragments",
+    "tokens": "{{count}} jetons",
+    "ingestStatus": {
+      "registered": "Enregistré",
+      "pending": "En attente",
+      "processing": "Traitement...",
+      "ready": "Prêt",
+      "failed": "Échoué"
+    },
+    "reingestingBtn": "Ingestion…",
+    "reingestBtn": "Ré-ingérer",
+    "deleteBtn": "Supprimer",
+    "deleteConfirm": "Supprimer définitivement ce document ? Cette action est irréversible.",
+    "deletingBtn": "Suppression…",
+    "confirmDeleteBtn": "Supprimer",
+    "cancelBtn": "Annuler",
+    "chunksHeading": "Fragments",
+    "showLess": "Voir moins",
+    "showMore": "Voir plus",
+    "chunksLoading": "Chargement des fragments…",
+    "chunksEmpty": "Aucun fragment. Déclenchez l'ingestion pour générer les embeddings.",
+    "errors": {
+      "ingestFailed": "Échec de l'ingestion",
+      "deleteFailed": "Échec de la suppression"
+    }
+  }
+}

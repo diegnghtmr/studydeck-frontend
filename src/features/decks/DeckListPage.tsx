@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { useQueries } from "@tanstack/react-query";
-import type { FormEvent } from "react";
+import { useTranslation } from "react-i18next";
+import type { FormEvent, KeyboardEvent } from "react";
 import { useDecks, useCreateDeck, useUpdateDeck, useDeleteDeck } from "./hooks/use-decks";
 import { useNotes, useCreateNote, useDeleteNote } from "@features/notes/hooks/use-notes";
 import { getDeckColor } from "./lib/deck-color";
@@ -17,54 +19,49 @@ import {
   Dropdown,
 } from "@shared/ui";
 import type { DeckModel, NoteModel, PagedNoteModel } from "@shared/api/types";
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const NOTE_TYPE_LABELS: Record<string, string> = {
-  basic: "Basic",
-  reversed: "Reversed",
-  cloze: "Cloze",
-  "multiple-choice": "Multiple choice",
-  "free-text": "Free text",
-};
-
-const TYPE_FILTER_OPTIONS = [
-  { value: "all", label: "All types" },
-  { value: "basic", label: "Basic" },
-  { value: "reversed", label: "Reversed" },
-  { value: "cloze", label: "Cloze" },
-  { value: "multiple-choice", label: "Multiple choice" },
-  { value: "free-text", label: "Free text" },
-];
+import { FIELD_CLASS } from "@shared/ui/field";
+import { cn } from "@shared/lib/cn";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getNoteDisplayText(note: NoteModel): { front: string; back: string } {
+type NoteDisplayValue =
+  | { kind: "text"; front: string; back: string }
+  | { kind: "cloze"; front: string }
+  | { kind: "multipleChoice"; front: string; optionCount: number };
+
+function getNoteDisplayValue(note: NoteModel): NoteDisplayValue {
   const c = note.content;
   switch (note.noteType) {
     case "basic":
     case "reversed":
       return {
+        kind: "text",
         front: (c as { front: string; back: string }).front,
         back: (c as { front: string; back: string }).back,
       };
     case "cloze":
-      return { front: (c as { text: string }).text, back: "(cloze deletion)" };
+      return { kind: "cloze", front: (c as { text: string }).text };
     case "multiple-choice": {
       const mc = c as { question: string; options: { key: string; text: string }[] };
-      return { front: mc.question, back: `${mc.options.length} options` };
+      return { kind: "multipleChoice", front: mc.question, optionCount: mc.options.length };
     }
     case "free-text": {
       const ft = c as { prompt: string; expectedAnswer: string };
-      return { front: ft.prompt, back: ft.expectedAnswer };
+      return { kind: "text", front: ft.prompt, back: ft.expectedAnswer };
     }
     default:
-      return { front: "", back: "" };
+      return { kind: "text", front: "", back: "" };
   }
+}
+
+// Thin wrapper used in the search filter (needs plain strings, not keys)
+function getNoteDisplayText(note: NoteModel): { front: string; back: string } {
+  const val = getNoteDisplayValue(note);
+  if (val.kind === "cloze") return { front: val.front, back: "" };
+  if (val.kind === "multipleChoice") return { front: val.front, back: "" };
+  return { front: val.front, back: val.back };
 }
 
 // ---------------------------------------------------------------------------
@@ -100,26 +97,59 @@ interface NoteCardItemProps {
 }
 
 function NoteCardItem({ note, decks, onNavigate, onDeleteSuccess }: NoteCardItemProps) {
+  const { t } = useTranslation("decks");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const deleteMutation = useDeleteNote(note.id);
   const { color } = getDeckColor(note.deckId);
-  const { front, back } = getNoteDisplayText(note);
-  const deckTitle = decks.find((d) => d.id === note.deckId)?.title ?? "Unknown deck";
+  const displayVal = getNoteDisplayValue(note);
+  const front = displayVal.front;
+  const back =
+    displayVal.kind === "cloze"
+      ? t("preview.clozeDeletion")
+      : displayVal.kind === "multipleChoice"
+      ? t("preview.optionsCount", { count: displayVal.optionCount })
+      : displayVal.back;
+  const deckTitle = decks.find((d) => d.id === note.deckId)?.title ?? t("cardItem.unknownDeck");
+
+  const NOTE_TYPE_LABELS: Record<string, string> = {
+    basic: t("cardTypes.basic"),
+    reversed: t("cardTypes.reversed"),
+    cloze: t("cardTypes.cloze"),
+    "multiple-choice": t("cardTypes.multipleChoice"),
+    "free-text": t("cardTypes.freeText"),
+  };
+
   const noteLabel = NOTE_TYPE_LABELS[note.noteType] ?? note.noteType;
 
   async function handleDeleteConfirm() {
-    await deleteMutation.mutateAsync();
-    setConfirmOpen(false);
-    onDeleteSuccess();
+    try {
+      await deleteMutation.mutateAsync();
+      setConfirmOpen(false);
+      onDeleteSuccess();
+    } catch {
+      setConfirmOpen(false);
+    }
   }
 
   return (
     <>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={t("cardItem.openCard", { front })}
+        data-testid="note-card"
+        className="cursor-pointer"
+        onClick={() => onNavigate(note.id, note.deckId)}
+        onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onNavigate(note.id, note.deckId);
+          }
+        }}
+      >
       <Card
         radius={14}
-        className="p-[18px_20px] cursor-pointer transition-transform hover:-translate-y-0.5"
-        data-testid="note-card"
-        onClick={() => onNavigate(note.id, note.deckId)}
+        className="p-[18px_20px] transition-transform hover:-translate-y-0.5"
       >
         {/* Top row */}
         <div
@@ -139,7 +169,7 @@ function NoteCardItem({ note, decks, onNavigate, onDeleteSuccess }: NoteCardItem
               setConfirmOpen(true);
             }}
             style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "#c6c6c6" }}
-            aria-label="Delete card"
+            aria-label={t("cardItem.deleteCard")}
           >
             <svg
               width="14"
@@ -192,12 +222,13 @@ function NoteCardItem({ note, decks, onNavigate, onDeleteSuccess }: NoteCardItem
           <span>{deckTitle}</span>
         </div>
       </Card>
+      </div>
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Delete card?"
-        description="This card will be permanently deleted."
-        confirmLabel="Delete card"
+        title={t("cardDelete.title")}
+        description={t("cardDelete.description")}
+        confirmLabel={t("cardDelete.confirm")}
         destructive
         onConfirm={handleDeleteConfirm}
         onCancel={() => setConfirmOpen(false)}
@@ -215,16 +246,30 @@ interface DeckRowItemProps {
   isSelected: boolean;
   noteCount: number;
   onSelect: () => void;
+  onOpen: () => void;
   onRename: () => void;
   onDelete: () => void;
 }
 
-function DeckRowItem({ deck, isSelected, noteCount, onSelect, onRename, onDelete }: DeckRowItemProps) {
+function DeckRowItem({ deck, isSelected, noteCount, onSelect, onOpen, onRename, onDelete }: DeckRowItemProps) {
+  const { t } = useTranslation("decks");
+
+  function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onSelect();
+    }
+  }
+
   return (
     <div
       data-testid="deck-row"
       className="group relative"
+      role="button"
+      tabIndex={0}
+      aria-label={t("deckRow.selectDeck", { title: deck.title })}
       onClick={onSelect}
+      onKeyDown={handleKeyDown}
       style={{
         display: "flex",
         alignItems: "center",
@@ -262,11 +307,37 @@ function DeckRowItem({ deck, isSelected, noteCount, onSelect, onRename, onDelete
         {noteCount}
       </span>
 
-      {/* Icon buttons: visible on hover */}
+      {/* Icon buttons: visible on hover or keyboard focus-within */}
       <div
-        className="opacity-0 group-hover:opacity-100 flex gap-1"
+        className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 flex gap-1"
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          type="button"
+          onClick={onOpen}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 2,
+            color: "#a7a7a7",
+          }}
+          aria-label={t("deckRow.openDeckAria", { title: deck.title })}
+          title={t("deckRow.openDeck")}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M6 3.5h6.5V10M12.5 3.5L4 12" />
+          </svg>
+        </button>
         <button
           type="button"
           onClick={onRename}
@@ -277,7 +348,7 @@ function DeckRowItem({ deck, isSelected, noteCount, onSelect, onRename, onDelete
             padding: 2,
             color: "#a7a7a7",
           }}
-          aria-label={`Rename ${deck.title}`}
+          aria-label={t("deckRow.renameDeck", { title: deck.title })}
         >
           <svg
             width="13"
@@ -302,7 +373,7 @@ function DeckRowItem({ deck, isSelected, noteCount, onSelect, onRename, onDelete
             padding: 2,
             color: "#a7a7a7",
           }}
-          aria-label={`Delete ${deck.title}`}
+          aria-label={t("deckRow.deleteDeck", { title: deck.title })}
           className="hover:text-red-500"
         >
           <svg
@@ -334,19 +405,24 @@ interface DeckDeleteActionProps {
 }
 
 function DeckDeleteAction({ deckId, onSuccess, onCancel }: DeckDeleteActionProps) {
+  const { t } = useTranslation("decks");
   const del = useDeleteDeck(deckId);
 
   async function handleConfirm() {
-    await del.mutateAsync();
-    onSuccess();
+    try {
+      await del.mutateAsync();
+      onSuccess();
+    } catch {
+      onCancel();
+    }
   }
 
   return (
     <ConfirmDialog
       open
-      title="Delete deck?"
-      description="This will permanently delete the deck and all its cards. This cannot be undone."
-      confirmLabel="Delete deck"
+      title={t("deckDelete.title")}
+      description={t("deckDelete.description")}
+      confirmLabel={t("deckDelete.confirm")}
       destructive
       onConfirm={handleConfirm}
       onCancel={onCancel}
@@ -402,6 +478,7 @@ interface DeckModalProps {
 }
 
 function DeckModal({ mode, deckId, decks, onSuccess, onCancel }: DeckModalProps) {
+  const { t } = useTranslation("decks");
   const existing =
     mode === "rename" && deckId !== undefined
       ? decks.find((d) => d.id === deckId)
@@ -412,6 +489,45 @@ function DeckModal({ mode, deckId, decks, onSuccess, onCancel }: DeckModalProps)
   const [color, setColor] = useState<string | null>(existing?.color ?? null);
   const createDeck = useCreateDeck();
   const updateDeck = useUpdateDeck(deckId ?? "");
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Move focus into the dialog when it opens
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const focusable = dialog.querySelector<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.focus();
+  }, []);
+
+  // Trap focus and handle Escape
+  useEffect(() => {
+    function handleKeyDown(e: globalThis.KeyboardEvent) {
+      if (e.key === "Escape") {
+        onCancel();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => !el.hasAttribute("disabled"));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -420,33 +536,43 @@ function DeckModal({ mode, deckId, decks, onSuccess, onCancel }: DeckModalProps)
       ...(icon !== null && { icon }),
       ...(color !== null && { color }),
     };
-    if (mode === "create") {
-      const newDeck = await createDeck.mutateAsync({ title: name.trim(), ...appearance });
-      onSuccess(newDeck);
-    } else {
-      await updateDeck.mutateAsync({ title: name.trim(), ...appearance });
-      onSuccess();
+    try {
+      if (mode === "create") {
+        const newDeck = await createDeck.mutateAsync({ title: name.trim(), ...appearance });
+        onSuccess(newDeck);
+      } else {
+        await updateDeck.mutateAsync({ title: name.trim(), ...appearance });
+        onSuccess();
+      }
+    } catch {
+      // Mutation error state is visible via createDeck.isError / updateDeck.isError.
+      // Do not close the modal — let the user retry or cancel.
     }
   }
 
-  return (
+  return createPortal(
     <div
       style={{
         position: "fixed",
         inset: 0,
         background: "rgba(18,18,18,0.34)",
         zIndex: 50,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        overflowY: "auto",
       }}
       onClick={onCancel}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="deck-modal-title"
         className="sd-pop"
         data-testid="deck-modal"
         style={{
-          position: "fixed",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%,-50%)",
           maxWidth: 440,
           width: "100%",
           background: "#fff",
@@ -456,8 +582,8 @@ function DeckModal({ mode, deckId, decks, onSuccess, onCancel }: DeckModalProps)
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 style={{ fontSize: 20, fontWeight: 600, color: "#343433", margin: "0 0 20px" }}>
-          {mode === "create" ? "New deck" : "Rename deck"}
+        <h2 id="deck-modal-title" style={{ fontSize: 20, fontWeight: 600, color: "#343433", margin: "0 0 20px" }}>
+          {mode === "create" ? t("deckModal.titleNew") : t("deckModal.titleRename")}
         </h2>
         <form onSubmit={handleSubmit}>
           <label
@@ -469,28 +595,19 @@ function DeckModal({ mode, deckId, decks, onSuccess, onCancel }: DeckModalProps)
               marginBottom: 6,
             }}
           >
-            Deck name
+            {t("deckModal.nameLabel")}
           </label>
           <input
             data-testid="deck-name-input"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Give your deck a clear, memorable name."
-            style={{
-              width: "100%",
-              border: "1.5px solid #f2f0ed",
-              borderRadius: 10,
-              padding: "10px 14px",
-              fontSize: 14,
-              color: "#343433",
-              outline: "none",
-              boxSizing: "border-box",
-              backgroundColor: "#faf9f7",
-            }}
+            placeholder={t("deckModal.namePlaceholder")}
+            className={cn(FIELD_CLASS, "w-full text-[14px]")}
+            style={{ color: "#343433" }}
           />
           <p style={{ fontSize: 12, color: "#a7a7a7", margin: "6px 0 0" }}>
-            Give your deck a clear, memorable name.
+            {t("deckModal.nameHint")}
           </p>
 
           {/* Appearance: icon + color */}
@@ -498,15 +615,15 @@ function DeckModal({ mode, deckId, decks, onSuccess, onCancel }: DeckModalProps)
             <legend
               style={{ fontSize: 13, fontWeight: 500, color: "#343433", padding: 0, marginBottom: 8 }}
             >
-              Icon
+              {t("deckModal.iconLegend")}
             </legend>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               <AppearanceChip
                 selected={icon === null}
                 onClick={() => setIcon(null)}
-                ariaLabel="Automatic icon"
+                ariaLabel={t("deckModal.iconAuto")}
               >
-                <span style={{ fontSize: 11, color: "#848281" }}>Auto</span>
+                <span style={{ fontSize: 11, color: "#848281" }}>{t("deckModal.iconAutoLabel")}</span>
               </AppearanceChip>
               {DECK_GLYPH_NAMES.map((glyphName) => {
                 const selected = icon === glyphName;
@@ -516,7 +633,7 @@ function DeckModal({ mode, deckId, decks, onSuccess, onCancel }: DeckModalProps)
                     key={glyphName}
                     selected={selected}
                     onClick={() => setIcon(glyphName)}
-                    ariaLabel={`Icon ${glyphName}`}
+                    ariaLabel={t("deckModal.iconItem", { name: glyphName })}
                   >
                     <svg
                       width={18}
@@ -544,15 +661,15 @@ function DeckModal({ mode, deckId, decks, onSuccess, onCancel }: DeckModalProps)
             <legend
               style={{ fontSize: 13, fontWeight: 500, color: "#343433", padding: 0, marginBottom: 8 }}
             >
-              Color
+              {t("deckModal.colorLegend")}
             </legend>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               <AppearanceChip
                 selected={color === null}
                 onClick={() => setColor(null)}
-                ariaLabel="Automatic color"
+                ariaLabel={t("deckModal.colorAuto")}
               >
-                <span style={{ fontSize: 11, color: "#848281" }}>Auto</span>
+                <span style={{ fontSize: 11, color: "#848281" }}>{t("deckModal.colorAutoLabel")}</span>
               </AppearanceChip>
               {DECK_COLORS.map((c) => {
                 const selected = color === c.color;
@@ -561,7 +678,7 @@ function DeckModal({ mode, deckId, decks, onSuccess, onCancel }: DeckModalProps)
                     key={c.color}
                     selected={selected}
                     onClick={() => setColor(c.color)}
-                    ariaLabel={`Color ${c.color}`}
+                    ariaLabel={t("deckModal.colorItem", { color: c.color })}
                   >
                     <span
                       style={{
@@ -582,21 +699,22 @@ function DeckModal({ mode, deckId, decks, onSuccess, onCancel }: DeckModalProps)
           {deckId !== undefined && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
               <DeckIcon deckId={deckId} icon={icon} color={color} size={32} />
-              <span style={{ fontSize: 12, color: "#a7a7a7" }}>Preview</span>
+              <span style={{ fontSize: 12, color: "#a7a7a7" }}>{t("deckModal.preview")}</span>
             </div>
           )}
 
           <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
             <PillButton variant="secondary" onClick={onCancel} type="button">
-              Cancel
+              {t("actions.cancel")}
             </PillButton>
             <PillButton variant="primary" type="submit" data-testid="deck-modal-submit">
-              {mode === "create" ? "Create deck" : "Save name"}
+              {mode === "create" ? t("deckModal.submitCreate") : t("deckModal.submitSave")}
             </PillButton>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -612,6 +730,7 @@ interface CardModalProps {
 }
 
 function CardModal({ decks, selectedDeckId, onSuccess, onCancel }: CardModalProps) {
+  const { t } = useTranslation("decks");
   const [deckId, setDeckId] = useState(selectedDeckId ?? (decks[0]?.id ?? ""));
   const [noteType, setNoteType] = useState<string>("basic");
   const [front, setFront] = useState("");
@@ -620,29 +739,93 @@ function CardModal({ decks, selectedDeckId, onSuccess, onCancel }: CardModalProp
   const [mcqCorrect, setMcqCorrect] = useState<string>("A");
 
   const createNote = useCreateNote();
+  const cardDialogRef = useRef<HTMLDivElement>(null);
+
+  // Move focus into the dialog when it opens
+  useEffect(() => {
+    const dialog = cardDialogRef.current;
+    if (!dialog) return;
+    const focusable = dialog.querySelector<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.focus();
+  }, []);
+
+  // Trap focus and handle Escape for CardModal
+  useEffect(() => {
+    function handleKeyDown(e: globalThis.KeyboardEvent) {
+      if (e.key === "Escape") {
+        onCancel();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const dialog = cardDialogRef.current;
+      if (!dialog) return;
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => !el.hasAttribute("disabled"));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel]);
 
   const NOTE_TYPE_TABS = [
-    { value: "basic", label: "Basic" },
-    { value: "reversed", label: "Reversed" },
-    { value: "cloze", label: "Cloze" },
-    { value: "multiple-choice", label: "Multiple choice" },
-    { value: "free-text", label: "Free text" },
+    { value: "basic", label: t("cardTypes.basic") },
+    { value: "reversed", label: t("cardTypes.reversed") },
+    { value: "cloze", label: t("cardTypes.cloze") },
+    { value: "multiple-choice", label: t("cardTypes.multipleChoice") },
+    { value: "free-text", label: t("cardTypes.freeText") },
   ];
 
   function getFrontLabel() {
-    if (noteType === "cloze") return "Text";
-    if (noteType === "multiple-choice") return "Question";
-    if (noteType === "free-text") return "Prompt";
-    return "Front";
+    if (noteType === "cloze") return t("frontLabel.cloze");
+    if (noteType === "multiple-choice") return t("frontLabel.question");
+    if (noteType === "free-text") return t("frontLabel.prompt");
+    return t("frontLabel.front");
+  }
+
+  function getFrontPlaceholder() {
+    if (noteType === "cloze") return t("frontPlaceholder.cloze");
+    if (noteType === "multiple-choice") return t("frontPlaceholder.question");
+    if (noteType === "free-text") return t("frontPlaceholder.freeText");
+    return t("frontPlaceholder.front");
   }
 
   function getBackLabel() {
-    if (noteType === "free-text") return "Expected answer";
-    return "Back";
+    if (noteType === "free-text") return t("backLabel.expectedAnswer");
+    return t("backLabel.back");
+  }
+
+  function getBackPlaceholder() {
+    if (noteType === "free-text") return t("backPlaceholder.modelAnswer");
+    return t("backPlaceholder.back");
   }
 
   function showBack() {
     return noteType === "basic" || noteType === "reversed" || noteType === "free-text";
+  }
+
+  // Count {{cN::…}} groups so the helper line mirrors the prototype.
+  const clozeCount = (front.match(/\{\{c\d+::/g) ?? []).length;
+
+  // Append a new cloze deletion stub with the next ordinal at the end of the text.
+  function insertClozeDeletion() {
+    const next = clozeCount + 1;
+    setFront((prev) => `${prev}${prev && !prev.endsWith(" ") ? " " : ""}{{c${next}::}}`);
+  }
+
+  function getPreviewTypeLabel() {
+    return NOTE_TYPE_TABS.find((tab) => tab.value === noteType)?.label ?? "Card";
   }
 
   function buildContent(): Record<string, unknown> {
@@ -668,7 +851,7 @@ function CardModal({ decks, selectedDeckId, onSuccess, onCancel }: CardModalProp
   }
 
   function getPreviewBack() {
-    if (noteType === "cloze") return "(cloze deletion)";
+    if (noteType === "cloze") return "";
     if (noteType === "multiple-choice") return mcqOptions.filter(Boolean).join(" / ");
     return back;
   }
@@ -676,137 +859,182 @@ function CardModal({ decks, selectedDeckId, onSuccess, onCancel }: CardModalProp
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!deckId || !front.trim()) return;
-    await createNote.mutateAsync({
-      deckId,
-      noteType: noteType as "basic" | "reversed" | "cloze" | "multiple-choice" | "free-text",
-      content: buildContent() as never,
-    });
-    onSuccess();
+    try {
+      await createNote.mutateAsync({
+        deckId,
+        noteType: noteType as "basic" | "reversed" | "cloze" | "multiple-choice" | "free-text",
+        content: buildContent() as never,
+      });
+      onSuccess();
+    } catch {
+      // Do not close — let the user retry or cancel.
+    }
   }
 
   const OPTION_KEYS = ["A", "B", "C", "D"];
 
-  return (
+  return createPortal(
     <div
       style={{
         position: "fixed",
         inset: 0,
         background: "rgba(18,18,18,0.34)",
         zIndex: 50,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        overflowY: "auto",
       }}
       onClick={onCancel}
     >
       <div
+        ref={cardDialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="card-modal-title"
         className="sd-pop"
         data-testid="card-modal"
         style={{
-          position: "fixed",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%,-50%)",
           maxWidth: 620,
           width: "100%",
           background: "#fff",
-          borderRadius: 18,
-          padding: 32,
+          borderRadius: 20,
           boxShadow: "var(--shadow-lg)",
           maxHeight: "90vh",
           overflow: "auto",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 style={{ fontSize: 20, fontWeight: 600, color: "#343433", margin: "0 0 20px" }}>
-          Add a card
-        </h2>
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "22px 26px",
+            borderBottom: "1px solid #f2f0ed",
+          }}
+        >
+          <h2
+            id="card-modal-title"
+            style={{
+              fontFamily: "var(--font-family)",
+              fontSize: 22,
+              fontWeight: 500,
+              color: "#343433",
+              letterSpacing: "-0.5px",
+              margin: 0,
+            }}
+          >
+            {t("cardModal.title")}
+          </h2>
+          <button
+            type="button"
+            aria-label={t("cardModal.closeAria")}
+            data-testid="card-modal-close"
+            onClick={onCancel}
+            style={{ background: "none", border: "none", color: "#a7a7a7", cursor: "pointer", padding: 4, display: "flex", lineHeight: 0 }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit}>
+          <div style={{ padding: "24px 26px" }}>
           {/* Deck picker */}
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 18 }}>
             <label
               style={{
                 display: "block",
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 500,
-                color: "#343433",
-                marginBottom: 6,
+                color: "#848281",
+                marginBottom: 7,
               }}
             >
-              Deck
+              {t("cardModal.deckLabel")}
             </label>
             <Dropdown
               items={decks.map((d) => ({ value: d.id, label: d.title }))}
               value={deckId}
-              placeholder="Select a deck"
+              placeholder={t("cardModal.deckSelectPlaceholder")}
               onSelect={setDeckId}
+              searchable
+              searchPlaceholder={t("search.decksPlaceholder")}
               data-testid="card-deck-picker"
             />
           </div>
 
           {/* Type tabs */}
-          <div className="flex gap-2 flex-wrap mb-4">
-            {NOTE_TYPE_TABS.map((t) => (
-              <FilterPill
-                key={t.value}
-                active={noteType === t.value}
-                data-testid={`card-type-tab-${t.value}`}
-                onClick={() => {
-                  setNoteType(t.value);
-                  setFront("");
-                  setBack("");
-                }}
-              >
-                {t.label}
-              </FilterPill>
-            ))}
+          <div style={{ marginBottom: 20 }}>
+            <span style={{ display: "block", fontSize: 12, fontWeight: 500, color: "#848281", marginBottom: 9 }}>
+              {t("cardModal.cardTypeLabel")}
+            </span>
+            <div className="flex gap-2 flex-wrap">
+              {NOTE_TYPE_TABS.map((tab) => (
+                <FilterPill
+                  key={tab.value}
+                  active={noteType === tab.value}
+                  shape="rounded"
+                  data-testid={`card-type-tab-${tab.value}`}
+                  onClick={() => {
+                    setNoteType(tab.value);
+                    setFront("");
+                    setBack("");
+                  }}
+                >
+                  {tab.label}
+                </FilterPill>
+              ))}
+            </div>
           </div>
 
-          {/* Front / Text / Question / Prompt */}
-          <div style={{ marginBottom: 12 }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 500,
-                color: "#343433",
-                marginBottom: 6,
-              }}
-            >
-              {getFrontLabel()}
-            </label>
+          {/* Front / Cloze text / Question / Prompt */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
+              <label style={{ fontSize: 12, fontWeight: 500, color: "#848281" }}>
+                {getFrontLabel()}
+              </label>
+              {noteType === "cloze" && (
+                <button
+                  type="button"
+                  data-testid="card-cloze-insert"
+                  onClick={insertClozeDeletion}
+                  style={{ background: "#f6f4ef", color: "#474645", border: "none", borderRadius: 7, padding: "5px 11px", fontSize: 12, fontWeight: 500, cursor: "pointer" }}
+                >
+                  {t("cardModal.addCloze")}
+                </button>
+              )}
+            </div>
             <textarea
               data-testid="card-front-input"
               value={front}
               onChange={(e) => setFront(e.target.value)}
+              placeholder={getFrontPlaceholder()}
               rows={3}
-              style={{
-                width: "100%",
-                border: "1.5px solid #f2f0ed",
-                borderRadius: 10,
-                padding: "10px 14px",
-                fontSize: 14,
-                color: "#343433",
-                outline: "none",
-                resize: "vertical",
-                boxSizing: "border-box",
-                backgroundColor: "#faf9f7",
-              }}
+              className={cn(FIELD_CLASS, "w-full text-[14px]")}
+              style={{ color: "#343433" }}
             />
             {noteType === "cloze" && (
-              <p style={{ fontSize: 12, color: "#a7a7a7", margin: "4px 0 0" }}>
-                {"Use {{c1::answer}} syntax"}
+              <p style={{ fontSize: 12.5, color: "#848281", margin: "8px 0 0" }}>
+                {t("cardModal.clozeHint", { count: clozeCount })}
               </p>
             )}
           </div>
 
           {/* Back / Expected Answer */}
           {showBack() && (
-            <div style={{ marginBottom: 12 }}>
+            <div style={{ marginBottom: 16 }}>
               <label
                 style={{
                   display: "block",
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: 500,
-                  color: "#343433",
-                  marginBottom: 6,
+                  color: "#848281",
+                  marginBottom: 7,
                 }}
               >
                 {getBackLabel()}
@@ -815,19 +1043,10 @@ function CardModal({ decks, selectedDeckId, onSuccess, onCancel }: CardModalProp
                 data-testid="card-back-input"
                 value={back}
                 onChange={(e) => setBack(e.target.value)}
+                placeholder={getBackPlaceholder()}
                 rows={3}
-                style={{
-                  width: "100%",
-                  border: "1.5px solid #f2f0ed",
-                  borderRadius: 10,
-                  padding: "10px 14px",
-                  fontSize: 14,
-                  color: "#343433",
-                  outline: "none",
-                  resize: "vertical",
-                  boxSizing: "border-box",
-                  backgroundColor: "#faf9f7",
-                }}
+                className={cn(FIELD_CLASS, "w-full text-[14px]")}
+                style={{ color: "#343433" }}
               />
             </div>
           )}
@@ -838,13 +1057,13 @@ function CardModal({ decks, selectedDeckId, onSuccess, onCancel }: CardModalProp
               <label
                 style={{
                   display: "block",
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: 500,
-                  color: "#343433",
-                  marginBottom: 8,
+                  color: "#848281",
+                  marginBottom: 9,
                 }}
               >
-                Options
+                {t("cardModal.mcqOptionsLabel")}
               </label>
               {OPTION_KEYS.map((key, i) => (
                 <div
@@ -853,17 +1072,20 @@ function CardModal({ decks, selectedDeckId, onSuccess, onCancel }: CardModalProp
                 >
                   <input
                     type="radio"
+                    id={`mcq-option-${key}`}
                     name="mcq-correct"
                     value={key}
                     checked={mcqCorrect === key}
                     onChange={() => setMcqCorrect(key)}
                     style={{ flexShrink: 0 }}
+                    aria-label={t("cardModal.mcqOptionAria", { key })}
                   />
-                  <span
-                    style={{ fontSize: 13, fontWeight: 600, color: "#a7a7a7", width: 16 }}
+                  <label
+                    htmlFor={`mcq-option-${key}`}
+                    style={{ fontSize: 13, fontWeight: 600, color: "#a7a7a7", width: 16, cursor: "pointer" }}
                   >
                     {key}
-                  </span>
+                  </label>
                   <input
                     type="text"
                     value={mcqOptions[i] ?? ""}
@@ -872,17 +1094,9 @@ function CardModal({ decks, selectedDeckId, onSuccess, onCancel }: CardModalProp
                       next[i] = e.target.value;
                       setMcqOptions(next);
                     }}
-                    placeholder={`Option ${key}`}
-                    style={{
-                      flex: 1,
-                      border: "1.5px solid #f2f0ed",
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      fontSize: 14,
-                      color: "#343433",
-                      outline: "none",
-                      backgroundColor: "#faf9f7",
-                    }}
+                    placeholder={t("cardModal.mcqOptionPlaceholder", { key })}
+                    className={cn(FIELD_CLASS, "flex-1 text-[14px]")}
+                    style={{ color: "#343433" }}
                   />
                 </div>
               ))}
@@ -890,41 +1104,53 @@ function CardModal({ decks, selectedDeckId, onSuccess, onCancel }: CardModalProp
           )}
 
           {/* Live preview */}
-          <Card recessed radius={12} className="p-[16px] mb-4" data-testid="card-preview">
-            <p
+          <div
+            data-testid="card-preview"
+            style={{ background: "#fbfaf9", borderRadius: 12, padding: 20, textAlign: "center", marginTop: 4 }}
+          >
+            <div style={{ marginBottom: 14 }}>
+              <Badge label={getPreviewTypeLabel()} tone="blue" />
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 500, lineHeight: 1.4, color: "#343433", overflowWrap: "anywhere" }}>
+              {front !== "" ? front : "—"}
+            </div>
+            <div
               style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#a7a7a7",
-                margin: "0 0 4px",
-                textTransform: "uppercase",
-                letterSpacing: ".4px",
+                borderTop: "1px dashed #e7e4df",
+                paddingTop: 14,
+                marginTop: 14,
+                fontSize: 15,
+                color: "#474645",
+                lineHeight: 1.5,
+                overflowWrap: "anywhere",
               }}
             >
-              Preview
-            </p>
-            <p style={{ fontSize: 14, color: "#343433", margin: "0 0 4px" }}>
-              <span style={{ color: "#a7a7a7" }}>Front:</span>{" "}
-              {front !== "" ? front : <em style={{ color: "#c6c6c6" }}>empty</em>}
-            </p>
-            <p style={{ fontSize: 13, color: "#a7a7a7", margin: 0 }}>
-              <span>Back:</span>{" "}
-              {getPreviewBack() !== "" ? getPreviewBack() : <em style={{ color: "#c6c6c6" }}>empty</em>}
-            </p>
-          </Card>
+              {getPreviewBack() !== "" ? getPreviewBack() : "—"}
+            </div>
+          </div>
+          </div>
 
           {/* Footer */}
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <PillButton variant="secondary" onClick={onCancel} type="button">
-              Cancel
-            </PillButton>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "18px 26px",
+              borderTop: "1px solid #f2f0ed",
+            }}
+          >
             <PillButton variant="primary" type="submit" data-testid="card-modal-submit">
-              Add card
+              {t("cardModal.submitAdd")}
+            </PillButton>
+            <PillButton variant="secondary" onClick={onCancel} type="button">
+              {t("actions.cancel")}
             </PillButton>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -933,6 +1159,7 @@ function CardModal({ decks, selectedDeckId, onSuccess, onCancel }: CardModalProp
 // ---------------------------------------------------------------------------
 
 export function DeckListPage() {
+  const { t } = useTranslation("decks");
   const navigate = useNavigate();
 
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
@@ -947,13 +1174,32 @@ export function DeckListPage() {
   const [deleteDeckTarget, setDeleteDeckTarget] = useState<string | null>(null);
   const [toast, setToast] = useState({ visible: false, message: "" });
 
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear timer on unmount to prevent setState after unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current !== null) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  const TYPE_FILTER_OPTIONS = [
+    { value: "all", label: t("typeFilter.allTypes") },
+    { value: "basic", label: t("cardTypes.basic") },
+    { value: "reversed", label: t("cardTypes.reversed") },
+    { value: "cloze", label: t("cardTypes.cloze") },
+    { value: "multiple-choice", label: t("cardTypes.multipleChoice") },
+    { value: "free-text", label: t("cardTypes.freeText") },
+  ];
+
   const { data: decksPage } = useDecks({ size: 100 });
   const decks = decksPage?.items ?? [];
   const deckIds = decks.map((d) => d.id);
 
-  const { notes: allDeckNotes, isLoading: allNotesLoading } = useAllNotes(
-    selectedDeckId === null ? deckIds : [],
-  );
+  // Always load all notes so "All decks" badge count is always accurate
+  const { notes: allDeckNotes, isLoading: allNotesLoading } = useAllNotes(deckIds);
   const { data: singleDeckData, isPending: singleLoading } = useNotes(
     selectedDeckId ?? "",
     { size: 100 },
@@ -974,8 +1220,14 @@ export function DeckListPage() {
     });
 
   function showToast(message: string) {
+    if (toastTimerRef.current !== null) {
+      clearTimeout(toastTimerRef.current);
+    }
     setToast({ visible: true, message });
-    setTimeout(() => setToast({ visible: false, message: "" }), 2500);
+    toastTimerRef.current = setTimeout(() => {
+      toastTimerRef.current = null;
+      setToast({ visible: false, message: "" });
+    }, 2500);
   }
 
   function handleDeckDeleteSuccess() {
@@ -983,7 +1235,7 @@ export function DeckListPage() {
       setSelectedDeckId(null);
     }
     setDeleteDeckTarget(null);
-    showToast("Deck deleted.");
+    showToast(t("toast.deckDeleted"));
   }
 
   return (
@@ -1014,10 +1266,10 @@ export function DeckListPage() {
               margin: 0,
             }}
           >
-            Cards &amp; Decks
+            {t("page.title")}
           </h1>
           <p style={{ fontSize: 15, color: "#848281", margin: "4px 0 0" }}>
-            Browse and manage your flashcard decks and cards.
+            {t("page.subtitle")}
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -1025,14 +1277,14 @@ export function DeckListPage() {
             variant="secondary"
             onClick={() => setDeckModalState({ open: true, mode: "create" })}
           >
-            New deck
+            {t("actions.newDeck")}
           </PillButton>
           <PillButton
             variant="primary"
             data-testid="new-card-btn"
             onClick={() => setCardModalOpen(true)}
           >
-            New card
+            {t("actions.newCard")}
           </PillButton>
         </div>
       </div>
@@ -1058,7 +1310,7 @@ export function DeckListPage() {
                 letterSpacing: ".4px",
               }}
             >
-              DECKS
+              {t("sidebar.decksLabel")}
             </span>
             <button
               type="button"
@@ -1085,7 +1337,17 @@ export function DeckListPage() {
             {/* "All decks" row */}
             <div
               data-testid="all-decks-row"
+              role="button"
+              tabIndex={0}
+              aria-label={t("sidebar.showAllDecks")}
+              aria-pressed={selectedDeckId === null}
               onClick={() => setSelectedDeckId(null)}
+              onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSelectedDeckId(null);
+                }
+              }}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -1122,7 +1384,7 @@ export function DeckListPage() {
               <span
                 style={{ fontSize: 13.5, fontWeight: 500, color: "#343433", flex: 1 }}
               >
-                All decks
+                {t("sidebar.allDecks")}
               </span>
               <span
                 style={{
@@ -1146,6 +1408,7 @@ export function DeckListPage() {
                 isSelected={selectedDeckId === deck.id}
                 noteCount={allDeckNotes.filter((n) => n.deckId === deck.id).length}
                 onSelect={() => setSelectedDeckId(deck.id)}
+                onOpen={() => navigate(`/decks/${deck.id}`)}
                 onRename={() =>
                   setDeckModalState({ open: true, mode: "rename", deckId: deck.id })
                 }
@@ -1186,7 +1449,7 @@ export function DeckListPage() {
             <input
               data-testid="card-search"
               type="text"
-              placeholder="Search cards…"
+              placeholder={t("search.cardsPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
@@ -1206,6 +1469,7 @@ export function DeckListPage() {
               <FilterPill
                 key={opt.value}
                 active={typeFilter === opt.value}
+                shape="rounded"
                 data-testid={`type-filter-${opt.value}`}
                 onClick={() => setTypeFilter(opt.value)}
               >
@@ -1253,7 +1517,7 @@ export function DeckListPage() {
               className="p-[40px] text-center"
               data-testid="cards-empty"
             >
-              <p style={{ fontSize: 14, color: "#a7a7a7" }}>No cards match your search.</p>
+              <p style={{ fontSize: 14, color: "#a7a7a7" }}>{t("search.noCardsMatch")}</p>
             </Card>
           ) : (
             <div
@@ -1267,7 +1531,7 @@ export function DeckListPage() {
                   onNavigate={(noteId, deckId) =>
                     navigate(`/decks/${deckId}/notes/${noteId}`)
                   }
-                  onDeleteSuccess={() => showToast("Card deleted.")}
+                  onDeleteSuccess={() => showToast(t("toast.cardDeleted"))}
                 />
               ))}
             </div>
@@ -1286,9 +1550,9 @@ export function DeckListPage() {
           onSuccess={(newDeck) => {
             setDeckModalState(null);
             if (newDeck !== undefined) {
-              showToast("Deck created.");
+              showToast(t("toast.deckCreated"));
             } else {
-              showToast("Deck renamed.");
+              showToast(t("toast.deckRenamed"));
             }
           }}
           onCancel={() => setDeckModalState(null)}
@@ -1301,7 +1565,7 @@ export function DeckListPage() {
           selectedDeckId={selectedDeckId}
           onSuccess={() => {
             setCardModalOpen(false);
-            showToast("Card added.");
+            showToast(t("toast.cardAdded"));
           }}
           onCancel={() => setCardModalOpen(false)}
         />

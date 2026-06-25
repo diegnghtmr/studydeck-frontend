@@ -1,0 +1,73 @@
+{
+  "breadcrumb": {
+    "myDecks": "Mes paquets",
+    "deckFallback": "Paquet",
+    "newNote": "Nouvelle note",
+    "noteLabel": "Note {{type}}"
+  },
+  "detail": {
+    "loadingAria": "Chargement de la note",
+    "editBtn": "Modifier",
+    "deleteBtn": "Supprimer",
+    "cardsHeading": "Cartes",
+    "derivedCardsAria": "Cartes dérivées",
+    "noCardsYet": "Aucune carte générée pour l'instant.",
+    "confirmDelete": {
+      "title": "Supprimer cette note ?",
+      "description": "Cela supprimera définitivement la note et toutes ses cartes dérivées. Cette action est irréversible.",
+      "confirm": "Supprimer la note",
+      "cancel": "Conserver la note"
+    },
+    "errors": {
+      "updateFailed": "Échec de la mise à jour",
+      "deleteFailed": "Échec de la suppression"
+    }
+  },
+  "create": {
+    "pageHeading": "Créer une note",
+    "cardCountPreview": "carte sera générée",
+    "cardCountPreview_other": "cartes seront générées",
+    "errors": {
+      "title": "Une erreur est survenue",
+      "detail": "Impossible de créer la note. Veuillez réessayer."
+    }
+  },
+  "fields": {
+    "noteType": "Type de note",
+    "noteTypeAria": "Type de note",
+    "front": "Recto",
+    "back": "Verso",
+    "clozeText": "Texte à trous",
+    "clozeHint": "Entourez les suppressions avec des doubles accolades : {{c1::réponse}}, {{c2::autre}}",
+    "question": "Question",
+    "options": "Options",
+    "optionsHint": "(4–5, cochez la bonne)",
+    "optionsHintEditor": "(4–5, cochez la ou les bonne(s))",
+    "markAsCorrect": "Marquer comme correcte",
+    "optionPlaceholder": "Texte de l'option",
+    "optionAria": "Texte de l'option {{key}}",
+    "removeOption": "Supprimer l'option",
+    "addOption": "+ Ajouter une option",
+    "addOptionAria": "Ajouter une option",
+    "prompt": "Consigne",
+    "expectedAnswer": "Réponse attendue",
+    "gradingGuidance": "Guide de correction",
+    "optionalHint": "(facultatif)"
+  },
+  "actions": {
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "cancel": "Annuler"
+  },
+  "preview": {
+    "promptLabel": "Consigne",
+    "hintPrefix": "Indice : ",
+    "answerLabel": "Réponse",
+    "showBtn": "Afficher",
+    "suspended": "suspendue",
+    "cardPosition": "Carte #{{number}}"
+  },
+  "display": {
+    "correct": "(correcte)"
+  }
+}

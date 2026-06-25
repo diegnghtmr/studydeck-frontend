@@ -167,16 +167,20 @@ describe("ReviewSessionPage — flow", () => {
     expect(screen.getByRole("button", { name: /easy/i })).toBeInTheDocument();
   });
 
-  it("rating buttons display projected interval (scheduledDays)", async () => {
+  it("rating buttons show correct label text for all four ratings", async () => {
     renderReviewPage(DECK_ID);
     await userEvent.click(screen.getByRole("button", { name: /start/i }));
     await waitFor(() => expect(screen.getByTestId("review-card-front")).toBeInTheDocument());
     await userEvent.click(screen.getByRole("button", { name: /show answer/i }));
 
-    // After reveal, each rating button should show an interval hint
-    // The interval text is approximated: "< 1 min" or "Nd"
+    // Verify each rating button renders its expected label and key hint
     const ratingButtons = screen.getAllByTestId(/^rating-btn-/);
     expect(ratingButtons).toHaveLength(4);
+
+    expect(screen.getByTestId("rating-btn-again")).toHaveTextContent("Again");
+    expect(screen.getByTestId("rating-btn-hard")).toHaveTextContent("Hard");
+    expect(screen.getByTestId("rating-btn-good")).toHaveTextContent("Good");
+    expect(screen.getByTestId("rating-btn-easy")).toHaveTextContent("Easy");
   });
 
   it("submits review on rating click and advances to next card", async () => {

@@ -2,13 +2,16 @@
  * DeckStatsPanel — shows deck stats (totals, due, retention) as a compact panel.
  * Used on DeckDetailPage to replace the stats placeholder.
  */
+import { useTranslation } from "react-i18next";
 import { useDeckStats } from "@features/review/hooks/use-review";
+import { FieldLabel } from "@shared/ui/FieldLabel";
 
 interface DeckStatsPanelProps {
   deckId: string;
 }
 
 export function DeckStatsPanel({ deckId }: DeckStatsPanelProps) {
+  const { t } = useTranslation("study");
   const { data: stats, isPending } = useDeckStats(deckId);
 
   if (isPending) {
@@ -49,12 +52,7 @@ export function DeckStatsPanel({ deckId }: DeckStatsPanelProps) {
         style={{ borderColor: "var(--color-stone-surface)" }}
       >
         <div>
-          <p
-            className="text-[12px] uppercase tracking-wide"
-            style={{ color: "var(--color-smoke)" }}
-          >
-            Notes
-          </p>
+          <FieldLabel>{t("stats.notes")}</FieldLabel>
           <p
             data-testid="stat-total-notes"
             className="text-[19px] font-semibold"
@@ -65,12 +63,7 @@ export function DeckStatsPanel({ deckId }: DeckStatsPanelProps) {
         </div>
 
         <div>
-          <p
-            className="text-[12px] uppercase tracking-wide"
-            style={{ color: "var(--color-smoke)" }}
-          >
-            Cards
-          </p>
+          <FieldLabel>{t("stats.cards")}</FieldLabel>
           <p
             data-testid="stat-total-cards"
             className="text-[19px] font-semibold"
@@ -81,12 +74,7 @@ export function DeckStatsPanel({ deckId }: DeckStatsPanelProps) {
         </div>
 
         <div>
-          <p
-            className="text-[12px] uppercase tracking-wide"
-            style={{ color: "var(--color-smoke)" }}
-          >
-            Due today
-          </p>
+          <FieldLabel>{t("stats.dueToday")}</FieldLabel>
           <p
             data-testid="stat-due-today"
             className="text-[19px] font-semibold"
@@ -108,12 +96,7 @@ export function DeckStatsPanel({ deckId }: DeckStatsPanelProps) {
         style={{ borderColor: "var(--color-stone-surface)" }}
       >
         <div>
-          <p
-            className="text-[12px] uppercase tracking-wide"
-            style={{ color: "var(--color-smoke)" }}
-          >
-            Reviewed today
-          </p>
+          <FieldLabel>{t("stats.reviewedToday")}</FieldLabel>
           <p
             data-testid="stat-reviewed-today"
             className="text-[17px] font-semibold"
@@ -124,12 +107,7 @@ export function DeckStatsPanel({ deckId }: DeckStatsPanelProps) {
         </div>
 
         <div>
-          <p
-            className="text-[12px] uppercase tracking-wide"
-            style={{ color: "var(--color-smoke)" }}
-          >
-            Suspended
-          </p>
+          <FieldLabel>{t("stats.suspended")}</FieldLabel>
           <p
             data-testid="stat-suspended"
             className="text-[17px] font-semibold"
@@ -147,12 +125,7 @@ export function DeckStatsPanel({ deckId }: DeckStatsPanelProps) {
           style={{ borderColor: "var(--color-stone-surface)" }}
         >
           <div className="flex items-center justify-between mb-1.5">
-            <p
-              className="text-[12px] uppercase tracking-wide"
-              style={{ color: "var(--color-smoke)" }}
-            >
-              30d retention
-            </p>
+            <FieldLabel>{t("stats.retention30d")}</FieldLabel>
             <p
               data-testid="retention-value"
               className="text-[12px] font-semibold"

@@ -1,0 +1,65 @@
+{
+  "library": {
+    "heading": "Biblioteca de Documentos",
+    "subtitle": "Adicione documentos para fundamentar seu chat de IA e a geração de flashcards.",
+    "addButton": "Adicionar Documento",
+    "sourceType": {
+      "pastedText": "Texto"
+    },
+    "chunks": "{{count}} fragmentos",
+    "ingestStatus": {
+      "registered": "Registrado",
+      "pending": "Pendente",
+      "processing": "Processando...",
+      "ready": "Pronto",
+      "failed": "Falhou"
+    },
+    "form": {
+      "heading": "Adicionar Documento",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Título do documento",
+      "contentLabel": "Conteúdo (cole o texto)",
+      "contentPlaceholder": "Cole o conteúdo de texto que deseja adicionar à sua base de conhecimento...",
+      "cancelBtn": "Cancelar",
+      "addingBtn": "Adicionando...",
+      "submitBtn": "Adicionar e Ingerir"
+    },
+    "loadingAriaLabel": "Carregando documentos",
+    "emptyHeading": "Nenhum documento ainda",
+    "emptyBody": "Adicione seu primeiro documento para começar a usar o chat RAG e a geração de flashcards com IA.",
+    "errors": {
+      "createFailed": "Falha ao criar documento"
+    }
+  },
+  "detail": {
+    "breadcrumb": "Biblioteca de Documentos",
+    "sourceType": {
+      "pastedText": "Texto colado"
+    },
+    "chunks": "{{count}} fragmentos",
+    "tokens": "{{count}} tokens",
+    "ingestStatus": {
+      "registered": "Registrado",
+      "pending": "Pendente",
+      "processing": "Processando...",
+      "ready": "Pronto",
+      "failed": "Falhou"
+    },
+    "reingestingBtn": "Ingerindo…",
+    "reingestBtn": "Re-ingerir",
+    "deleteBtn": "Excluir",
+    "deleteConfirm": "Excluir este documento permanentemente? Esta ação não pode ser desfeita.",
+    "deletingBtn": "Excluindo…",
+    "confirmDeleteBtn": "Excluir",
+    "cancelBtn": "Cancelar",
+    "chunksHeading": "Fragmentos",
+    "showLess": "Ver menos",
+    "showMore": "Ver mais",
+    "chunksLoading": "Carregando fragmentos…",
+    "chunksEmpty": "Nenhum fragmento ainda. Acione a ingestão para gerar embeddings.",
+    "errors": {
+      "ingestFailed": "Falha na ingestão",
+      "deleteFailed": "Falha ao excluir"
+    }
+  }
+}

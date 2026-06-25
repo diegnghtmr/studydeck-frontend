@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
+import { useAuth } from "react-oidc-context";
 import { RequireAuth } from "./RequireAuth";
 import { useAuthStore } from "./auth-store";
 
@@ -13,6 +14,12 @@ vi.mock("./oidc-config", () => ({
     redirectUri: "http://localhost:5173/auth/callback",
     scope: "openid profile",
   },
+}));
+
+// Mock react-oidc-context's useAuth so we can drive the loading/auth state.
+// Defaults to undefined (no provider), matching the in-app dev/test wiring.
+vi.mock("react-oidc-context", () => ({
+  useAuth: vi.fn(() => undefined),
 }));
 
 function renderWithRouter(
@@ -33,6 +40,8 @@ describe("RequireAuth", () => {
   beforeEach(() => {
     // Reset auth store to unauthenticated state before each test
     useAuthStore.setState({ accessToken: null, user: null });
+    // Default: no OIDC provider context (settled, unauthenticated)
+    vi.mocked(useAuth).mockReturnValue(undefined as never);
   });
 
   describe("when unauthenticated (no access token)", () => {
@@ -86,6 +95,40 @@ describe("RequireAuth", () => {
       );
 
       expect(screen.queryByTestId("login-page")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("when OIDC is still initializing (post-reload rehydration)", () => {
+    it("shows a loading state instead of redirecting to /login", () => {
+      // Provider is loading: token not yet rehydrated from storage.
+      vi.mocked(useAuth).mockReturnValue({ isLoading: true } as never);
+
+      renderWithRouter(
+        "/protected",
+        <RequireAuth>
+          <div data-testid="protected-content">Protected</div>
+        </RequireAuth>,
+      );
+
+      expect(screen.getByTestId("auth-loading")).toBeInTheDocument();
+      expect(screen.queryByTestId("login-page")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("protected-content")).not.toBeInTheDocument();
+    });
+
+    it("waits for the token to bridge when authenticated but token not yet in store", () => {
+      // OIDC settled and authenticated, but TokenBridge hasn't populated the store yet.
+      vi.mocked(useAuth).mockReturnValue({ isLoading: false, isAuthenticated: true } as never);
+
+      renderWithRouter(
+        "/protected",
+        <RequireAuth>
+          <div data-testid="protected-content">Protected</div>
+        </RequireAuth>,
+      );
+
+      expect(screen.getByTestId("auth-loading")).toBeInTheDocument();
+      expect(screen.queryByTestId("login-page")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("protected-content")).not.toBeInTheDocument();
     });
   });
 

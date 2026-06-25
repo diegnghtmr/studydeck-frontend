@@ -1,0 +1,172 @@
+{
+  "page": {
+    "title": "Cartes et paquets",
+    "subtitle": "Parcourez et gérez vos paquets et cartes de révision."
+  },
+  "actions": {
+    "newDeck": "Nouveau paquet",
+    "newCard": "Nouvelle carte",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "create": "Créer un paquet",
+    "creating": "Création…",
+    "delete": "Supprimer",
+    "rename": "Renommer",
+    "archive": "Archiver",
+    "archived": "Archivé",
+    "importJson": "Importer JSON",
+    "startReview": "Commencer la révision",
+    "open": "Ouvrir le paquet"
+  },
+  "sidebar": {
+    "decksLabel": "PAQUETS",
+    "allDecks": "Tous les paquets",
+    "showAllDecks": "Afficher tous les paquets"
+  },
+  "search": {
+    "cardsPlaceholder": "Rechercher des cartes…",
+    "decksPlaceholder": "Rechercher des paquets…",
+    "noCardsMatch": "Aucune carte ne correspond à votre recherche."
+  },
+  "toast": {
+    "deckDeleted": "Paquet supprimé.",
+    "deckCreated": "Paquet créé.",
+    "deckRenamed": "Paquet renommé.",
+    "cardDeleted": "Carte supprimée.",
+    "cardAdded": "Carte ajoutée."
+  },
+  "deckRow": {
+    "selectDeck": "Sélectionner le paquet : {{title}}",
+    "openDeck": "Ouvrir le paquet",
+    "openDeckAria": "Ouvrir {{title}}",
+    "renameDeck": "Renommer {{title}}",
+    "deleteDeck": "Supprimer {{title}}"
+  },
+  "deckDelete": {
+    "title": "Supprimer le paquet ?",
+    "description": "Cela supprimera définitivement le paquet et toutes ses cartes. Cette action est irréversible.",
+    "confirm": "Supprimer le paquet"
+  },
+  "cardItem": {
+    "openCard": "Ouvrir la carte : {{front}}",
+    "deleteCard": "Supprimer la carte",
+    "unknownDeck": "Paquet inconnu"
+  },
+  "cardDelete": {
+    "title": "Supprimer la carte ?",
+    "description": "Cette carte sera supprimée définitivement.",
+    "confirm": "Supprimer la carte"
+  },
+  "deckModal": {
+    "titleNew": "Nouveau paquet",
+    "titleRename": "Renommer le paquet",
+    "nameLabel": "Nom du paquet",
+    "namePlaceholder": "Donnez à votre paquet un nom clair et mémorable.",
+    "nameHint": "Donnez à votre paquet un nom clair et mémorable.",
+    "iconLegend": "Icône",
+    "iconAuto": "Icône automatique",
+    "iconItem": "Icône {{name}}",
+    "iconAutoLabel": "Auto",
+    "colorLegend": "Couleur",
+    "colorAuto": "Couleur automatique",
+    "colorItem": "Couleur {{color}}",
+    "colorAutoLabel": "Auto",
+    "preview": "Aperçu",
+    "submitCreate": "Créer un paquet",
+    "submitSave": "Enregistrer le nom"
+  },
+  "cardModal": {
+    "title": "Nouvelle carte",
+    "closeAria": "Fermer",
+    "deckLabel": "Paquet",
+    "deckSelectPlaceholder": "Sélectionner un paquet",
+    "cardTypeLabel": "Type de carte",
+    "addCloze": "+ Suppression à trous",
+    "clozeHint": "{{count}} suppression(s) à trous · entourez le texte comme \\{{c1::mot}}",
+    "mcqOptionsLabel": "Options — appuyez sur une lettre pour marquer la bonne réponse",
+    "mcqOptionAria": "Bonne réponse : option {{key}}",
+    "mcqOptionPlaceholder": "Option {{key}}",
+    "submitAdd": "Ajouter la carte"
+  },
+  "cardTypes": {
+    "basic": "Basique",
+    "reversed": "Inversée",
+    "cloze": "Cloze",
+    "multipleChoice": "Choix multiple",
+    "freeText": "Texte libre"
+  },
+  "typeFilter": {
+    "allTypes": "Tous les types"
+  },
+  "preview": {
+    "clozeDeletion": "(suppression à trous)",
+    "optionsCount": "{{count}} options"
+  },
+  "frontLabel": {
+    "cloze": "Texte à trous",
+    "question": "Question",
+    "prompt": "Invite",
+    "front": "Recto"
+  },
+  "frontPlaceholder": {
+    "cloze": "La \\{{c1::mitochondrie}} produit de l'ATP.",
+    "question": "Quel organite produit de l'ATP ?",
+    "freeText": "Expliquez le processus avec vos propres mots…",
+    "front": "Recto de la carte…"
+  },
+  "backLabel": {
+    "expectedAnswer": "Réponse attendue",
+    "back": "Verso"
+  },
+  "backPlaceholder": {
+    "modelAnswer": "Réponse modèle pour l'auto-évaluation…",
+    "back": "Verso de la carte…"
+  },
+  "detail": {
+    "loadingAria": "Chargement du paquet",
+    "myDecks": "Mes paquets",
+    "nameLabel": "Nom du paquet",
+    "descriptionLabel": "Description",
+    "notesHeading": "Notes",
+    "newNote": "+ Nouvelle note",
+    "noNotes": "Aucune note pour l'instant.",
+    "createFirstNote": "Créer la première note",
+    "validation": {
+      "nameRequired": "Le nom du paquet est obligatoire.",
+      "nameTooLong": "Le nom doit contenir 120 caractères ou moins."
+    },
+    "archiveDialog": {
+      "title": "Archiver ce paquet ?",
+      "description": "Les paquets archivés sont masqués de la liste principale. Vous pouvez les désarchiver ultérieurement.",
+      "confirm": "Archiver",
+      "cancel": "Conserver"
+    },
+    "deleteDialog": {
+      "title": "Supprimer ce paquet ?",
+      "description": "Cela supprimera définitivement le paquet ainsi que toutes ses notes et cartes. Cette action est irréversible.",
+      "confirm": "Supprimer définitivement",
+      "cancel": "Conserver le paquet"
+    }
+  },
+  "create": {
+    "breadcrumbMyDecks": "Mes paquets",
+    "breadcrumbNew": "Nouveau paquet",
+    "heading": "Créer un paquet",
+    "nameLabel": "Nom du paquet",
+    "namePlaceholder": "ex. Biologie 101",
+    "descriptionLabel": "Description",
+    "descriptionOptional": "(facultatif)",
+    "descriptionPlaceholder": "De quoi parle ce paquet ?",
+    "visibilityLegend": "Visibilité",
+    "validation": {
+      "nameRequired": "Le nom du paquet est obligatoire.",
+      "nameTooLong": "Le nom doit contenir 120 caractères ou moins.",
+      "descriptionTooLong": "La description doit contenir 1000 caractères ou moins."
+    },
+    "error": {
+      "title": "Une erreur s'est produite",
+      "description": "Impossible de créer le paquet. Veuillez réessayer."
+    }
+  }
+}
