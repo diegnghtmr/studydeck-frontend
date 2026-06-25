@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@shared/lib/cn";
 
 interface ConfirmDialogProps {
@@ -85,7 +86,9 @@ export function ConfirmDialog({
 
   if (!open) return null;
 
-  return (
+  // Portal to <body> so the fixed overlay escapes any transformed ancestor
+  // (e.g. the page's sd-fade animation) and covers the full viewport.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
@@ -159,6 +162,7 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
