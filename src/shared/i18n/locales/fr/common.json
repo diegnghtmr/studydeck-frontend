@@ -79,7 +79,18 @@
       "deleteDialogDescription": "Cela supprimera définitivement votre compte et toutes vos données. Cette action est irréversible.",
       "deleteDialogConfirm": "Supprimer le compte",
       "deleteDialogCancel": "Annuler",
-      "deleteFailed": "Échec de la suppression du compte. Veuillez réessayer."
+      "deleteFailed": "Échec de la suppression du compte. Veuillez réessayer.",
+      "sessionsTitle": "Sessions actives",
+      "current": "Actuelle",
+      "revoke": "Révoquer",
+      "revokeDialogTitle": "Révoquer la session ?",
+      "revokeDialogDescription": "Cela déconnectera immédiatement l'appareil sélectionné.",
+      "revokeDialogConfirm": "Révoquer",
+      "lastActive": "Dernier accès {{time}}",
+      "loadingSessions": "Chargement des sessions…",
+      "noSessions": "Aucune autre session trouvée.",
+      "sessionsError": "Impossible de charger les sessions.",
+      "revokedToast": "Session révoquée."
     }
   }
 }

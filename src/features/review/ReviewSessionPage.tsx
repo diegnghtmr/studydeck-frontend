@@ -15,7 +15,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStartSession, useSubmitReview, useNextCard } from "./hooks/use-review";
-import type { NextCardResult } from "./hooks/use-review";
+import type { NextCardResult, CardPreviewIntervals } from "./hooks/use-review";
 import { queryKeys } from "@shared/query/query-keys";
 import type { ReviewSessionModel, CardModel, ReviewRating, ReviewSessionCreatePayload } from "@shared/api/types";
 import { REVIEW_RATING } from "@shared/api/types";
@@ -24,7 +24,20 @@ import { useDeck } from "@features/decks/hooks/use-decks";
 import { DeckIcon } from "@features/decks/DeckIcon";
 import { Badge, PillButton, ProgressBar } from "@shared/ui";
 import { parseCloze } from "./lib/render-cloze";
+import { formatInterval } from "./lib/format-interval";
 import { useTranslation } from "react-i18next";
+import { usePreferencesStore } from "@shared/lib/store";
+
+/**
+ * Extended shape of the next-card API response that includes optional
+ * predicted intervals per rating. Not generated — added by the backend
+ * after the OpenAPI snapshot was taken.
+ */
+interface NextReviewCardWithIntervals {
+  sessionId: string;
+  card: CardModel;
+  previewIntervals?: CardPreviewIntervals;
+}
 
 // ---- Review state machine ---------------------------------------------------
 
@@ -314,9 +327,20 @@ interface CardRevealedPanelProps {
   hint?: string | undefined;
   onRate: (rating: ReviewRating) => void;
   isSubmitting: boolean;
+  previewIntervals?: CardPreviewIntervals | null;
+  showIntervals?: boolean;
 }
 
-function CardRevealedPanel({ card, front, back, hint, onRate, isSubmitting }: CardRevealedPanelProps) {
+function CardRevealedPanel({
+  card,
+  front,
+  back,
+  hint,
+  onRate,
+  isSubmitting,
+  previewIntervals,
+  showIntervals,
+}: CardRevealedPanelProps) {
   const { t } = useTranslation("study");
   const isClozeCard = card.noteType === "cloze";
   const clozeSegments = isClozeCard ? parseCloze(back) : null;
@@ -419,16 +443,23 @@ function CardRevealedPanel({ card, front, back, hint, onRate, isSubmitting }: Ca
           animation: "sdFade 0.25s ease both",
         }}
       >
-        {RATINGS.map(({ rating, key }) => (
-          <RatingButton
-            key={rating}
-            rating={rating}
-            label={t(`review.ratings.${rating}`)}
-            keyHint={key}
-            onRate={onRate}
-            isSubmitting={isSubmitting}
-          />
-        ))}
+        {RATINGS.map(({ rating, key }) => {
+          const intervalDays =
+            showIntervals && previewIntervals != null
+              ? previewIntervals[rating as keyof CardPreviewIntervals]
+              : undefined;
+          return (
+            <RatingButton
+              key={rating}
+              rating={rating}
+              label={t(`review.ratings.${rating}`)}
+              keyHint={key}
+              onRate={onRate}
+              isSubmitting={isSubmitting}
+              {...(intervalDays !== undefined && { intervalDays })}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -442,9 +473,11 @@ interface RatingButtonProps {
   keyHint: string;
   onRate: (rating: ReviewRating) => void;
   isSubmitting: boolean;
+  /** Predicted interval in days, shown when Show Intervals is enabled. */
+  intervalDays?: number | undefined;
 }
 
-function RatingButton({ rating, label, keyHint, onRate, isSubmitting }: RatingButtonProps) {
+function RatingButton({ rating, label, keyHint, onRate, isSubmitting, intervalDays }: RatingButtonProps) {
   const [hovered, setHovered] = useState(false);
   const { ringColor, ringHover, labelColor } = RATING_STYLE[rating] ?? {
     ringColor: "#f2f0ed",
@@ -480,6 +513,14 @@ function RatingButton({ rating, label, keyHint, onRate, isSubmitting }: RatingBu
     >
       <span style={{ fontSize: "14px", fontWeight: 600, color: labelColor }}>{label}</span>
       <span style={{ fontSize: "12px", color: "#a7a7a7" }}>{keyHint}</span>
+      {intervalDays !== undefined && (
+        <span
+          data-testid={`rating-interval-${rating}`}
+          style={{ fontSize: "11px", color: "#a7a7a7" }}
+        >
+          {formatInterval(intervalDays)}
+        </span>
+      )}
     </button>
   );
 }
@@ -620,6 +661,8 @@ export function ReviewSessionPage() {
     again: 0, hard: 0, good: 0, easy: 0,
   });
 
+  const showIntervals = usePreferencesStore((s) => s.showIntervals);
+
   const queryClient = useQueryClient();
   const startSession = useStartSession();
   const submitReview = useSubmitReview();
@@ -629,6 +672,7 @@ export function ReviewSessionPage() {
 
   const currentCard = nextCardData?.card;
   const sessionDone = nextCardData?.sessionDone ?? false;
+  const previewIntervals = nextCardData?.previewIntervals ?? null;
 
   // Watch for session done
   useEffect(() => {
@@ -698,12 +742,15 @@ export function ReviewSessionPage() {
       if (nextResponse.status === 204 || !nextResponse.data) {
         setReviewState(REVIEW_STATE.DONE);
       } else {
-        const nextData = nextResponse.data as unknown as { sessionId: string; card: CardModel };
+        const nextData = nextResponse.data as unknown as NextReviewCardWithIntervals;
         const nextKey = [...queryKeys.reviews.session(session.id), "next"];
         queryClient.setQueryData<NextCardResult>(nextKey, {
           card: nextData.card,
           sessionId: session.id,
           sessionDone: false,
+          ...(nextData.previewIntervals !== undefined && {
+            previewIntervals: nextData.previewIntervals,
+          }),
         });
       }
     } catch {
@@ -875,6 +922,8 @@ export function ReviewSessionPage() {
                       hint={cardPreview.hint}
                       onRate={handleRate}
                       isSubmitting={isSubmitting}
+                      previewIntervals={previewIntervals}
+                      showIntervals={showIntervals}
                     />
                   )}
                 </div>

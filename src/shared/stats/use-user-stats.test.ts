@@ -12,7 +12,7 @@ vi.mock("@shared/api/axios-instance", () => ({
 }));
 
 import { axiosInstance } from "@shared/api/axios-instance";
-import { useUserStats, useUpdatePreferences } from "./use-user-stats";
+import { useUserStats, useUpdatePreferences, wireToUiAlgorithm, uiToWireAlgorithm } from "./use-user-stats";
 import type { UserStats } from "./use-user-stats";
 
 const mockGet = vi.mocked(axiosInstance.get);
@@ -165,5 +165,96 @@ describe("useUpdatePreferences", () => {
     result.current.mutate({ dailyGoal: 20 });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
+  });
+
+  it("sends schedulerAlgorithm as wire token 'SM2' when UI value is 'SM-2'", async () => {
+    mockPatch.mockResolvedValue({ data: undefined });
+
+    const { result } = renderHook(() => useUpdatePreferences(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.mutate({ schedulerAlgorithm: "SM-2" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockPatch).toHaveBeenCalledWith("/v1/account/preferences", {
+      schedulerAlgorithm: "SM2",
+    });
+  });
+
+  it("sends schedulerAlgorithm as 'FSRS' when UI value is 'FSRS'", async () => {
+    mockPatch.mockResolvedValue({ data: undefined });
+
+    const { result } = renderHook(() => useUpdatePreferences(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.mutate({ schedulerAlgorithm: "FSRS" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockPatch).toHaveBeenCalledWith("/v1/account/preferences", {
+      schedulerAlgorithm: "FSRS",
+    });
+  });
+});
+
+describe("wireToUiAlgorithm / uiToWireAlgorithm", () => {
+  it("maps wire 'SM2' to UI 'SM-2'", () => {
+    expect(wireToUiAlgorithm("SM2")).toBe("SM-2");
+  });
+
+  it("maps wire 'FSRS' to UI 'FSRS'", () => {
+    expect(wireToUiAlgorithm("FSRS")).toBe("FSRS");
+  });
+
+  it("maps UI 'SM-2' to wire 'SM2'", () => {
+    expect(uiToWireAlgorithm("SM-2")).toBe("SM2");
+  });
+
+  it("maps UI 'FSRS' to wire 'FSRS'", () => {
+    expect(uiToWireAlgorithm("FSRS")).toBe("FSRS");
+  });
+});
+
+describe("useUserStats — schedulerAlgorithm mapping", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("maps wire 'SM2' to UI 'SM-2' in returned stats", async () => {
+    mockGet.mockResolvedValue({
+      data: { ...STATS_FIXTURE, schedulerAlgorithm: "SM2" },
+    });
+
+    const { result } = renderHook(() => useUserStats(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.schedulerAlgorithm).toBe("SM-2");
+  });
+
+  it("maps wire 'FSRS' to UI 'FSRS' in returned stats", async () => {
+    mockGet.mockResolvedValue({
+      data: { ...STATS_FIXTURE, schedulerAlgorithm: "FSRS" },
+    });
+
+    const { result } = renderHook(() => useUserStats(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.schedulerAlgorithm).toBe("FSRS");
+  });
+
+  it("leaves schedulerAlgorithm undefined when absent from server response", async () => {
+    mockGet.mockResolvedValue({ data: STATS_FIXTURE });
+
+    const { result } = renderHook(() => useUserStats(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.schedulerAlgorithm).toBeUndefined();
   });
 });

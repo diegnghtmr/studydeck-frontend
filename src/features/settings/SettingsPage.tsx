@@ -18,6 +18,8 @@ import {
 } from "@shared/ui";
 import { useAuth } from "react-oidc-context";
 import { useDeleteAccount, useLogoutAllSessions } from "./hooks/use-delete-account";
+import { useSessions, useRevokeSession } from "./hooks/use-sessions";
+import { formatRelativeTime } from "@shared/utils/format-relative-time";
 import { FIELD_CLASS } from "@shared/ui/field";
 import {
   useAiProviderStore,
@@ -122,10 +124,9 @@ export function SettingsPage() {
 
   const showIntervals = usePreferencesStore((s) => s.showIntervals);
   const setShowIntervals = usePreferencesStore((s) => s.setShowIntervals);
-  const schedulerAlgorithm = usePreferencesStore((s) => s.schedulerAlgorithm);
-  const setSchedulerAlgorithm = usePreferencesStore((s) => s.setSchedulerAlgorithm);
 
   const { data: userStats } = useUserStats();
+  const schedulerAlgorithm = userStats?.schedulerAlgorithm ?? "FSRS";
   const updateDailyGoal = useUpdateDailyGoal();
   const updatePreferences = useUpdatePreferences();
   const dailyGoal = userStats?.dailyGoal ?? 40;
@@ -404,18 +405,18 @@ export function SettingsPage() {
               >
                 <SegmentedTab
                   active={schedulerAlgorithm === "FSRS"}
-                  onClick={() => setSchedulerAlgorithm("FSRS")}
+                  onClick={() => updatePreferences.mutate({ schedulerAlgorithm: "FSRS" })}
                 >
                   FSRS
                 </SegmentedTab>
                 <SegmentedTab
                   active={schedulerAlgorithm === "SM-2"}
-                  onClick={() => setSchedulerAlgorithm("SM-2")}
+                  onClick={() => updatePreferences.mutate({ schedulerAlgorithm: "SM-2" })}
                 >
                   SM-2
                 </SegmentedTab>
               </div>
-              <p style={helperStyle}>{t("settings.study.savedLocallyHint")}</p>
+              <p style={helperStyle}>{t("settings.study.syncedHint")}</p>
             </div>
 
             {/* Daily goal — synced to the backend */}
@@ -511,34 +512,11 @@ export function SettingsPage() {
           <div style={{ padding: cardPad }}>
             <div style={sectionTitleStyle}>{t("settings.sections.account")}</div>
 
-            {/* Current session row */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "10px 0",
-              }}
-            >
-              <span style={{ fontSize: "14px", color: "var(--color-charcoal-primary)" }}>
-                {t("settings.account.thisDevice")}
-              </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                <span
-                  style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                    backgroundColor: "#00ca48",
-                    display: "inline-block",
-                  }}
-                />
-                <span style={{ fontSize: "12px", color: "#00ca48" }}>{t("settings.account.activeSession")}</span>
-              </span>
-            </div>
-            <p style={{ ...helperStyle, fontSize: "11px" }}>
-              {t("settings.account.sessionHint")}
+            {/* Sessions title */}
+            <p style={{ ...fieldLabelStyle, marginBottom: "12px" }}>
+              {t("settings.account.sessionsTitle")}
             </p>
+            <SessionList showToast={showToast} />
 
             <div style={{ borderTop: "1px solid #eee", margin: "16px 0" }} />
 
@@ -704,5 +682,125 @@ function ProviderEntry({
         </div>
       </div>
     </div>
+  );
+}
+
+// ---- SessionList component -------------------------------------------------
+
+interface SessionListProps {
+  showToast: (msg: string) => void;
+}
+
+function SessionList({ showToast }: SessionListProps) {
+  const { t } = useTranslation();
+  const { data: sessions, isLoading, isError } = useSessions();
+  const revokeSession = useRevokeSession();
+  const [revokeTargetId, setRevokeTargetId] = useState<string | null>(null);
+  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
+
+  function requestRevoke(id: string) {
+    setRevokeTargetId(id);
+    setRevokeDialogOpen(true);
+  }
+
+  function confirmRevoke() {
+    if (revokeTargetId) {
+      revokeSession.mutate(revokeTargetId, {
+        onSuccess: () => {
+          showToast(t("settings.account.revokedToast"));
+        },
+      });
+    }
+    setRevokeTargetId(null);
+    setRevokeDialogOpen(false);
+  }
+
+  if (isLoading) {
+    return (
+      <p style={{ ...helperStyle, fontSize: "13px" }}>
+        {t("settings.account.loadingSessions")}
+      </p>
+    );
+  }
+
+  if (isError) {
+    return (
+      <p style={{ ...helperStyle, fontSize: "13px" }}>
+        {t("settings.account.sessionsError")}
+      </p>
+    );
+  }
+
+  if (!sessions || sessions.length === 0) {
+    return (
+      <p style={{ ...helperStyle, fontSize: "13px" }}>
+        {t("settings.account.noSessions")}
+      </p>
+    );
+  }
+
+  return (
+    <>
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {sessions.map((session, i) => (
+          <div
+            key={session.id}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              padding: "10px 0",
+              // Last row drops its divider so it doesn't double up with the
+              // section separator that follows.
+              borderBottom: i < sessions.length - 1 ? "1px solid #f0f0f0" : "none",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: "14px", color: "var(--color-charcoal-primary)", fontWeight: 500 }}>
+                {session.device}
+                {" "}
+                <span style={{ fontWeight: 400, color: "var(--color-ash)", fontSize: "12px" }}>
+                  {session.ipAddress}
+                </span>
+              </div>
+              <div style={{ ...helperStyle, marginTop: "2px" }}>
+                {t("settings.account.lastActive", {
+                  time: formatRelativeTime(session.lastAccessAt, Date.now()),
+                })}
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0, marginLeft: "12px" }}>
+              {session.current && (
+                <Badge tone="green" label={t("settings.account.current")} />
+              )}
+              {!session.current && (
+                <PillButton
+                  variant="ghost-danger"
+                  size="sm"
+                  onClick={() => requestRevoke(session.id)}
+                  data-testid={`revoke-${session.id}`}
+                >
+                  {t("settings.account.revoke")}
+                </PillButton>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <ConfirmDialog
+        open={revokeDialogOpen}
+        title={t("settings.account.revokeDialogTitle")}
+        description={t("settings.account.revokeDialogDescription")}
+        confirmLabel={t("settings.account.revokeDialogConfirm")}
+        cancelLabel={t("settings.aiProviders.removeDialogCancel")}
+        destructive
+        onConfirm={confirmRevoke}
+        onCancel={() => {
+          setRevokeTargetId(null);
+          setRevokeDialogOpen(false);
+        }}
+      />
+    </>
   );
 }

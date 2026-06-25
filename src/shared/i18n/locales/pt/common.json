@@ -79,7 +79,18 @@
       "deleteDialogDescription": "Isso excluirá permanentemente sua conta e todos os seus dados. Esta ação não pode ser desfeita.",
       "deleteDialogConfirm": "Excluir conta",
       "deleteDialogCancel": "Cancelar",
-      "deleteFailed": "Falha ao excluir a conta. Tente novamente."
+      "deleteFailed": "Falha ao excluir a conta. Tente novamente.",
+      "sessionsTitle": "Sessões ativas",
+      "current": "Atual",
+      "revoke": "Revogar",
+      "revokeDialogTitle": "Revogar sessão?",
+      "revokeDialogDescription": "Isso encerrará imediatamente a sessão do dispositivo selecionado.",
+      "revokeDialogConfirm": "Revogar",
+      "lastActive": "Último acesso {{time}}",
+      "loadingSessions": "Carregando sessões…",
+      "noSessions": "Nenhuma outra sessão encontrada.",
+      "sessionsError": "Não foi possível carregar as sessões.",
+      "revokedToast": "Sessão revogada."
     }
   }
 }

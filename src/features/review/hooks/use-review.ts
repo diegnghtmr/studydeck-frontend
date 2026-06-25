@@ -14,10 +14,19 @@ import type {
 
 // ---- Augmented return type for next-card query --------------------------------
 
+/** Predicted days per rating returned by the backend alongside the next card. */
+export interface CardPreviewIntervals {
+  again: number;
+  hard: number;
+  good: number;
+  easy: number;
+}
+
 export interface NextCardResult {
   card?: CardModel;
   sessionId: string;
   sessionDone: boolean;
+  previewIntervals?: CardPreviewIntervals;
 }
 
 // ---- Queries -----------------------------------------------------------------
@@ -44,6 +53,11 @@ export function useDueCards(deckId?: string, limit?: number) {
  * staleTime: Infinity — the session flow is driven by explicit refetches after
  * rating submission, not by automatic background re-fetching.
  */
+/** Raw wire shape of the next-card response, including the optional preview intervals. */
+interface NextReviewCardWire extends NextReviewCardModel {
+  previewIntervals?: CardPreviewIntervals;
+}
+
 export function useNextCard(sessionId: string) {
   return useQuery<NextCardResult>({
     queryKey: [...queryKeys.reviews.session(sessionId), "next"],
@@ -52,8 +66,13 @@ export function useNextCard(sessionId: string) {
       if (response.status === 204 || !response.data) {
         return { sessionId, sessionDone: true };
       }
-      const data = response.data as unknown as NextReviewCardModel;
-      return { card: data.card, sessionId, sessionDone: false };
+      const data = response.data as unknown as NextReviewCardWire;
+      return {
+        card: data.card,
+        sessionId,
+        sessionDone: false,
+        ...(data.previewIntervals !== undefined && { previewIntervals: data.previewIntervals }),
+      };
     },
     enabled: Boolean(sessionId),
     staleTime: Infinity,
