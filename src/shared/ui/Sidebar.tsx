@@ -301,32 +301,41 @@ export function Sidebar({ studyDueCount = 0, goalCurrent = 0, goalTotal = 40 }: 
         )}
       </aside>
 
-      {/* Floating re-open button (shown when collapsed) */}
-      {!sidebarOpen && (
-        <button
-          type="button"
-          aria-label={t('nav.expandAria')}
-          data-testid="sidebar-expand-btn"
-          onClick={toggleSidebar}
-          className="sd-pop flex items-center justify-center"
-          style={{
-            position: "fixed",
-            top: "16px",
-            left: "16px",
-            zIndex: 40,
-            width: "38px",
-            height: "38px",
-            borderRadius: "10px",
-            backgroundColor: "#ffffff",
-            boxShadow: "var(--shadow-sm)",
-            border: "none",
-            cursor: "pointer",
-            color: "var(--color-charcoal-primary)",
-          }}
-        >
-          <IconExpand />
-        </button>
-      )}
+      {/* Floating re-open button — always mounted so it can cross-fade IN only after the panel has
+          finished collapsing (transition-delay matches the panel's 0.24s width animation), and OUT
+          instantly when expanding. This avoids the button overlapping the still-closing sidebar. */}
+      <button
+        type="button"
+        aria-label={t('nav.expandAria')}
+        data-testid="sidebar-expand-btn"
+        onClick={toggleSidebar}
+        aria-hidden={sidebarOpen}
+        tabIndex={sidebarOpen ? -1 : 0}
+        className="flex items-center justify-center"
+        style={{
+          position: "fixed",
+          top: "16px",
+          left: "16px",
+          zIndex: 40,
+          width: "38px",
+          height: "38px",
+          borderRadius: "10px",
+          backgroundColor: "#ffffff",
+          boxShadow: "var(--shadow-sm)",
+          border: "none",
+          cursor: "pointer",
+          color: "var(--color-charcoal-primary)",
+          opacity: sidebarOpen ? 0 : 1,
+          transform: sidebarOpen ? "scale(0.85)" : "scale(1)",
+          pointerEvents: sidebarOpen ? "none" : "auto",
+          transition: "opacity 0.18s ease, transform 0.18s ease",
+          // Collapsing: wait for the panel to finish (0.24s) before showing.
+          // Expanding: hide immediately (no delay) so it never overlaps the opening panel.
+          transitionDelay: sidebarOpen ? "0s" : "0.24s",
+        }}
+      >
+        <IconExpand />
+      </button>
     </>
   );
 }
