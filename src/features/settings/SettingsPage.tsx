@@ -506,7 +506,20 @@ export function SettingsPage() {
                       },
                     );
                   }}
-                  onActivate={() => activateProvider.mutate(provider.id)}
+                  onActivate={() =>
+                    activateProvider.mutate(provider.id, {
+                      onSuccess: () => {
+                        showToast(
+                          t("settings.aiProviders.providerActivatedToast", {
+                            label: provider.label,
+                          }),
+                        );
+                      },
+                      onError: () => {
+                        showToast(t("settings.aiProviders.providerActivateErrorToast"));
+                      },
+                    })
+                  }
                   onRemove={() => requestRemove(provider.id)}
                   showDivider={idx > 0}
                 />

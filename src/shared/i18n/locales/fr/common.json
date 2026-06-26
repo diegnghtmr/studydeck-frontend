@@ -55,6 +55,8 @@
       "providerRemovedToast": "Fournisseur supprimé",
       "providerRemoveErrorToast": "Échec de la suppression du fournisseur. Veuillez réessayer.",
       "providerAddedToast": "Fournisseur {{label}} ajouté",
+      "providerActivatedToast": "Fournisseur {{label}} activé",
+      "providerActivateErrorToast": "Échec de l'activation du fournisseur. Veuillez réessayer.",
       "addButton": "Ajouter un fournisseur",
       "cancelButton": "Annuler",
       "removeDialogTitle": "Supprimer le fournisseur ?",
