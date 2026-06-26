@@ -51,7 +51,8 @@ describe('i18n aiProviders keys — honest security copy (B-6)', () => {
   ] as const;
 
   const requiredKeys = [
-    'infoBanner',
+    'presetSectionLabel',
+    'customManual',
     'removeDialogDescription',
     'migrationBannerTitle',
     'migrationBannerBody',
@@ -69,50 +70,6 @@ describe('i18n aiProviders keys — honest security copy (B-6)', () => {
       }
     });
   }
-
-  it('en: infoBanner does not contain stale browser-only copy', () => {
-    expect(en.settings.aiProviders.infoBanner.toLowerCase()).not.toContain('browser only');
-  });
-
-  it('es: infoBanner does not contain stale browser-only copy', () => {
-    expect(es.settings.aiProviders.infoBanner.toLowerCase()).not.toContain('solo en tu navegador');
-  });
-
-  it('fr: infoBanner does not contain stale browser-only copy', () => {
-    expect(fr.settings.aiProviders.infoBanner.toLowerCase()).not.toContain(
-      'uniquement dans votre navigateur',
-    );
-  });
-
-  it('pt: infoBanner does not contain stale browser-only copy', () => {
-    expect(pt.settings.aiProviders.infoBanner.toLowerCase()).not.toContain(
-      'apenas no seu navegador',
-    );
-  });
-
-  it('en: infoBanner mentions encrypted server storage', () => {
-    const banner = en.settings.aiProviders.infoBanner.toLowerCase();
-    expect(banner).toContain('encrypted');
-    expect(banner).toContain('server');
-  });
-
-  it('es: infoBanner mentions encrypted server storage', () => {
-    const banner = es.settings.aiProviders.infoBanner.toLowerCase();
-    expect(banner).toContain('cifradas');
-    expect(banner).toContain('servidor');
-  });
-
-  it('fr: infoBanner mentions encrypted server storage', () => {
-    const banner = fr.settings.aiProviders.infoBanner.toLowerCase();
-    expect(banner).toContain('chiffrée');
-    expect(banner).toContain('serveur');
-  });
-
-  it('pt: infoBanner mentions encrypted server storage', () => {
-    const banner = pt.settings.aiProviders.infoBanner.toLowerCase();
-    expect(banner).toContain('criptografada');
-    expect(banner).toContain('servidor');
-  });
 
   it('en: removeDialogDescription does not reference browser', () => {
     expect(en.settings.aiProviders.removeDialogDescription.toLowerCase()).not.toContain(

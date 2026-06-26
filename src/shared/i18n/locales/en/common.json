@@ -34,9 +34,7 @@
       "syncedFromHint": "Synced from your account — not editable here.",
       "syncedHint": "Synced to your account."
     },
-    "aiProviders": {
-      "infoBanner": "Your API keys are stored encrypted on StudyDeck's servers, tied to your account. They are used server-side to reach your AI provider and are never returned to the browser.",
-      "addLabel": "Add provider:",
+    "aiProviders": {      "addLabel": "Add provider:",
       "choosePlaceholder": "Choose a preset…",
       "noProviders": "No providers configured. Add one above.",
       "baseUrlLabel": "Base URL",
@@ -57,7 +55,8 @@
       "providerAddedToast": "{{label}} provider added",
       "providerActivatedToast": "{{label}} is now active",
       "providerActivateErrorToast": "Failed to activate provider. Please try again.",
-      "addButton": "Add provider",
+      "presetSectionLabel": "Add a provider",
+      "customManual": "Custom / manual setup",
       "cancelButton": "Cancel",
       "removeDialogTitle": "Remove provider?",
       "removeDialogDescription": "This will permanently delete the provider and its encrypted key from the server.",

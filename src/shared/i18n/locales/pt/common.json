@@ -34,9 +34,7 @@
       "syncedFromHint": "Sincronizado da sua conta; não editável aqui.",
       "syncedHint": "Sincronizado com sua conta."
     },
-    "aiProviders": {
-      "infoBanner": "Suas chaves de API são armazenadas de forma criptografada nos servidores do StudyDeck, vinculadas à sua conta. Elas são usadas no lado do servidor para se conectar ao seu provedor de IA e nunca são retornadas ao navegador.",
-      "addLabel": "Adicionar provedor:",
+    "aiProviders": {      "addLabel": "Adicionar provedor:",
       "choosePlaceholder": "Escolha um modelo…",
       "noProviders": "Nenhum provedor configurado. Adicione um acima.",
       "baseUrlLabel": "URL base",
@@ -57,7 +55,8 @@
       "providerAddedToast": "Provedor {{label}} adicionado",
       "providerActivatedToast": "Provedor {{label}} ativado",
       "providerActivateErrorToast": "Falha ao ativar o provedor. Tente novamente.",
-      "addButton": "Adicionar provedor",
+      "presetSectionLabel": "Adicionar um provedor",
+      "customManual": "Personalizado / configuração manual",
       "cancelButton": "Cancelar",
       "removeDialogTitle": "Remover provedor?",
       "removeDialogDescription": "Isso excluirá permanentemente o provedor e sua chave criptografada do servidor.",

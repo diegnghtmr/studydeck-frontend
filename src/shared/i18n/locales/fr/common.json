@@ -34,9 +34,7 @@
       "syncedFromHint": "Synchronisé depuis votre compte ; non modifiable ici.",
       "syncedHint": "Synchronisé avec votre compte."
     },
-    "aiProviders": {
-      "infoBanner": "Vos clés API sont stockées de manière chiffrée sur les serveurs de StudyDeck, liées à votre compte. Elles sont utilisées côté serveur pour atteindre votre fournisseur IA et ne sont jamais renvoyées au navigateur.",
-      "addLabel": "Ajouter un fournisseur :",
+    "aiProviders": {      "addLabel": "Ajouter un fournisseur :",
       "choosePlaceholder": "Choisir un modèle…",
       "noProviders": "Aucun fournisseur configuré. Ajoutez-en un ci-dessus.",
       "baseUrlLabel": "URL de base",
@@ -57,7 +55,8 @@
       "providerAddedToast": "Fournisseur {{label}} ajouté",
       "providerActivatedToast": "Fournisseur {{label}} activé",
       "providerActivateErrorToast": "Échec de l'activation du fournisseur. Veuillez réessayer.",
-      "addButton": "Ajouter un fournisseur",
+      "presetSectionLabel": "Ajouter un fournisseur",
+      "customManual": "Personnalisé / configuration manuelle",
       "cancelButton": "Annuler",
       "removeDialogTitle": "Supprimer le fournisseur ?",
       "removeDialogDescription": "Cela supprimera définitivement le fournisseur et sa clé chiffrée du serveur.",

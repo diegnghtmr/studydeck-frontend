@@ -29,12 +29,12 @@ interface LegacyStorageEnvelope {
 // ---- Provider presets (UI concern only — no keys stored) --------------------
 
 export const PROVIDER_PRESETS: Array<{ label: string; baseUrl: string; model: string }> = [
-  { label: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
+  { label: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-5.5" },
   { label: "Anthropic", baseUrl: "https://api.anthropic.com/v1", model: "claude-sonnet-4-6" },
-  { label: "Groq", baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" },
-  { label: "Cerebras", baseUrl: "https://api.cerebras.ai/v1", model: "llama-3.3-70b" },
-  { label: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", model: "openai/gpt-4o" },
-  { label: "Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.0-flash" },
+  { label: "Groq", baseUrl: "https://api.groq.com/openai/v1", model: "qwen/qwen3.6-27b" },
+  { label: "Cerebras", baseUrl: "https://api.cerebras.ai/v1", model: "zai-glm-4.7" },
+  { label: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", model: "deepseek/deepseek-v4-flash" },
+  { label: "Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-3.5-flash" },
   { label: "Custom", baseUrl: "", model: "" },
 ];
 
