@@ -341,7 +341,41 @@ describe("SettingsPage — server-backed AI providers (B-3)", () => {
 
     render(<SettingsPage />);
     fireEvent.click(screen.getByTestId("use-p2"));
-    expect(mockMutate).toHaveBeenCalledWith("p2");
+    expect(mockMutate).toHaveBeenCalledWith(
+      "p2",
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      }),
+    );
+  });
+
+  it("activate onError callback shows error toast", () => {
+    let capturedOnError: (() => void) | undefined;
+    vi.mocked(useActivateAiProvider).mockReturnValue({
+      mutate: vi.fn((_id: string, opts?: { onError?: () => void }) => {
+        capturedOnError = opts?.onError;
+      }),
+      mutateAsync: vi.fn(),
+      isPending: false,
+      isSuccess: false,
+      isError: false,
+      error: null,
+    } as unknown as ReturnType<typeof useActivateAiProvider>);
+    vi.mocked(useAiProviders).mockReturnValue({
+      data: [PROVIDER_B],
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useAiProviders>);
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByTestId("use-p2"));
+
+    // Trigger onError manually — activation failures must not be silent.
+    act(() => {
+      capturedOnError?.();
+    });
+    expect(screen.queryByTestId("toast")).not.toBeNull();
   });
 
   it("clicking Remove opens the confirm dialog", () => {
@@ -764,7 +798,7 @@ describe("SettingsPage — C1: delete/activate toast timing", () => {
 
     // Trigger onSuccess manually (simulates async resolve)
     act(() => { capturedOnSuccess?.(); });
-    expect(screen.queryByTestId("toast")).toBeDefined();
+    expect(screen.queryByTestId("toast")).not.toBeNull();
   });
 
   it("delete onError callback shows error toast", () => {
@@ -791,7 +825,7 @@ describe("SettingsPage — C1: delete/activate toast timing", () => {
 
     // Trigger onError manually
     act(() => { capturedOnError?.(); });
-    expect(screen.queryByTestId("toast")).toBeDefined();
+    expect(screen.queryByTestId("toast")).not.toBeNull();
   });
 });
 
@@ -1015,7 +1049,7 @@ describe("SettingsPage — C3: add-from-preset draft flow", () => {
     fireEvent.click(screen.getByTestId("draft-save-btn"));
 
     act(() => { capturedOnError?.(); });
-    expect(screen.queryByTestId("toast")).toBeDefined();
+    expect(screen.queryByTestId("toast")).not.toBeNull();
   });
 
   it("clicking the plain Add Provider button (no preset) opens a blank draft form", () => {

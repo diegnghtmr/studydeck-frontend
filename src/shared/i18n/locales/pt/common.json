@@ -55,6 +55,8 @@
       "providerRemovedToast": "Provedor removido",
       "providerRemoveErrorToast": "Falha ao remover o provedor. Tente novamente.",
       "providerAddedToast": "Provedor {{label}} adicionado",
+      "providerActivatedToast": "Provedor {{label}} ativado",
+      "providerActivateErrorToast": "Falha ao ativar o provedor. Tente novamente.",
       "addButton": "Adicionar provedor",
       "cancelButton": "Cancelar",
       "removeDialogTitle": "Remover provedor?",

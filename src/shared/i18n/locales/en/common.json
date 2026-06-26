@@ -55,6 +55,8 @@
       "providerRemovedToast": "Provider removed",
       "providerRemoveErrorToast": "Failed to remove provider. Please try again.",
       "providerAddedToast": "{{label}} provider added",
+      "providerActivatedToast": "{{label}} is now active",
+      "providerActivateErrorToast": "Failed to activate provider. Please try again.",
       "addButton": "Add provider",
       "cancelButton": "Cancel",
       "removeDialogTitle": "Remove provider?",
