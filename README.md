@@ -56,20 +56,9 @@ pnpm install --frozen-lockfile --ignore-scripts
 pnpm dev
 ```
 
-Open `http://localhost:5173`. Configure any overrides in a local `.env.local` file or in the process environment before starting Vite.
+Open `http://localhost:5173`. The frontend defaults to `http://localhost:8080` for API calls. Set `VITE_API_URL` to override it. Use the [local Keycloak or development JWT setup](docs/reference.md#environment-and-authentication) to exercise authenticated features.
 
-| Name | Purpose | Default |
-| --- | --- | --- |
-| `VITE_API_URL` | StudyDeck API origin | `http://localhost:8080` |
-| `VITE_OIDC_AUTHORITY` | OIDC issuer URL | Unset |
-| `VITE_OIDC_CLIENT_ID` | Public SPA client ID | Unset |
-| `VITE_OIDC_REDIRECT_URI` | Browser callback registered with the identity provider | Unset |
-| `VITE_OIDC_SCOPE` | Space-separated scopes | `openid profile email study.read` |
-| `VITE_DEV_ACCESS_TOKEN` | Short-lived token for the backend’s development decoder | Unset |
-
-For a local browser login, start the backend’s Keycloak overlay first. Then copy [the local OIDC example](env.idp.example) with `cp env.idp.example .env.local`, run `pnpm dev`, and sign in with the test account from the backend’s locally imported realm. Alternatively, with no OIDC settings, provide a development JWT from the backend as `VITE_DEV_ACCESS_TOKEN`; the frontend skips the OIDC login. Never put a real credential into a `VITE_` variable: these values are visible to the browser.
-
-For a containerized build, the checked-in [Compose file](compose.yaml) serves the production bundle at `http://localhost:3000` with `docker compose up --build`. Vite reads its settings at build time; changing the container’s runtime `VITE_API_URL` does not rewrite the bundle served by nginx. Use the Vite setup above to change the API origin or try the local Keycloak login.
+`docker compose up --build` serves the production bundle at `http://localhost:3000`. Use the Vite setup above for custom API and OIDC settings; the running nginx container cannot change the compiled bundle.
 
 ## Architecture
 
@@ -87,7 +76,7 @@ flowchart LR
 
 ### OpenAPI client generation
 
-The generated TypeScript sources are committed in [`src/shared/api/generated/`](src/shared/api/generated/), so normal installs, builds, and CI need neither Java nor generation. When the backend contract changes, update the local [OpenAPI snapshot](openapi.yaml), then run `pnpm gen:api` and commit the updated source. This maintenance step needs Java 21+; the generator downloads its JAR on first use. Do not commit the `.js` or `.d.ts` compiler outputs.
+The app builds against checked-in TypeScript bindings; Java is only needed to [regenerate the client](docs/reference.md#openapi-client-generation) when the contract changes.
 
 ## Tech stack
 
@@ -97,8 +86,6 @@ The generated TypeScript sources are committed in [`src/shared/api/generated/`](
 | Design | Tailwind CSS 4 `@theme` tokens in [`src/styles/app.css`](src/styles/app.css), with Inter and Fraunces |
 | Data and state | TanStack Query, Axios, OpenAPI Generator, Zustand |
 | Build and checks | pnpm, Vite, ESLint, Vitest, Playwright Chromium |
-
-The CSS theme defines warm canvas (`#fbfaf9`), ember orange (`#ff3e00`), and graphite (`#474645`), with type sizes from 12px captions to 68px display text. Layout tokens start at 4px; tags, cards, and buttons use radii of 6px, 10px, and 32px respectively.
 
 ## Testing
 
@@ -110,7 +97,7 @@ pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-`pnpm test:watch` keeps Vitest running, `pnpm lint:fix` applies available fixes, and `pnpm preview` serves the built bundle. [CI](.github/workflows/ci.yml) installs from the lockfile, lints, runs Vitest, builds, and runs Playwright against the Vite server in a separate job. The [browser smoke tests](e2e/smoke.spec.ts) cover the app shell and sign-in route without a running API.
+[CI](.github/workflows/ci.yml) installs from the lockfile, lints, runs Vitest, builds, and runs Playwright against the Vite server in a separate job. The [browser smoke tests](e2e/smoke.spec.ts) cover the app shell and sign-in route without a running API.
 
 ## Project structure
 
@@ -122,6 +109,10 @@ src/
 ├── styles/    # Color, type, spacing, radius and shadow tokens
 └── test/      # Vitest setup
 ```
+
+## Documentation
+
+- [Web app reference](docs/reference.md) — authentication and environment variables, OpenAPI client generation, design tokens, package scripts, Playwright, and Docker.
 
 ## Related repositories
 
