@@ -119,3 +119,7 @@ pnpm test:e2e
 ```
 
 In CI, e2e tests are skipped (no browser server available without a running backend).
+
+## License
+
+MIT, see [LICENSE](LICENSE).
